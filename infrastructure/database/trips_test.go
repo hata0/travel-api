@@ -24,7 +24,7 @@ func TestQueries(t *testing.T) {
 		err = now.Scan(time.Date(2000, time.January, 1, 1, 1, 1, 1, time.UTC))
 		require.NoError(t, err)
 
-		err = queries.CreateTrip(context.Background(), CreateTripParams{
+		err = queries.CreateTrip(ctx, CreateTripParams{
 			ID:        id,
 			Name:      "name abc",
 			CreatedAt: now,

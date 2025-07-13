@@ -47,11 +47,11 @@ func setupDB(t *testing.T, ctx context.Context) (*postgres.PostgresContainer, st
 }
 
 func setupQueries(t *testing.T, ctx context.Context, ctr *postgres.PostgresContainer, dbURL string) *Queries {
-	conn, err := pgx.Connect(context.Background(), dbURL)
+	conn, err := pgx.Connect(ctx, dbURL)
 	require.NoError(t, err)
 
 	t.Cleanup(func() {
-		conn.Close(context.Background())
+		conn.Close(ctx)
 		err := ctr.Restore(ctx)
 		require.NoError(t, err)
 	})
