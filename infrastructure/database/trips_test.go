@@ -13,8 +13,7 @@ import (
 func TestQueries_GetTrip(t *testing.T) {
 	ctx := context.Background()
 
-	container, dbUrl := beforeAll(t, ctx)
-	queries := setup(t, ctx, container, dbUrl)
+	queries := setup(t, ctx)
 
 	var id pgtype.UUID
 	err := id.Scan("00000000-0000-0000-0000-000000000001")
@@ -30,8 +29,7 @@ func TestQueries_GetTrip(t *testing.T) {
 func TestQueries_ListTrips(t *testing.T) {
 	ctx := context.Background()
 
-	container, dbUrl := beforeAll(t, ctx)
-	queries := setup(t, ctx, container, dbUrl)
+	queries := setup(t, ctx)
 
 	trips, err := queries.ListTrips(ctx)
 	require.NoError(t, err)
@@ -42,8 +40,7 @@ func TestQueries_ListTrips(t *testing.T) {
 func TestQueries_CreateTrip(t *testing.T) {
 	ctx := context.Background()
 
-	container, dbUrl := beforeAll(t, ctx)
-	queries := setup(t, ctx, container, dbUrl)
+	queries := setup(t, ctx)
 
 	var id pgtype.UUID
 	err := id.Scan("11112222-3333-4444-5555-666677778888")
@@ -76,8 +73,7 @@ func TestQueries_CreateTrip(t *testing.T) {
 func TestQueries_UpdateTrip(t *testing.T) {
 	ctx := context.Background()
 
-	container, dbUrl := beforeAll(t, ctx)
-	queries := setup(t, ctx, container, dbUrl)
+	queries := setup(t, ctx)
 
 	var id pgtype.UUID
 	err := id.Scan("00000000-0000-0000-0000-000000000001")
@@ -107,8 +103,7 @@ func TestQueries_UpdateTrip(t *testing.T) {
 func TestQueries_DeleteTrip(t *testing.T) {
 	ctx := context.Background()
 
-	container, dbUrl := beforeAll(t, ctx)
-	queries := setup(t, ctx, container, dbUrl)
+	queries := setup(t, ctx)
 
 	var id pgtype.UUID
 	err := id.Scan("00000000-0000-0000-0000-000000000001")

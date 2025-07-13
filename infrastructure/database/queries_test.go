@@ -3,6 +3,8 @@ package database
 import (
 	"context"
 	"database/sql"
+	"log"
+	"os"
 	"testing"
 
 	"github.com/go-testfixtures/testfixtures/v3"
@@ -12,11 +14,41 @@ import (
 	"github.com/jackc/pgx/v5"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/stretchr/testify/require"
-	"github.com/testcontainers/testcontainers-go"
+
 	"github.com/testcontainers/testcontainers-go/modules/postgres"
 )
 
-func beforeAll(t *testing.T, ctx context.Context) (*postgres.PostgresContainer, string) {
+var (
+	testContainer *postgres.PostgresContainer
+	testDbUrl     string
+)
+
+func TestMain(m *testing.M) {
+	os.Exit(testMain(m))
+}
+
+func testMain(m *testing.M) int {
+	ctx := context.Background()
+
+	container, dbUrl, err := setupTestContainer(ctx)
+	if err != nil {
+		log.Printf("error setting up test container: %v", err)
+		return 1
+	}
+	testContainer = container
+	testDbUrl = dbUrl
+
+	code := m.Run()
+
+	// コンテナ終了
+	if err := testContainer.Terminate(ctx); err != nil {
+		log.Printf("error terminating test container: %v", err)
+	}
+
+	return code
+}
+
+func setupTestContainer(ctx context.Context) (*postgres.PostgresContainer, string, error) {
 	// PostgreSQL コンテナを起動
 	container, err := postgres.Run(
 		ctx,
@@ -27,57 +59,73 @@ func beforeAll(t *testing.T, ctx context.Context) (*postgres.PostgresContainer, 
 		postgres.BasicWaitStrategies(),
 		postgres.WithSQLDriver("pgx"),
 	)
-	require.NoError(t, err)
-	testcontainers.CleanupContainer(t, container)
+	if err != nil {
+		return nil, "", err
+	}
 
 	// 接続文字列を取得
 	dbUrl, err := container.ConnectionString(ctx, "sslmode=disable")
-	require.NoError(t, err)
+	if err != nil {
+		return nil, "", err
+	}
 
 	// マイグレーションを実行
-	m, err := migrate.New(
+	mig, err := migrate.New(
 		"file://sql/migrations",
 		dbUrl,
 	)
-	require.NoError(t, err)
-	err = m.Up()
-	require.NoError(t, err)
-	sourceErr, dbErr := m.Close()
-	require.NoError(t, sourceErr)
-	require.NoError(t, dbErr)
+	if err != nil {
+		return nil, "", err
+	}
+	if err := mig.Up(); err != nil {
+		return nil, "", err
+	}
+	sourceErr, dbErr := mig.Close()
+	if sourceErr != nil {
+		return nil, "", sourceErr
+	}
+	if dbErr != nil {
+		return nil, "", dbErr
+	}
 
 	// テストデータを挿入
 	db, err := sql.Open("pgx", dbUrl)
-	require.NoError(t, err)
+	if err != nil {
+		return nil, "", err
+	}
 
 	fixtures, err := testfixtures.New(
 		testfixtures.Database(db),
 		testfixtures.Dialect("postgres"),
 		testfixtures.Directory("fixtures"),
 	)
-	require.NoError(t, err)
-	err = fixtures.Load()
-	require.NoError(t, err)
+	if err != nil {
+		return nil, "", err
+	}
+	if err := fixtures.Load(); err != nil {
+		return nil, "", err
+	}
 
 	db.Close()
 
 	// スナップショットを作成
-	err = container.Snapshot(ctx, postgres.WithSnapshotName("test-db-snapshot"))
-	require.NoError(t, err)
+	if err := container.Snapshot(ctx, postgres.WithSnapshotName("test-db-snapshot")); err != nil {
+		return nil, "", err
+	}
 
-	return container, dbUrl
+	return container, dbUrl, nil
 }
 
-func setup(t *testing.T, ctx context.Context, container *postgres.PostgresContainer, dbUrl string) *Queries {
+func setup(t *testing.T, ctx context.Context) *Queries {
 	t.Helper()
 
-	connection, err := pgx.Connect(ctx, dbUrl)
+	connection, err := pgx.Connect(ctx, testDbUrl)
 	require.NoError(t, err)
 
 	t.Cleanup(func() {
 		err := connection.Close(ctx)
 		require.NoError(t, err)
-		err = container.Restore(ctx)
+		err = testContainer.Restore(ctx)
 		require.NoError(t, err)
 	})
 
