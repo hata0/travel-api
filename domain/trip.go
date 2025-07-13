@@ -1,32 +1,41 @@
 package domain
 
 import (
+	"context"
 	"time"
 )
 
-type TripId string
-
-type Trip struct {
-	id        TripId
-	name      string
-	createdAt time.Time
-	updatedAt time.Time
+type TripRepository interface {
+	FindByID(ctx context.Context, id TripID) (Trip, error)
+	FindMany(ctx context.Context) ([]Trip, error)
+	Create(ctx context.Context, trip Trip) error
+	Update(ctx context.Context, trip Trip) error
+	Delete(ctx context.Context, trip Trip) error
 }
 
-func NewTrip(id TripId, name string, createdAt time.Time, updatedAt time.Time) Trip {
+type TripID string
+
+type Trip struct {
+	ID        TripID
+	Name      string
+	CreatedAt time.Time
+	UpdatedAt time.Time
+}
+
+func NewTrip(id TripID, name string, createdAt time.Time, updatedAt time.Time) Trip {
 	return Trip{
-		id:        id,
-		name:      name,
-		createdAt: createdAt,
-		updatedAt: updatedAt,
+		ID:        id,
+		Name:      name,
+		CreatedAt: createdAt,
+		UpdatedAt: updatedAt,
 	}
 }
 
 func (t Trip) Update(name string, updatedAt time.Time) Trip {
 	return Trip{
-		id:        t.id,
-		name:      name,
-		createdAt: t.createdAt,
-		updatedAt: updatedAt,
+		ID:        t.ID,
+		Name:      name,
+		CreatedAt: t.CreatedAt,
+		UpdatedAt: updatedAt,
 	}
 }
