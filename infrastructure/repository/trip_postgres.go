@@ -8,7 +8,7 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-type Queries interface {
+type TripQuerier interface {
 	GetTrip(ctx context.Context, id pgtype.UUID) (database.Trip, error)
 	ListTrips(ctx context.Context) ([]database.Trip, error)
 	CreateTrip(ctx context.Context, arg database.CreateTripParams) error
@@ -17,10 +17,10 @@ type Queries interface {
 }
 
 type TripPostgresRepository struct {
-	queries Queries
+	queries TripQuerier
 }
 
-func NewTripPostgresRepository(queries Queries) domain.TripRepository {
+func NewTripPostgresRepository(queries TripQuerier) domain.TripRepository {
 	return TripPostgresRepository{
 		queries: queries,
 	}

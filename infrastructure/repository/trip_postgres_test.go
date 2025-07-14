@@ -13,38 +13,38 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// MockDBQueries is a mock implementation of the DBQueries interface for testing.
-type MockDBQueries struct {
+// MockTripQuerier is a mock implementation of the TripQuerier interface for testing.
+type MockTripQuerier struct {
 	mock.Mock
 }
 
-func (m *MockDBQueries) GetTrip(ctx context.Context, id pgtype.UUID) (database.Trip, error) {
+func (m *MockTripQuerier) GetTrip(ctx context.Context, id pgtype.UUID) (database.Trip, error) {
 	args := m.Called(ctx, id)
 	return args.Get(0).(database.Trip), args.Error(1)
 }
 
-func (m *MockDBQueries) ListTrips(ctx context.Context) ([]database.Trip, error) {
+func (m *MockTripQuerier) ListTrips(ctx context.Context) ([]database.Trip, error) {
 	args := m.Called(ctx)
 	return args.Get(0).([]database.Trip), args.Error(1)
 }
 
-func (m *MockDBQueries) CreateTrip(ctx context.Context, arg database.CreateTripParams) error {
+func (m *MockTripQuerier) CreateTrip(ctx context.Context, arg database.CreateTripParams) error {
 	args := m.Called(ctx, arg)
 	return args.Error(0)
 }
 
-func (m *MockDBQueries) UpdateTrip(ctx context.Context, arg database.UpdateTripParams) error {
+func (m *MockTripQuerier) UpdateTrip(ctx context.Context, arg database.UpdateTripParams) error {
 	args := m.Called(ctx, arg)
 	return args.Error(0)
 }
 
-func (m *MockDBQueries) DeleteTrip(ctx context.Context, id pgtype.UUID) error {
+func (m *MockTripQuerier) DeleteTrip(ctx context.Context, id pgtype.UUID) error {
 	args := m.Called(ctx, id)
 	return args.Error(0)
 }
 
 func TestTripPostgresRepository_FindByID(t *testing.T) {
-	mockQueries := new(MockDBQueries)
+	mockQueries := new(MockTripQuerier)
 	repo := NewTripPostgresRepository(mockQueries)
 
 	tripID := domain.TripID("00000000-0000-0000-0000-000000000001")
@@ -73,7 +73,7 @@ func TestTripPostgresRepository_FindByID(t *testing.T) {
 }
 
 func TestTripPostgresRepository_FindMany(t *testing.T) {
-	mockQueries := new(MockDBQueries)
+	mockQueries := new(MockTripQuerier)
 	repo := NewTripPostgresRepository(mockQueries)
 
 	// mockされたtrip recordを作成
@@ -102,7 +102,7 @@ func TestTripPostgresRepository_FindMany(t *testing.T) {
 }
 
 func TestTripPostgresRepository_Create(t *testing.T) {
-	mockQueries := new(MockDBQueries)
+	mockQueries := new(MockTripQuerier)
 	repo := NewTripPostgresRepository(mockQueries)
 
 	// ドメインオブジェクトを作成
@@ -119,7 +119,7 @@ func TestTripPostgresRepository_Create(t *testing.T) {
 }
 
 func TestTripPostgresRepository_Update(t *testing.T) {
-	mockQueries := new(MockDBQueries)
+	mockQueries := new(MockTripQuerier)
 	repo := NewTripPostgresRepository(mockQueries)
 
 	// ドメインオブジェクトを作成
@@ -136,7 +136,7 @@ func TestTripPostgresRepository_Update(t *testing.T) {
 }
 
 func TestTripPostgresRepository_Delete(t *testing.T) {
-	mockQueries := new(MockDBQueries)
+	mockQueries := new(MockTripQuerier)
 	repo := NewTripPostgresRepository(mockQueries)
 
 	// ドメインオブジェクトを作成
