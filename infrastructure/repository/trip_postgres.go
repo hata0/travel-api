@@ -8,7 +8,7 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-type DBQuery interface {
+type Queries interface {
 	GetTrip(ctx context.Context, id pgtype.UUID) (database.Trip, error)
 	ListTrips(ctx context.Context) ([]database.Trip, error)
 	CreateTrip(ctx context.Context, arg database.CreateTripParams) error
@@ -17,10 +17,10 @@ type DBQuery interface {
 }
 
 type TripPostgresRepository struct {
-	queries DBQuery
+	queries Queries
 }
 
-func NewTripPostgresRepository(queries DBQuery) domain.TripRepository {
+func NewTripPostgresRepository(queries Queries) domain.TripRepository {
 	return TripPostgresRepository{
 		queries: queries,
 	}
@@ -28,7 +28,7 @@ func NewTripPostgresRepository(queries DBQuery) domain.TripRepository {
 
 func (r TripPostgresRepository) FindByID(ctx context.Context, id domain.TripID) (domain.Trip, error) {
 	var validatedId pgtype.UUID
-	if err := validatedId.Scan(id); err != nil {
+	if err := validatedId.Scan(string(id)); err != nil {
 		return domain.Trip{}, err
 	}
 
@@ -65,7 +65,7 @@ func (r TripPostgresRepository) mapToTrip(record database.Trip) domain.Trip {
 
 func (r TripPostgresRepository) Create(ctx context.Context, trip domain.Trip) error {
 	var validatedId pgtype.UUID
-	if err := validatedId.Scan(trip.ID); err != nil {
+	if err := validatedId.Scan(string(trip.ID)); err != nil {
 		return err
 	}
 
@@ -93,7 +93,7 @@ func (r TripPostgresRepository) Create(ctx context.Context, trip domain.Trip) er
 
 func (r TripPostgresRepository) Update(ctx context.Context, trip domain.Trip) error {
 	var validatedId pgtype.UUID
-	if err := validatedId.Scan(trip.ID); err != nil {
+	if err := validatedId.Scan(string(trip.ID)); err != nil {
 		return err
 	}
 
@@ -115,7 +115,7 @@ func (r TripPostgresRepository) Update(ctx context.Context, trip domain.Trip) er
 
 func (r TripPostgresRepository) Delete(ctx context.Context, trip domain.Trip) error {
 	var validatedId pgtype.UUID
-	if err := validatedId.Scan(trip.ID); err != nil {
+	if err := validatedId.Scan(string(trip.ID)); err != nil {
 		return err
 	}
 
