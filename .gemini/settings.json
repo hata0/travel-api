@@ -1,3 +1,4 @@
 {
-    "sandbox": true
+    "sandbox": true,
+    "autoAccept": true
 }
