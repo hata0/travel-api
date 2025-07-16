@@ -21,11 +21,11 @@ func TestTripController_Get(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockService := mock_controller.NewMockTripService(ctrl)
+	mockUsecase := mock_controller.NewMockTripUsecase(ctrl)
 	// ginのvalidatorを有効にするため、NewTripControllerの前にSetdefaultsする
 	gin.SetMode(gin.TestMode)
 	r := gin.Default()
-	tripController := NewTripController(mockService)
+	tripController := NewTripController(mockUsecase)
 	tripController.Register(r)
 
 	tripID := "00000000-0000-0000-0000-000000000001"
@@ -33,7 +33,7 @@ func TestTripController_Get(t *testing.T) {
 	expectedTrip := domain.NewTrip(domain.TripID(tripID), "Test Trip", now, now)
 
 	t.Run("正常系", func(t *testing.T) {
-		mockService.EXPECT().Get(gomock.Any(), tripID).Return(expectedTrip, nil)
+		mockUsecase.EXPECT().Get(gomock.Any(), tripID).Return(expectedTrip, nil)
 
 		w := httptest.NewRecorder()
 		req, _ := http.NewRequest("GET", "/trips/"+tripID, nil)
@@ -51,7 +51,7 @@ func TestTripController_Get(t *testing.T) {
 	})
 
 	t.Run("異常系: Trip not found", func(t *testing.T) {
-		mockService.EXPECT().Get(gomock.Any(), tripID).Return(domain.Trip{}, domain.ErrTripNotFound)
+		mockUsecase.EXPECT().Get(gomock.Any(), tripID).Return(domain.Trip{}, domain.ErrTripNotFound)
 
 		w := httptest.NewRecorder()
 		req, _ := http.NewRequest("GET", "/trips/"+tripID, nil)
@@ -61,7 +61,7 @@ func TestTripController_Get(t *testing.T) {
 	})
 
 	t.Run("異常系: Internal server error", func(t *testing.T) {
-		mockService.EXPECT().Get(gomock.Any(), tripID).Return(domain.Trip{}, errors.New("some error"))
+		mockUsecase.EXPECT().Get(gomock.Any(), tripID).Return(domain.Trip{}, errors.New("some error"))
 
 		w := httptest.NewRecorder()
 		req, _ := http.NewRequest("GET", "/trips/"+tripID, nil)
@@ -75,10 +75,10 @@ func TestTripController_List(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockService := mock_controller.NewMockTripService(ctrl)
+	mockUsecase := mock_controller.NewMockTripUsecase(ctrl)
 	gin.SetMode(gin.TestMode)
 	r := gin.Default()
-	tripController := NewTripController(mockService)
+	tripController := NewTripController(mockUsecase)
 	tripController.Register(r)
 
 	now := time.Now()
@@ -88,7 +88,7 @@ func TestTripController_List(t *testing.T) {
 	}
 
 	t.Run("正常系", func(t *testing.T) {
-		mockService.EXPECT().List(gomock.Any()).Return(expectedTrips, nil)
+		mockUsecase.EXPECT().List(gomock.Any()).Return(expectedTrips, nil)
 
 		w := httptest.NewRecorder()
 		req, _ := http.NewRequest("GET", "/trips", nil)
@@ -106,7 +106,7 @@ func TestTripController_List(t *testing.T) {
 	})
 
 	t.Run("異常系: Internal server error", func(t *testing.T) {
-		mockService.EXPECT().List(gomock.Any()).Return(nil, errors.New("some error"))
+		mockUsecase.EXPECT().List(gomock.Any()).Return(nil, errors.New("some error"))
 
 		w := httptest.NewRecorder()
 		req, _ := http.NewRequest("GET", "/trips", nil)
@@ -120,16 +120,16 @@ func TestTripController_Create(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockService := mock_controller.NewMockTripService(ctrl)
+	mockUsecase := mock_controller.NewMockTripUsecase(ctrl)
 	gin.SetMode(gin.TestMode)
 	r := gin.Default()
-	tripController := NewTripController(mockService)
+	tripController := NewTripController(mockUsecase)
 	tripController.Register(r)
 
 	tripName := "New Trip"
 
 	t.Run("正常系", func(t *testing.T) {
-		mockService.EXPECT().Create(gomock.Any(), tripName).Return(nil)
+		mockUsecase.EXPECT().Create(gomock.Any(), tripName).Return(nil)
 
 		body, _ := json.Marshal(gin.H{"name": tripName})
 		w := httptest.NewRecorder()
@@ -140,8 +140,8 @@ func TestTripController_Create(t *testing.T) {
 		assert.Equal(t, http.StatusOK, w.Code)
 	})
 
-	t.Run("異常系: Service error", func(t *testing.T) {
-		mockService.EXPECT().Create(gomock.Any(), tripName).Return(errors.New("some error"))
+	t.Run("異常系: Usecase error", func(t *testing.T) {
+		mockUsecase.EXPECT().Create(gomock.Any(), tripName).Return(errors.New("some error"))
 
 		body, _ := json.Marshal(gin.H{"name": tripName})
 		w := httptest.NewRecorder()
@@ -166,17 +166,17 @@ func TestTripController_Update(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockService := mock_controller.NewMockTripService(ctrl)
+	mockUsecase := mock_controller.NewMockTripUsecase(ctrl)
 	gin.SetMode(gin.TestMode)
 	r := gin.Default()
-	tripController := NewTripController(mockService)
+	tripController := NewTripController(mockUsecase)
 	tripController.Register(r)
 
 	tripID := "00000000-0000-0000-0000-000000000001"
 	updatedName := "Updated Trip"
 
 	t.Run("正常系", func(t *testing.T) {
-		mockService.EXPECT().Update(gomock.Any(), tripID, updatedName).Return(nil)
+		mockUsecase.EXPECT().Update(gomock.Any(), tripID, updatedName).Return(nil)
 
 		body, _ := json.Marshal(gin.H{"name": updatedName})
 		w := httptest.NewRecorder()
@@ -188,7 +188,7 @@ func TestTripController_Update(t *testing.T) {
 	})
 
 	t.Run("異常系: Trip not found", func(t *testing.T) {
-		mockService.EXPECT().Update(gomock.Any(), tripID, updatedName).Return(domain.ErrTripNotFound)
+		mockUsecase.EXPECT().Update(gomock.Any(), tripID, updatedName).Return(domain.ErrTripNotFound)
 
 		body, _ := json.Marshal(gin.H{"name": updatedName})
 		w := httptest.NewRecorder()
@@ -204,16 +204,16 @@ func TestTripController_Delete(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockService := mock_controller.NewMockTripService(ctrl)
+	mockUsecase := mock_controller.NewMockTripUsecase(ctrl)
 	gin.SetMode(gin.TestMode)
 	r := gin.Default()
-	tripController := NewTripController(mockService)
+	tripController := NewTripController(mockUsecase)
 	tripController.Register(r)
 
 	tripID := "00000000-0000-0000-0000-000000000001"
 
 	t.Run("正常系", func(t *testing.T) {
-		mockService.EXPECT().Delete(gomock.Any(), tripID).Return(nil)
+		mockUsecase.EXPECT().Delete(gomock.Any(), tripID).Return(nil)
 
 		w := httptest.NewRecorder()
 		req, _ := http.NewRequest("DELETE", "/trips/"+tripID, nil)
@@ -223,7 +223,7 @@ func TestTripController_Delete(t *testing.T) {
 	})
 
 	t.Run("異常系: Trip not found", func(t *testing.T) {
-		mockService.EXPECT().Delete(gomock.Any(), tripID).Return(domain.ErrTripNotFound)
+		mockUsecase.EXPECT().Delete(gomock.Any(), tripID).Return(domain.ErrTripNotFound)
 
 		w := httptest.NewRecorder()
 		req, _ := http.NewRequest("DELETE", "/trips/"+tripID, nil)

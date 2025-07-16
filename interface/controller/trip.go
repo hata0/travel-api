@@ -12,8 +12,8 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-//go:generate mockgen -destination mock/trip.go travel-api/interface/controller TripService
-type TripService interface {
+//go:generate mockgen -destination mock/trip.go travel-api/interface/controller TripUsecase
+type TripUsecase interface {
 	Get(ctx context.Context, id string) (domain.Trip, error)
 	List(ctx context.Context) ([]domain.Trip, error)
 	Create(ctx context.Context, name string) error
@@ -22,12 +22,12 @@ type TripService interface {
 }
 
 type TripController struct {
-	service TripService
+	usecase TripUsecase
 }
 
-func NewTripController(service TripService) *TripController {
+func NewTripController(usecase TripUsecase) *TripController {
 	return &TripController{
-		service: service,
+		usecase: usecase,
 	}
 }
 
@@ -47,7 +47,7 @@ func (controller *TripController) Get(c *gin.Context) {
 		return
 	}
 
-	trip, err := controller.service.Get(c.Request.Context(), uriParams.TripID)
+	trip, err := controller.usecase.Get(c.Request.Context(), uriParams.TripID)
 	if err != nil {
 		switch err {
 		case domain.ErrTripNotFound:
@@ -64,7 +64,7 @@ func (controller *TripController) Get(c *gin.Context) {
 }
 
 func (controller *TripController) List(c *gin.Context) {
-	trips, err := controller.service.List(c.Request.Context())
+	trips, err := controller.usecase.List(c.Request.Context())
 	if err != nil {
 		response.NewError(domain.ErrInternalServerError, http.StatusInternalServerError).JSON(c)
 		return
@@ -96,7 +96,7 @@ func (controller *TripController) Create(c *gin.Context) {
 		return
 	}
 
-	err := controller.service.Create(c.Request.Context(), body.Name)
+	err := controller.usecase.Create(c.Request.Context(), body.Name)
 	if err != nil {
 		response.NewError(domain.ErrInternalServerError, http.StatusInternalServerError).JSON(c)
 		return
@@ -118,7 +118,7 @@ func (controller *TripController) Update(c *gin.Context) {
 		return
 	}
 
-	err := controller.service.Update(c.Request.Context(), uriParams.TripID, body.Name)
+	err := controller.usecase.Update(c.Request.Context(), uriParams.TripID, body.Name)
 	if err != nil {
 		switch err {
 		case domain.ErrTripNotFound:
@@ -139,7 +139,7 @@ func (controller *TripController) Delete(c *gin.Context) {
 		return
 	}
 
-	err := controller.service.Delete(c.Request.Context(), uriParams.TripID)
+	err := controller.usecase.Delete(c.Request.Context(), uriParams.TripID)
 	if err != nil {
 		switch err {
 		case domain.ErrTripNotFound:
