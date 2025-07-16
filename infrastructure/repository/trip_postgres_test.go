@@ -2,11 +2,13 @@ package repository
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 	"travel-api/domain"
 	"travel-api/infrastructure/database"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -48,28 +50,47 @@ func TestTripPostgresRepository_FindByID(t *testing.T) {
 	repo := NewTripPostgresRepository(mockQueries)
 
 	tripID := domain.TripID("00000000-0000-0000-0000-000000000001")
-
-	// mockされたtrip recordを作成
 	var pgUUID pgtype.UUID
 	err := pgUUID.Scan(string(tripID))
 	require.NoError(t, err)
-	name := "Test Trip"
-	now := time.Date(2000, 1, 1, 0, 0, 0, 0, time.Local)
-	mockTrip := database.Trip{
-		ID:        pgUUID,
-		Name:      name,
-		CreatedAt: pgtype.Timestamptz{Time: now, Valid: true},
-		UpdatedAt: pgtype.Timestamptz{Time: now, Valid: true},
-	}
 
-	mockQueries.On("GetTrip", mock.Anything, pgUUID).Return(mockTrip, nil)
+	t.Run("正常系", func(t *testing.T) {
+		name := "Test Trip"
+		now := time.Date(2000, 1, 1, 0, 0, 0, 0, time.Local)
+		mockTrip := database.Trip{
+			ID:        pgUUID,
+			Name:      name,
+			CreatedAt: pgtype.Timestamptz{Time: now, Valid: true},
+			UpdatedAt: pgtype.Timestamptz{Time: now, Valid: true},
+		}
+		mockQueries.On("GetTrip", mock.Anything, pgUUID).Return(mockTrip, nil).Once()
 
-	trip, err := repo.FindByID(context.Background(), tripID)
+		trip, err := repo.FindByID(context.Background(), tripID)
 
-	assert.NoError(t, err)
-	assert.Equal(t, tripID, trip.ID)
-	assert.Equal(t, name, trip.Name)
-	mockQueries.AssertExpectations(t)
+		assert.NoError(t, err)
+		assert.Equal(t, tripID, trip.ID)
+		assert.Equal(t, name, trip.Name)
+		mockQueries.AssertExpectations(t)
+	})
+
+	t.Run("異常系: レコードが存在しない", func(t *testing.T) {
+		mockQueries.On("GetTrip", mock.Anything, pgUUID).Return(database.Trip{}, pgx.ErrNoRows).Once()
+
+		_, err := repo.FindByID(context.Background(), tripID)
+
+		assert.ErrorIs(t, err, domain.ErrTripNotFound)
+		mockQueries.AssertExpectations(t)
+	})
+
+	t.Run("異常系: 不明なエラー", func(t *testing.T) {
+		expectedErr := errors.New("some error")
+		mockQueries.On("GetTrip", mock.Anything, pgUUID).Return(database.Trip{}, expectedErr).Once()
+
+		_, err := repo.FindByID(context.Background(), tripID)
+
+		assert.ErrorIs(t, err, expectedErr)
+		mockQueries.AssertExpectations(t)
+	})
 }
 
 func TestTripPostgresRepository_FindMany(t *testing.T) {

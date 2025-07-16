@@ -5,6 +5,7 @@ import (
 	"travel-api/domain"
 	"travel-api/infrastructure/database"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
@@ -34,7 +35,11 @@ func (r TripPostgresRepository) FindByID(ctx context.Context, id domain.TripID) 
 
 	record, err := r.queries.GetTrip(ctx, validatedId)
 	if err != nil {
-		return domain.Trip{}, err
+		if err == pgx.ErrNoRows {
+			return domain.Trip{}, domain.ErrTripNotFound
+		} else {
+			return domain.Trip{}, err
+		}
 	}
 
 	return r.mapToTrip(record), nil
