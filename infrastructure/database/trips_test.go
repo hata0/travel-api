@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -12,18 +13,28 @@ import (
 
 func TestQueries_GetTrip(t *testing.T) {
 	ctx := context.Background()
-
 	queries := setup(t, ctx)
 
-	var id pgtype.UUID
-	err := id.Scan("00000000-0000-0000-0000-000000000001")
-	require.NoError(t, err)
+	t.Run("正常系", func(t *testing.T) {
+		var id pgtype.UUID
+		err := id.Scan("00000000-0000-0000-0000-000000000001")
+		require.NoError(t, err)
 
-	trip, err := queries.GetTrip(ctx, id)
-	require.NoError(t, err)
+		trip, err := queries.GetTrip(ctx, id)
+		require.NoError(t, err)
 
-	assert.Equal(t, id, trip.ID)
-	assert.Equal(t, "Trip to Tokyo", trip.Name)
+		assert.Equal(t, id, trip.ID)
+		assert.Equal(t, "Trip to Tokyo", trip.Name)
+	})
+
+	t.Run("異常系: レコードが存在しない", func(t *testing.T) {
+		var id pgtype.UUID
+		err := id.Scan("99999999-9999-9999-9999-999999999999")
+		require.NoError(t, err)
+
+		_, err = queries.GetTrip(ctx, id)
+		assert.ErrorIs(t, err, pgx.ErrNoRows)
+	})
 }
 
 func TestQueries_ListTrips(t *testing.T) {
