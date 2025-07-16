@@ -35,3 +35,24 @@ func TestTripURIParameters_Validation(t *testing.T) {
 		assert.Error(t, err)
 	})
 }
+
+func TestCreateTripJSONBody_Validation(t *testing.T) {
+	validate := validator.New()
+	validate.SetTagName("binding")
+
+	t.Run("正常系", func(t *testing.T) {
+		params := CreateTripJSONBody{
+			Name: "test name",
+		}
+		err := validate.Struct(params)
+		assert.NoError(t, err)
+	})
+
+	t.Run("異常系: Nameが空", func(t *testing.T) {
+		params := CreateTripJSONBody{
+			Name: "",
+		}
+		err := validate.Struct(params)
+		assert.Error(t, err)
+	})
+}
