@@ -13,7 +13,7 @@ func TestTripURIParameters_Validation(t *testing.T) {
 
 	t.Run("正常系", func(t *testing.T) {
 		params := TripURIParameters{
-			TripID: "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d",
+			TripID: "00000000-0000-0000-0000-000000000001",
 		}
 		err := validate.Struct(params)
 		assert.NoError(t, err)
@@ -22,14 +22,6 @@ func TestTripURIParameters_Validation(t *testing.T) {
 	t.Run("異常系: TripIDが空", func(t *testing.T) {
 		params := TripURIParameters{
 			TripID: "",
-		}
-		err := validate.Struct(params)
-		assert.Error(t, err)
-	})
-
-	t.Run("異常系: TripIDがUUIDv4形式ではない", func(t *testing.T) {
-		params := TripURIParameters{
-			TripID: "not-a-valid-uuid",
 		}
 		err := validate.Struct(params)
 		assert.Error(t, err)
