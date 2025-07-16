@@ -7,46 +7,20 @@ import (
 	"time"
 	"travel-api/domain"
 	"travel-api/infrastructure/database"
+	mock_repository "travel-api/infrastructure/repository/mock"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/mock/gomock"
 )
 
-// MockTripQuerier is a mock implementation of the TripQuerier interface for testing.
-type MockTripQuerier struct {
-	mock.Mock
-}
-
-func (m *MockTripQuerier) GetTrip(ctx context.Context, id pgtype.UUID) (database.Trip, error) {
-	args := m.Called(ctx, id)
-	return args.Get(0).(database.Trip), args.Error(1)
-}
-
-func (m *MockTripQuerier) ListTrips(ctx context.Context) ([]database.Trip, error) {
-	args := m.Called(ctx)
-	return args.Get(0).([]database.Trip), args.Error(1)
-}
-
-func (m *MockTripQuerier) CreateTrip(ctx context.Context, arg database.CreateTripParams) error {
-	args := m.Called(ctx, arg)
-	return args.Error(0)
-}
-
-func (m *MockTripQuerier) UpdateTrip(ctx context.Context, arg database.UpdateTripParams) error {
-	args := m.Called(ctx, arg)
-	return args.Error(0)
-}
-
-func (m *MockTripQuerier) DeleteTrip(ctx context.Context, id pgtype.UUID) error {
-	args := m.Called(ctx, id)
-	return args.Error(0)
-}
-
 func TestTripPostgresRepository_FindByID(t *testing.T) {
-	mockQueries := new(MockTripQuerier)
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockQueries := mock_repository.NewMockTripQuerier(ctrl)
 	repo := NewTripPostgresRepository(mockQueries)
 
 	tripID := domain.TripID("00000000-0000-0000-0000-000000000001")
@@ -63,38 +37,38 @@ func TestTripPostgresRepository_FindByID(t *testing.T) {
 			CreatedAt: pgtype.Timestamptz{Time: now, Valid: true},
 			UpdatedAt: pgtype.Timestamptz{Time: now, Valid: true},
 		}
-		mockQueries.On("GetTrip", mock.Anything, pgUUID).Return(mockTrip, nil).Once()
+		mockQueries.EXPECT().GetTrip(gomock.Any(), pgUUID).Return(mockTrip, nil).Times(1)
 
 		trip, err := repo.FindByID(context.Background(), tripID)
 
 		assert.NoError(t, err)
 		assert.Equal(t, tripID, trip.ID)
 		assert.Equal(t, name, trip.Name)
-		mockQueries.AssertExpectations(t)
 	})
 
 	t.Run("異常系: レコードが存在しない", func(t *testing.T) {
-		mockQueries.On("GetTrip", mock.Anything, pgUUID).Return(database.Trip{}, pgx.ErrNoRows).Once()
+		mockQueries.EXPECT().GetTrip(gomock.Any(), pgUUID).Return(database.Trip{}, pgx.ErrNoRows).Times(1)
 
 		_, err := repo.FindByID(context.Background(), tripID)
 
 		assert.ErrorIs(t, err, domain.ErrTripNotFound)
-		mockQueries.AssertExpectations(t)
 	})
 
 	t.Run("異常系: 不明なエラー", func(t *testing.T) {
 		expectedErr := errors.New("some error")
-		mockQueries.On("GetTrip", mock.Anything, pgUUID).Return(database.Trip{}, expectedErr).Once()
+		mockQueries.EXPECT().GetTrip(gomock.Any(), pgUUID).Return(database.Trip{}, expectedErr).Times(1)
 
 		_, err := repo.FindByID(context.Background(), tripID)
 
 		assert.ErrorIs(t, err, expectedErr)
-		mockQueries.AssertExpectations(t)
 	})
 }
 
 func TestTripPostgresRepository_FindMany(t *testing.T) {
-	mockQueries := new(MockTripQuerier)
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockQueries := mock_repository.NewMockTripQuerier(ctrl)
 	repo := NewTripPostgresRepository(mockQueries)
 
 	// mockされたtrip recordを作成
@@ -112,18 +86,20 @@ func TestTripPostgresRepository_FindMany(t *testing.T) {
 		},
 	}
 
-	mockQueries.On("ListTrips", mock.Anything).Return(mockTrips, nil)
+	mockQueries.EXPECT().ListTrips(gomock.Any()).Return(mockTrips, nil).Times(1)
 
 	trips, err := repo.FindMany(context.Background())
 
 	assert.NoError(t, err)
 	assert.Len(t, trips, 1)
 	assert.Equal(t, name, trips[0].Name)
-	mockQueries.AssertExpectations(t)
 }
 
 func TestTripPostgresRepository_Create(t *testing.T) {
-	mockQueries := new(MockTripQuerier)
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockQueries := mock_repository.NewMockTripQuerier(ctrl)
 	repo := NewTripPostgresRepository(mockQueries)
 
 	// ドメインオブジェクトを作成
@@ -131,16 +107,18 @@ func TestTripPostgresRepository_Create(t *testing.T) {
 	now := time.Date(2000, 1, 1, 0, 0, 0, 0, time.Local)
 	trip := domain.NewTrip(tripID, "New Trip", now, now)
 
-	mockQueries.On("CreateTrip", mock.Anything, mock.AnythingOfType("database.CreateTripParams")).Return(nil)
+	mockQueries.EXPECT().CreateTrip(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 
 	err := repo.Create(context.Background(), trip)
 
 	assert.NoError(t, err)
-	mockQueries.AssertExpectations(t)
 }
 
 func TestTripPostgresRepository_Update(t *testing.T) {
-	mockQueries := new(MockTripQuerier)
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockQueries := mock_repository.NewMockTripQuerier(ctrl)
 	repo := NewTripPostgresRepository(mockQueries)
 
 	// ドメインオブジェクトを作成
@@ -148,16 +126,18 @@ func TestTripPostgresRepository_Update(t *testing.T) {
 	now := time.Date(2000, 1, 1, 0, 0, 0, 0, time.Local)
 	trip := domain.NewTrip(tripID, "Updated Trip", now, now)
 
-	mockQueries.On("UpdateTrip", mock.Anything, mock.AnythingOfType("database.UpdateTripParams")).Return(nil)
+	mockQueries.EXPECT().UpdateTrip(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 
 	err := repo.Update(context.Background(), trip)
 
 	assert.NoError(t, err)
-	mockQueries.AssertExpectations(t)
 }
 
 func TestTripPostgresRepository_Delete(t *testing.T) {
-	mockQueries := new(MockTripQuerier)
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockQueries := mock_repository.NewMockTripQuerier(ctrl)
 	repo := NewTripPostgresRepository(mockQueries)
 
 	// ドメインオブジェクトを作成
@@ -169,10 +149,9 @@ func TestTripPostgresRepository_Delete(t *testing.T) {
 	err := pgUUID.Scan(string(tripID))
 	require.NoError(t, err)
 
-	mockQueries.On("DeleteTrip", mock.Anything, pgUUID).Return(nil)
+	mockQueries.EXPECT().DeleteTrip(gomock.Any(), pgUUID).Return(nil).Times(1)
 
 	err = repo.Delete(context.Background(), trip)
 
 	assert.NoError(t, err)
-	mockQueries.AssertExpectations(t)
 }

@@ -9,6 +9,7 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+//go:generate mockgen -destination mock/trip_postgres.go travel-api/infrastructure/repository TripQuerier
 type TripQuerier interface {
 	GetTrip(ctx context.Context, id pgtype.UUID) (database.Trip, error)
 	ListTrips(ctx context.Context) ([]database.Trip, error)
