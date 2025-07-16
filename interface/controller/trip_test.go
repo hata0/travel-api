@@ -95,10 +95,14 @@ func TestTripController_List(t *testing.T) {
 		r.ServeHTTP(w, req)
 
 		assert.Equal(t, http.StatusOK, w.Code)
-		var responseBody map[string][]domain.Trip
-		err := json.Unmarshal(w.Body.Bytes(), &responseBody)
+		var resBody response.ListTripResponse
+		err := json.Unmarshal(w.Body.Bytes(), &resBody)
 		assert.NoError(t, err)
-		assert.Len(t, responseBody["trips"], 2)
+		assert.Len(t, resBody.Trips, 2)
+		assert.Equal(t, string(expectedTrips[0].ID), resBody.Trips[0].ID)
+		assert.Equal(t, expectedTrips[0].Name, resBody.Trips[0].Name)
+		assert.Equal(t, expectedTrips[0].CreatedAt.Format(time.RFC3339), resBody.Trips[0].CreatedAt)
+		assert.Equal(t, expectedTrips[0].UpdatedAt.Format(time.RFC3339), resBody.Trips[0].UpdatedAt)
 	})
 
 	t.Run("異常系: Internal server error", func(t *testing.T) {

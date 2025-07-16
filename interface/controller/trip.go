@@ -59,12 +59,7 @@ func (controller *TripController) Get(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, response.GetTripResponse{
-		Trip: response.Trip{
-			ID:        string(trip.ID),
-			Name:      trip.Name,
-			CreatedAt: trip.CreatedAt.Format(time.RFC3339),
-			UpdatedAt: trip.UpdatedAt.Format(time.RFC3339),
-		},
+		Trip: controller.mapToTrip(trip),
 	})
 }
 
@@ -75,9 +70,23 @@ func (controller *TripController) List(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"trips": trips,
+	formattedTrips := make([]response.Trip, len(trips))
+	for i, trip := range trips {
+		formattedTrips[i] = controller.mapToTrip(trip)
+	}
+
+	c.JSON(http.StatusOK, response.ListTripResponse{
+		Trips: formattedTrips,
 	})
+}
+
+func (controller *TripController) mapToTrip(trip domain.Trip) response.Trip {
+	return response.Trip{
+		ID:        string(trip.ID),
+		Name:      trip.Name,
+		CreatedAt: trip.CreatedAt.Format(time.RFC3339),
+		UpdatedAt: trip.UpdatedAt.Format(time.RFC3339),
+	}
 }
 
 func (controller *TripController) Create(c *gin.Context) {

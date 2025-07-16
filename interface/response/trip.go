@@ -11,4 +11,8 @@ type (
 	GetTripResponse struct {
 		Trip Trip `json:"trip"`
 	}
+
+	ListTripResponse struct {
+		Trips []Trip `json:"trips"`
+	}
 )
