@@ -1,4 +1,4 @@
-package application
+package usecase
 
 import (
 	"context"
@@ -44,16 +44,9 @@ func (m *MockTripRepository) Delete(ctx context.Context, trip domain.Trip) error
 	return args.Error(0)
 }
 
-func TestNewTripService(t *testing.T) {
-	mockRepo := new(MockTripRepository)
-	service := NewTripService(mockRepo)
-	assert.NotNil(t, service)
-	assert.Equal(t, mockRepo, service.repository)
-}
-
 func TestTripServiceImpl_Get(t *testing.T) {
 	mockRepo := new(MockTripRepository)
-	service := NewTripService(mockRepo)
+	service := NewTripInteractor(mockRepo)
 
 	tripID := domain.TripID("test-id")
 	expectedTrip := domain.NewTrip(tripID, "Test Trip", time.Now(), time.Now())
@@ -69,7 +62,7 @@ func TestTripServiceImpl_Get(t *testing.T) {
 
 func TestTripServiceImpl_Get_Error(t *testing.T) {
 	mockRepo := new(MockTripRepository)
-	service := NewTripService(mockRepo)
+	service := NewTripInteractor(mockRepo)
 
 	tripID := domain.TripID("test-id")
 	expectedErr := errors.New("not found")
@@ -85,7 +78,7 @@ func TestTripServiceImpl_Get_Error(t *testing.T) {
 
 func TestTripServiceImpl_List(t *testing.T) {
 	mockRepo := new(MockTripRepository)
-	service := NewTripService(mockRepo)
+	service := NewTripInteractor(mockRepo)
 
 	expectedTrips := []domain.Trip{
 		domain.NewTrip("1", "Trip 1", time.Now(), time.Now()),
@@ -103,7 +96,7 @@ func TestTripServiceImpl_List(t *testing.T) {
 
 func TestTripServiceImpl_List_Error(t *testing.T) {
 	mockRepo := new(MockTripRepository)
-	service := NewTripService(mockRepo)
+	service := NewTripInteractor(mockRepo)
 
 	expectedErr := errors.New("db error")
 
@@ -118,7 +111,7 @@ func TestTripServiceImpl_List_Error(t *testing.T) {
 
 func TestTripServiceImpl_Create(t *testing.T) {
 	mockRepo := new(MockTripRepository)
-	service := NewTripService(mockRepo)
+	service := NewTripInteractor(mockRepo)
 
 	tripName := "New Trip"
 
@@ -132,7 +125,7 @@ func TestTripServiceImpl_Create(t *testing.T) {
 
 func TestTripServiceImpl_Update(t *testing.T) {
 	mockRepo := new(MockTripRepository)
-	service := NewTripService(mockRepo)
+	service := NewTripInteractor(mockRepo)
 
 	tripID := domain.TripID("test-id")
 	tripName := "Original Trip"
@@ -156,7 +149,7 @@ func TestTripServiceImpl_Update(t *testing.T) {
 
 func TestTripServiceImpl_Update_FindError(t *testing.T) {
 	mockRepo := new(MockTripRepository)
-	service := NewTripService(mockRepo)
+	service := NewTripInteractor(mockRepo)
 
 	tripID := domain.TripID("test-id")
 	updatedTripName := "Updated Trip"
@@ -174,7 +167,7 @@ func TestTripServiceImpl_Update_FindError(t *testing.T) {
 
 func TestTripServiceImpl_Delete(t *testing.T) {
 	mockRepo := new(MockTripRepository)
-	service := NewTripService(mockRepo)
+	service := NewTripInteractor(mockRepo)
 
 	tripID := domain.TripID("test-id")
 	now := time.Now()
@@ -189,9 +182,9 @@ func TestTripServiceImpl_Delete(t *testing.T) {
 	mockRepo.AssertExpectations(t)
 }
 
-func TestTripServiceImpl_Delete_FindError(t *testing.T) {
+func TestTripInteractor_Delete_FindError(t *testing.T) {
 	mockRepo := new(MockTripRepository)
-	service := NewTripService(mockRepo)
+	service := NewTripInteractor(mockRepo)
 
 	tripID := domain.TripID("test-id")
 	expectedErr := errors.New("not found")
