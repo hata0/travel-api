@@ -1,4 +1,5 @@
 {
     "sandbox": true,
-    "autoAccept": true
+    "hideBanner": true,
+    "hideTips": true
 }
