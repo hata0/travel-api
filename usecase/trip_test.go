@@ -44,41 +44,41 @@ func (m *MockTripRepository) Delete(ctx context.Context, trip domain.Trip) error
 	return args.Error(0)
 }
 
-func TestTripServiceImpl_Get(t *testing.T) {
+func TestTripInteractor_Get(t *testing.T) {
 	mockRepo := new(MockTripRepository)
-	service := NewTripInteractor(mockRepo)
+	interactor := NewTripInteractor(mockRepo)
 
 	tripID := domain.TripID("test-id")
 	expectedTrip := domain.NewTrip(tripID, "Test Trip", time.Now(), time.Now())
 
 	mockRepo.On("FindByID", mock.Anything, tripID).Return(expectedTrip, nil)
 
-	trip, err := service.Get(context.Background(), string(tripID))
+	trip, err := interactor.Get(context.Background(), string(tripID))
 
 	assert.NoError(t, err)
 	assert.Equal(t, expectedTrip, trip)
 	mockRepo.AssertExpectations(t)
 }
 
-func TestTripServiceImpl_Get_Error(t *testing.T) {
+func TestTripInteractor_Get_Error(t *testing.T) {
 	mockRepo := new(MockTripRepository)
-	service := NewTripInteractor(mockRepo)
+	interactor := NewTripInteractor(mockRepo)
 
 	tripID := domain.TripID("test-id")
 	expectedErr := errors.New("not found")
 
 	mockRepo.On("FindByID", mock.Anything, tripID).Return(domain.Trip{}, expectedErr)
 
-	_, err := service.Get(context.Background(), string(tripID))
+	_, err := interactor.Get(context.Background(), string(tripID))
 
 	assert.Error(t, err)
 	assert.Equal(t, expectedErr, err)
 	mockRepo.AssertExpectations(t)
 }
 
-func TestTripServiceImpl_List(t *testing.T) {
+func TestTripInteractor_List(t *testing.T) {
 	mockRepo := new(MockTripRepository)
-	service := NewTripInteractor(mockRepo)
+	interactor := NewTripInteractor(mockRepo)
 
 	expectedTrips := []domain.Trip{
 		domain.NewTrip("1", "Trip 1", time.Now(), time.Now()),
@@ -87,45 +87,45 @@ func TestTripServiceImpl_List(t *testing.T) {
 
 	mockRepo.On("FindMany", mock.Anything).Return(expectedTrips, nil)
 
-	trips, err := service.List(context.Background())
+	trips, err := interactor.List(context.Background())
 
 	assert.NoError(t, err)
 	assert.Equal(t, expectedTrips, trips)
 	mockRepo.AssertExpectations(t)
 }
 
-func TestTripServiceImpl_List_Error(t *testing.T) {
+func TestTripInteractor_List_Error(t *testing.T) {
 	mockRepo := new(MockTripRepository)
-	service := NewTripInteractor(mockRepo)
+	interactor := NewTripInteractor(mockRepo)
 
 	expectedErr := errors.New("db error")
 
 	mockRepo.On("FindMany", mock.Anything).Return(nil, expectedErr)
 
-	_, err := service.List(context.Background())
+	_, err := interactor.List(context.Background())
 
 	assert.Error(t, err)
 	assert.Equal(t, expectedErr, err)
 	mockRepo.AssertExpectations(t)
 }
 
-func TestTripServiceImpl_Create(t *testing.T) {
+func TestTripInteractor_Create(t *testing.T) {
 	mockRepo := new(MockTripRepository)
-	service := NewTripInteractor(mockRepo)
+	interactor := NewTripInteractor(mockRepo)
 
 	tripName := "New Trip"
 
 	mockRepo.On("Create", mock.Anything, mock.AnythingOfType("domain.Trip")).Return(nil)
 
-	err := service.Create(context.Background(), tripName)
+	err := interactor.Create(context.Background(), tripName)
 
 	assert.NoError(t, err)
 	mockRepo.AssertExpectations(t)
 }
 
-func TestTripServiceImpl_Update(t *testing.T) {
+func TestTripInteractor_Update(t *testing.T) {
 	mockRepo := new(MockTripRepository)
-	service := NewTripInteractor(mockRepo)
+	interactor := NewTripInteractor(mockRepo)
 
 	tripID := domain.TripID("test-id")
 	tripName := "Original Trip"
@@ -136,7 +136,7 @@ func TestTripServiceImpl_Update(t *testing.T) {
 	mockRepo.On("FindByID", mock.Anything, tripID).Return(originalTrip, nil)
 	mockRepo.On("Update", mock.Anything, mock.AnythingOfType("domain.Trip")).Return(nil)
 
-	err := service.Update(context.Background(), string(tripID), updatedTripName)
+	err := interactor.Update(context.Background(), string(tripID), updatedTripName)
 
 	assert.NoError(t, err)
 	mockRepo.AssertExpectations(t)
@@ -147,9 +147,9 @@ func TestTripServiceImpl_Update(t *testing.T) {
 	}))
 }
 
-func TestTripServiceImpl_Update_FindError(t *testing.T) {
+func TestTripInteractor_Update_FindError(t *testing.T) {
 	mockRepo := new(MockTripRepository)
-	service := NewTripInteractor(mockRepo)
+	interactor := NewTripInteractor(mockRepo)
 
 	tripID := domain.TripID("test-id")
 	updatedTripName := "Updated Trip"
@@ -157,7 +157,7 @@ func TestTripServiceImpl_Update_FindError(t *testing.T) {
 
 	mockRepo.On("FindByID", mock.Anything, tripID).Return(domain.Trip{}, expectedErr)
 
-	err := service.Update(context.Background(), string(tripID), updatedTripName)
+	err := interactor.Update(context.Background(), string(tripID), updatedTripName)
 
 	assert.Error(t, err)
 	assert.Equal(t, expectedErr, err)
@@ -165,9 +165,9 @@ func TestTripServiceImpl_Update_FindError(t *testing.T) {
 	mockRepo.AssertNotCalled(t, "Update", mock.Anything, mock.Anything)
 }
 
-func TestTripServiceImpl_Delete(t *testing.T) {
+func TestTripInteractor_Delete(t *testing.T) {
 	mockRepo := new(MockTripRepository)
-	service := NewTripInteractor(mockRepo)
+	interactor := NewTripInteractor(mockRepo)
 
 	tripID := domain.TripID("test-id")
 	now := time.Now()
@@ -176,7 +176,7 @@ func TestTripServiceImpl_Delete(t *testing.T) {
 	mockRepo.On("FindByID", mock.Anything, tripID).Return(tripToDelete, nil)
 	mockRepo.On("Delete", mock.Anything, tripToDelete).Return(nil)
 
-	err := service.Delete(context.Background(), string(tripID))
+	err := interactor.Delete(context.Background(), string(tripID))
 
 	assert.NoError(t, err)
 	mockRepo.AssertExpectations(t)
@@ -184,14 +184,14 @@ func TestTripServiceImpl_Delete(t *testing.T) {
 
 func TestTripInteractor_Delete_FindError(t *testing.T) {
 	mockRepo := new(MockTripRepository)
-	service := NewTripInteractor(mockRepo)
+	interactor := NewTripInteractor(mockRepo)
 
 	tripID := domain.TripID("test-id")
 	expectedErr := errors.New("not found")
 
 	mockRepo.On("FindByID", mock.Anything, tripID).Return(domain.Trip{}, expectedErr)
 
-	err := service.Delete(context.Background(), string(tripID))
+	err := interactor.Delete(context.Background(), string(tripID))
 
 	assert.Error(t, err)
 	assert.Equal(t, expectedErr, err)
