@@ -1,5 +1,5 @@
 {
-    "sandbox": true,
+    "sandbox": "docker",
     "hideBanner": true,
     "hideTips": true
 }
