@@ -2,7 +2,9 @@ package controller
 
 import (
 	"context"
+	"fmt"
 	"net/http"
+	"time"
 	"travel-api/domain"
 	"travel-api/interface/response"
 	"travel-api/interface/validator"
@@ -40,6 +42,7 @@ func (controller *TripController) Register(router *gin.Engine) {
 func (controller *TripController) Get(c *gin.Context) {
 	var uriParams validator.TripURIParameters
 	if err := c.BindUri(&uriParams); err != nil {
+		fmt.Println(err)
 		response.NewError(domain.ErrInternalServerError, http.StatusInternalServerError).JSON(c)
 		return
 	}
@@ -55,8 +58,13 @@ func (controller *TripController) Get(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"trip": trip,
+	c.JSON(http.StatusOK, response.GetTripResponse{
+		Trip: response.Trip{
+			ID:        string(trip.ID),
+			Name:      trip.Name,
+			CreatedAt: trip.CreatedAt.Format(time.RFC3339),
+			UpdatedAt: trip.UpdatedAt.Format(time.RFC3339),
+		},
 	})
 }
 

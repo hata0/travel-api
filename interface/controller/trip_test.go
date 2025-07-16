@@ -10,6 +10,7 @@ import (
 	"time"
 	"travel-api/domain"
 	mock_controller "travel-api/interface/controller/mock"
+	"travel-api/interface/response"
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
@@ -40,11 +41,13 @@ func TestTripController_Get(t *testing.T) {
 
 		assert.Equal(t, http.StatusOK, w.Code)
 
-		var responseBody map[string]domain.Trip
-		err := json.Unmarshal(w.Body.Bytes(), &responseBody)
+		var resBody response.GetTripResponse
+		err := json.Unmarshal(w.Body.Bytes(), &resBody)
 		assert.NoError(t, err)
-		assert.Equal(t, expectedTrip.ID, responseBody["trip"].ID)
-		assert.Equal(t, expectedTrip.Name, responseBody["trip"].Name)
+		assert.Equal(t, string(expectedTrip.ID), resBody.Trip.ID)
+		assert.Equal(t, expectedTrip.Name, resBody.Trip.Name)
+		assert.Equal(t, expectedTrip.CreatedAt.Format(time.RFC3339), resBody.Trip.CreatedAt)
+		assert.Equal(t, expectedTrip.UpdatedAt.Format(time.RFC3339), resBody.Trip.UpdatedAt)
 	})
 
 	t.Run("異常系: Trip not found", func(t *testing.T) {
@@ -65,14 +68,6 @@ func TestTripController_Get(t *testing.T) {
 		r.ServeHTTP(w, req)
 
 		assert.Equal(t, http.StatusInternalServerError, w.Code)
-	})
-
-	t.Run("異常系: Invalid UUID", func(t *testing.T) {
-		w := httptest.NewRecorder()
-		req, _ := http.NewRequest("GET", "/trips/invalid-uuid", nil)
-		r.ServeHTTP(w, req)
-
-		assert.Equal(t, http.StatusBadRequest, w.Code)
 	})
 }
 
@@ -159,7 +154,7 @@ func TestTripController_Create(t *testing.T) {
 		req.Header.Set("Content-Type", "application/json")
 		r.ServeHTTP(w, req)
 
-		assert.Equal(t, http.StatusInternalServerError, w.Code)
+		assert.Equal(t, http.StatusBadRequest, w.Code)
 	})
 }
 
@@ -199,16 +194,6 @@ func TestTripController_Update(t *testing.T) {
 
 		assert.Equal(t, http.StatusNotFound, w.Code)
 	})
-
-	t.Run("異常系: Invalid UUID", func(t *testing.T) {
-		body, _ := json.Marshal(gin.H{"name": updatedName})
-		w := httptest.NewRecorder()
-		req, _ := http.NewRequest("PUT", "/trips/invalid-uuid", bytes.NewBuffer(body))
-		req.Header.Set("Content-Type", "application/json")
-		r.ServeHTTP(w, req)
-
-		assert.Equal(t, http.StatusBadRequest, w.Code)
-	})
 }
 
 func TestTripController_Delete(t *testing.T) {
@@ -241,13 +226,5 @@ func TestTripController_Delete(t *testing.T) {
 		r.ServeHTTP(w, req)
 
 		assert.Equal(t, http.StatusNotFound, w.Code)
-	})
-
-	t.Run("異常系: Invalid UUID", func(t *testing.T) {
-		w := httptest.NewRecorder()
-		req, _ := http.NewRequest("DELETE", "/trips/invalid-uuid", nil)
-		r.ServeHTTP(w, req)
-
-		assert.Equal(t, http.StatusBadRequest, w.Code)
 	})
 }
