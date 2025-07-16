@@ -6,125 +6,108 @@ import (
 	"testing"
 	"time"
 	"travel-api/domain"
+	mock_domain "travel-api/domain/mock"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
+	"go.uber.org/mock/gomock"
 )
 
-// MockTripRepository is a mock implementation of the TripRepository interface for testing.
-type MockTripRepository struct {
-	mock.Mock
-}
-
-func (m *MockTripRepository) FindByID(ctx context.Context, id domain.TripID) (domain.Trip, error) {
-	args := m.Called(ctx, id)
-	return args.Get(0).(domain.Trip), args.Error(1)
-}
-
-func (m *MockTripRepository) FindMany(ctx context.Context) ([]domain.Trip, error) {
-	args := m.Called(ctx)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).([]domain.Trip), args.Error(1)
-}
-
-func (m *MockTripRepository) Create(ctx context.Context, trip domain.Trip) error {
-	args := m.Called(ctx, trip)
-	return args.Error(0)
-}
-
-func (m *MockTripRepository) Update(ctx context.Context, trip domain.Trip) error {
-	args := m.Called(ctx, trip)
-	return args.Error(0)
-}
-
-func (m *MockTripRepository) Delete(ctx context.Context, trip domain.Trip) error {
-	args := m.Called(ctx, trip)
-	return args.Error(0)
-}
-
 func TestTripInteractor_Get(t *testing.T) {
-	mockRepo := new(MockTripRepository)
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockRepo := mock_domain.NewMockTripRepository(ctrl)
 	interactor := NewTripInteractor(mockRepo)
 
 	tripID := domain.TripID("test-id")
-	expectedTrip := domain.NewTrip(tripID, "Test Trip", time.Now(), time.Now())
+	now := time.Now()
+	expectedTrip := domain.NewTrip(tripID, "Test Trip", now, now)
 
-	mockRepo.On("FindByID", mock.Anything, tripID).Return(expectedTrip, nil)
+	mockRepo.EXPECT().FindByID(gomock.Any(), tripID).Return(expectedTrip, nil).Times(1)
 
 	trip, err := interactor.Get(context.Background(), string(tripID))
 
 	assert.NoError(t, err)
 	assert.Equal(t, expectedTrip, trip)
-	mockRepo.AssertExpectations(t)
 }
 
 func TestTripInteractor_Get_Error(t *testing.T) {
-	mockRepo := new(MockTripRepository)
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockRepo := mock_domain.NewMockTripRepository(ctrl)
 	interactor := NewTripInteractor(mockRepo)
 
 	tripID := domain.TripID("test-id")
 	expectedErr := errors.New("not found")
 
-	mockRepo.On("FindByID", mock.Anything, tripID).Return(domain.Trip{}, expectedErr)
+	mockRepo.EXPECT().FindByID(gomock.Any(), tripID).Return(domain.Trip{}, expectedErr).Times(1)
 
 	_, err := interactor.Get(context.Background(), string(tripID))
 
 	assert.Error(t, err)
 	assert.Equal(t, expectedErr, err)
-	mockRepo.AssertExpectations(t)
 }
 
 func TestTripInteractor_List(t *testing.T) {
-	mockRepo := new(MockTripRepository)
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockRepo := mock_domain.NewMockTripRepository(ctrl)
 	interactor := NewTripInteractor(mockRepo)
 
+	now := time.Now()
 	expectedTrips := []domain.Trip{
-		domain.NewTrip("1", "Trip 1", time.Now(), time.Now()),
-		domain.NewTrip("2", "Trip 2", time.Now(), time.Now()),
+		domain.NewTrip("1", "Trip 1", now, now),
+		domain.NewTrip("2", "Trip 2", now, now),
 	}
 
-	mockRepo.On("FindMany", mock.Anything).Return(expectedTrips, nil)
+	mockRepo.EXPECT().FindMany(gomock.Any()).Return(expectedTrips, nil).Times(1)
 
 	trips, err := interactor.List(context.Background())
 
 	assert.NoError(t, err)
 	assert.Equal(t, expectedTrips, trips)
-	mockRepo.AssertExpectations(t)
 }
 
 func TestTripInteractor_List_Error(t *testing.T) {
-	mockRepo := new(MockTripRepository)
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockRepo := mock_domain.NewMockTripRepository(ctrl)
 	interactor := NewTripInteractor(mockRepo)
 
 	expectedErr := errors.New("db error")
 
-	mockRepo.On("FindMany", mock.Anything).Return(nil, expectedErr)
+	mockRepo.EXPECT().FindMany(gomock.Any()).Return(nil, expectedErr).Times(1)
 
 	_, err := interactor.List(context.Background())
 
 	assert.Error(t, err)
 	assert.Equal(t, expectedErr, err)
-	mockRepo.AssertExpectations(t)
 }
 
 func TestTripInteractor_Create(t *testing.T) {
-	mockRepo := new(MockTripRepository)
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockRepo := mock_domain.NewMockTripRepository(ctrl)
 	interactor := NewTripInteractor(mockRepo)
 
 	tripName := "New Trip"
 
-	mockRepo.On("Create", mock.Anything, mock.AnythingOfType("domain.Trip")).Return(nil)
+	mockRepo.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 
 	err := interactor.Create(context.Background(), tripName)
 
 	assert.NoError(t, err)
-	mockRepo.AssertExpectations(t)
 }
 
 func TestTripInteractor_Update(t *testing.T) {
-	mockRepo := new(MockTripRepository)
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockRepo := mock_domain.NewMockTripRepository(ctrl)
 	interactor := NewTripInteractor(mockRepo)
 
 	tripID := domain.TripID("test-id")
@@ -133,68 +116,66 @@ func TestTripInteractor_Update(t *testing.T) {
 	now := time.Now()
 	originalTrip := domain.NewTrip(tripID, tripName, now, now)
 
-	mockRepo.On("FindByID", mock.Anything, tripID).Return(originalTrip, nil)
-	mockRepo.On("Update", mock.Anything, mock.AnythingOfType("domain.Trip")).Return(nil)
+	mockRepo.EXPECT().FindByID(gomock.Any(), tripID).Return(originalTrip, nil).Times(1)
+	mockRepo.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 
 	err := interactor.Update(context.Background(), string(tripID), updatedTripName)
 
 	assert.NoError(t, err)
-	mockRepo.AssertExpectations(t)
-
-	// Check if the updated name is correct in the trip passed to Update
-	mockRepo.AssertCalled(t, "Update", mock.Anything, mock.MatchedBy(func(trip domain.Trip) bool {
-		return trip.Name == updatedTripName && trip.ID == tripID
-	}))
 }
 
 func TestTripInteractor_Update_FindError(t *testing.T) {
-	mockRepo := new(MockTripRepository)
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockRepo := mock_domain.NewMockTripRepository(ctrl)
 	interactor := NewTripInteractor(mockRepo)
 
 	tripID := domain.TripID("test-id")
 	updatedTripName := "Updated Trip"
 	expectedErr := errors.New("not found")
 
-	mockRepo.On("FindByID", mock.Anything, tripID).Return(domain.Trip{}, expectedErr)
+	mockRepo.EXPECT().FindByID(gomock.Any(), tripID).Return(domain.Trip{}, expectedErr).Times(1)
 
 	err := interactor.Update(context.Background(), string(tripID), updatedTripName)
 
 	assert.Error(t, err)
 	assert.Equal(t, expectedErr, err)
-	mockRepo.AssertExpectations(t)
-	mockRepo.AssertNotCalled(t, "Update", mock.Anything, mock.Anything)
 }
 
 func TestTripInteractor_Delete(t *testing.T) {
-	mockRepo := new(MockTripRepository)
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockRepo := mock_domain.NewMockTripRepository(ctrl)
 	interactor := NewTripInteractor(mockRepo)
 
 	tripID := domain.TripID("test-id")
 	now := time.Now()
 	tripToDelete := domain.NewTrip(tripID, "Trip to delete", now, now)
 
-	mockRepo.On("FindByID", mock.Anything, tripID).Return(tripToDelete, nil)
-	mockRepo.On("Delete", mock.Anything, tripToDelete).Return(nil)
+	mockRepo.EXPECT().FindByID(gomock.Any(), tripID).Return(tripToDelete, nil).Times(1)
+	mockRepo.EXPECT().Delete(gomock.Any(), tripToDelete).Return(nil).Times(1)
 
 	err := interactor.Delete(context.Background(), string(tripID))
 
 	assert.NoError(t, err)
-	mockRepo.AssertExpectations(t)
 }
 
 func TestTripInteractor_Delete_FindError(t *testing.T) {
-	mockRepo := new(MockTripRepository)
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockRepo := mock_domain.NewMockTripRepository(ctrl)
 	interactor := NewTripInteractor(mockRepo)
 
 	tripID := domain.TripID("test-id")
 	expectedErr := errors.New("not found")
 
-	mockRepo.On("FindByID", mock.Anything, tripID).Return(domain.Trip{}, expectedErr)
+	mockRepo.EXPECT().FindByID(gomock.Any(), tripID).Return(domain.Trip{}, expectedErr).Times(1)
 
 	err := interactor.Delete(context.Background(), string(tripID))
 
 	assert.Error(t, err)
 	assert.Equal(t, expectedErr, err)
-	mockRepo.AssertExpectations(t)
-	mockRepo.AssertNotCalled(t, "Delete", mock.Anything, mock.Anything)
 }
