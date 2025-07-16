@@ -2,7 +2,12 @@ package domain
 
 import (
 	"context"
+	"errors"
 	"time"
+)
+
+var (
+	ErrTripNotFound = errors.New("trip not found")
 )
 
 type TripRepository interface {
