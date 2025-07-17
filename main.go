@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"log"
-	"travel-api/injector"
+	"travel-api/internal/injector"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"

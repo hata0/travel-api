@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 	"time"
-	"travel-api/domain"
+	"travel-api/internal/domain"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

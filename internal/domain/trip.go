@@ -10,7 +10,7 @@ var (
 	ErrTripNotFound = errors.New("trip not found")
 )
 
-//go:generate mockgen -destination mock/trip.go travel-api/domain TripRepository
+//go:generate mockgen -destination mock/trip.go travel-api/internal/domain TripRepository
 type TripRepository interface {
 	FindByID(ctx context.Context, id TripID) (Trip, error)
 	FindMany(ctx context.Context) ([]Trip, error)

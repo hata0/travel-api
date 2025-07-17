@@ -2,7 +2,7 @@ package output
 
 import (
 	"time"
-	"travel-api/domain"
+	"travel-api/internal/domain"
 )
 
 type Trip struct {

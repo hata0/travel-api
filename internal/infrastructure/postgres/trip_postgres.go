@@ -2,7 +2,7 @@ package postgres
 
 import (
 	"context"
-	"travel-api/domain"
+	"travel-api/internal/domain"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"

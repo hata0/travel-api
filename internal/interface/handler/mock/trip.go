@@ -12,7 +12,7 @@ package mock_handler
 import (
 	context "context"
 	reflect "reflect"
-	output "travel-api/usecase/output"
+	output "travel-api/internal/usecase/output"
 
 	gomock "go.uber.org/mock/gomock"
 )

@@ -5,15 +5,15 @@ import (
 	"fmt"
 	"net/http"
 	"time"
-	"travel-api/domain"
-	"travel-api/interface/response"
-	"travel-api/interface/validator"
-	"travel-api/usecase/output"
+	"travel-api/internal/domain"
+	"travel-api/internal/interface/response"
+	"travel-api/internal/interface/validator"
+	"travel-api/internal/usecase/output"
 
 	"github.com/gin-gonic/gin"
 )
 
-//go:generate mockgen -destination mock/trip.go travel-api/interface/handler TripUsecase
+//go:generate mockgen -destination mock/trip.go travel-api/internal/interface/handler TripUsecase
 type TripUsecase interface {
 	Get(ctx context.Context, id string) (output.GetTripOutput, error)
 	List(ctx context.Context) (output.ListTripOutput, error)

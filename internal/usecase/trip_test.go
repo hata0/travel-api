@@ -5,9 +5,9 @@ import (
 	"errors"
 	"testing"
 	"time"
-	"travel-api/domain"
-	mock_domain "travel-api/domain/mock"
-	"travel-api/usecase/output"
+	"travel-api/internal/domain"
+	mock_domain "travel-api/internal/domain/mock"
+	"travel-api/internal/usecase/output"
 
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"

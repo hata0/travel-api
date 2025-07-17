@@ -3,8 +3,8 @@ package usecase
 import (
 	"context"
 	"time"
-	"travel-api/domain"
-	"travel-api/usecase/output"
+	"travel-api/internal/domain"
+	"travel-api/internal/usecase/output"
 )
 
 type TripInteractor struct {

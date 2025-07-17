@@ -1,9 +1,9 @@
 package injector
 
 import (
-	"travel-api/infrastructure/postgres"
-	"travel-api/interface/handler"
-	"travel-api/usecase"
+	"travel-api/internal/infrastructure/postgres"
+	"travel-api/internal/interface/handler"
+	"travel-api/internal/usecase"
 )
 
 func NewTripHandler(db postgres.DBTX) *handler.TripHandler {
