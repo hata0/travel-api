@@ -12,7 +12,7 @@ package mock_controller
 import (
 	context "context"
 	reflect "reflect"
-	domain "travel-api/domain"
+	output "travel-api/usecase/output"
 
 	gomock "go.uber.org/mock/gomock"
 )
@@ -70,10 +70,10 @@ func (mr *MockTripUsecaseMockRecorder) Delete(ctx, id any) *gomock.Call {
 }
 
 // Get mocks base method.
-func (m *MockTripUsecase) Get(ctx context.Context, id string) (domain.Trip, error) {
+func (m *MockTripUsecase) Get(ctx context.Context, id string) (output.GetTripOutput, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Get", ctx, id)
-	ret0, _ := ret[0].(domain.Trip)
+	ret0, _ := ret[0].(output.GetTripOutput)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -85,10 +85,10 @@ func (mr *MockTripUsecaseMockRecorder) Get(ctx, id any) *gomock.Call {
 }
 
 // List mocks base method.
-func (m *MockTripUsecase) List(ctx context.Context) ([]domain.Trip, error) {
+func (m *MockTripUsecase) List(ctx context.Context) (output.ListTripOutput, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "List", ctx)
-	ret0, _ := ret[0].([]domain.Trip)
+	ret0, _ := ret[0].(output.ListTripOutput)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

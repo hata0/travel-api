@@ -8,14 +8,15 @@ import (
 	"travel-api/domain"
 	"travel-api/interface/response"
 	"travel-api/interface/validator"
+	"travel-api/usecase/output"
 
 	"github.com/gin-gonic/gin"
 )
 
 //go:generate mockgen -destination mock/trip.go travel-api/interface/controller TripUsecase
 type TripUsecase interface {
-	Get(ctx context.Context, id string) (domain.Trip, error)
-	List(ctx context.Context) ([]domain.Trip, error)
+	Get(ctx context.Context, id string) (output.GetTripOutput, error)
+	List(ctx context.Context) (output.ListTripOutput, error)
 	Create(ctx context.Context, name string) error
 	Update(ctx context.Context, id string, name string) error
 	Delete(ctx context.Context, id string) error
@@ -47,7 +48,7 @@ func (controller *TripController) Get(c *gin.Context) {
 		return
 	}
 
-	trip, err := controller.usecase.Get(c.Request.Context(), uriParams.TripID)
+	tripOutput, err := controller.usecase.Get(c.Request.Context(), uriParams.TripID)
 	if err != nil {
 		switch err {
 		case domain.ErrTripNotFound:
@@ -59,34 +60,35 @@ func (controller *TripController) Get(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, response.GetTripResponse{
-		Trip: controller.mapToTrip(trip),
+		Trip: response.Trip{
+			ID:        tripOutput.Trip.ID,
+			Name:      tripOutput.Trip.Name,
+			CreatedAt: tripOutput.Trip.CreatedAt.Format(time.RFC3339),
+			UpdatedAt: tripOutput.Trip.UpdatedAt.Format(time.RFC3339),
+		},
 	})
 }
 
 func (controller *TripController) List(c *gin.Context) {
-	trips, err := controller.usecase.List(c.Request.Context())
+	tripsOutput, err := controller.usecase.List(c.Request.Context())
 	if err != nil {
 		response.NewError(domain.ErrInternalServerError, http.StatusInternalServerError).JSON(c)
 		return
 	}
 
-	formattedTrips := make([]response.Trip, len(trips))
-	for i, trip := range trips {
-		formattedTrips[i] = controller.mapToTrip(trip)
+	formattedTrips := make([]response.Trip, len(tripsOutput.Trips))
+	for i, trip := range tripsOutput.Trips {
+		formattedTrips[i] = response.Trip{
+			ID:        trip.ID,
+			Name:      trip.Name,
+			CreatedAt: trip.CreatedAt.Format(time.RFC3339),
+			UpdatedAt: trip.UpdatedAt.Format(time.RFC3339),
+		}
 	}
 
 	c.JSON(http.StatusOK, response.ListTripResponse{
 		Trips: formattedTrips,
 	})
-}
-
-func (controller *TripController) mapToTrip(trip domain.Trip) response.Trip {
-	return response.Trip{
-		ID:        string(trip.ID),
-		Name:      trip.Name,
-		CreatedAt: trip.CreatedAt.Format(time.RFC3339),
-		UpdatedAt: trip.UpdatedAt.Format(time.RFC3339),
-	}
 }
 
 func (controller *TripController) Create(c *gin.Context) {

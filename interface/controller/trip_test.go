@@ -11,6 +11,7 @@ import (
 	"travel-api/domain"
 	mock_controller "travel-api/interface/controller/mock"
 	"travel-api/interface/response"
+	"travel-api/usecase/output"
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
@@ -31,9 +32,10 @@ func TestTripController_Get(t *testing.T) {
 	tripID := "00000000-0000-0000-0000-000000000001"
 	now := time.Now()
 	expectedTrip := domain.NewTrip(domain.TripID(tripID), "Test Trip", now, now)
+	expectedOutput := output.NewGetTripOutput(expectedTrip)
 
 	t.Run("正常系", func(t *testing.T) {
-		mockUsecase.EXPECT().Get(gomock.Any(), tripID).Return(expectedTrip, nil)
+		mockUsecase.EXPECT().Get(gomock.Any(), tripID).Return(expectedOutput, nil)
 
 		w := httptest.NewRecorder()
 		req, _ := http.NewRequest("GET", "/trips/"+tripID, nil)
@@ -44,14 +46,14 @@ func TestTripController_Get(t *testing.T) {
 		var resBody response.GetTripResponse
 		err := json.Unmarshal(w.Body.Bytes(), &resBody)
 		assert.NoError(t, err)
-		assert.Equal(t, string(expectedTrip.ID), resBody.Trip.ID)
-		assert.Equal(t, expectedTrip.Name, resBody.Trip.Name)
-		assert.Equal(t, expectedTrip.CreatedAt.Format(time.RFC3339), resBody.Trip.CreatedAt)
-		assert.Equal(t, expectedTrip.UpdatedAt.Format(time.RFC3339), resBody.Trip.UpdatedAt)
+		assert.Equal(t, expectedOutput.Trip.ID, resBody.Trip.ID)
+		assert.Equal(t, expectedOutput.Trip.Name, resBody.Trip.Name)
+		assert.Equal(t, expectedOutput.Trip.CreatedAt.Format(time.RFC3339), resBody.Trip.CreatedAt)
+		assert.Equal(t, expectedOutput.Trip.UpdatedAt.Format(time.RFC3339), resBody.Trip.UpdatedAt)
 	})
 
 	t.Run("異常系: Trip not found", func(t *testing.T) {
-		mockUsecase.EXPECT().Get(gomock.Any(), tripID).Return(domain.Trip{}, domain.ErrTripNotFound)
+		mockUsecase.EXPECT().Get(gomock.Any(), tripID).Return(output.GetTripOutput{}, domain.ErrTripNotFound)
 
 		w := httptest.NewRecorder()
 		req, _ := http.NewRequest("GET", "/trips/"+tripID, nil)
@@ -61,7 +63,7 @@ func TestTripController_Get(t *testing.T) {
 	})
 
 	t.Run("異常系: Internal server error", func(t *testing.T) {
-		mockUsecase.EXPECT().Get(gomock.Any(), tripID).Return(domain.Trip{}, errors.New("some error"))
+		mockUsecase.EXPECT().Get(gomock.Any(), tripID).Return(output.GetTripOutput{}, errors.New("some error"))
 
 		w := httptest.NewRecorder()
 		req, _ := http.NewRequest("GET", "/trips/"+tripID, nil)
@@ -86,9 +88,10 @@ func TestTripController_List(t *testing.T) {
 		domain.NewTrip("1", "Trip 1", now, now),
 		domain.NewTrip("2", "Trip 2", now, now),
 	}
+	expectedOutput := output.NewListTripOutput(expectedTrips)
 
 	t.Run("正常系", func(t *testing.T) {
-		mockUsecase.EXPECT().List(gomock.Any()).Return(expectedTrips, nil)
+		mockUsecase.EXPECT().List(gomock.Any()).Return(expectedOutput, nil)
 
 		w := httptest.NewRecorder()
 		req, _ := http.NewRequest("GET", "/trips", nil)
@@ -99,14 +102,14 @@ func TestTripController_List(t *testing.T) {
 		err := json.Unmarshal(w.Body.Bytes(), &resBody)
 		assert.NoError(t, err)
 		assert.Len(t, resBody.Trips, 2)
-		assert.Equal(t, string(expectedTrips[0].ID), resBody.Trips[0].ID)
-		assert.Equal(t, expectedTrips[0].Name, resBody.Trips[0].Name)
-		assert.Equal(t, expectedTrips[0].CreatedAt.Format(time.RFC3339), resBody.Trips[0].CreatedAt)
-		assert.Equal(t, expectedTrips[0].UpdatedAt.Format(time.RFC3339), resBody.Trips[0].UpdatedAt)
+		assert.Equal(t, expectedOutput.Trips[0].ID, resBody.Trips[0].ID)
+		assert.Equal(t, expectedOutput.Trips[0].Name, resBody.Trips[0].Name)
+		assert.Equal(t, expectedOutput.Trips[0].CreatedAt.Format(time.RFC3339), resBody.Trips[0].CreatedAt)
+		assert.Equal(t, expectedOutput.Trips[0].UpdatedAt.Format(time.RFC3339), resBody.Trips[0].UpdatedAt)
 	})
 
 	t.Run("異常系: Internal server error", func(t *testing.T) {
-		mockUsecase.EXPECT().List(gomock.Any()).Return(nil, errors.New("some error"))
+		mockUsecase.EXPECT().List(gomock.Any()).Return(output.ListTripOutput{}, errors.New("some error"))
 
 		w := httptest.NewRecorder()
 		req, _ := http.NewRequest("GET", "/trips", nil)
