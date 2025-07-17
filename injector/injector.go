@@ -1,16 +1,13 @@
 package injector
 
 import (
-	"travel-api/infrastructure/database"
-	"travel-api/infrastructure/repository"
+	"travel-api/infrastructure/postgres"
 	"travel-api/interface/handler"
 	"travel-api/usecase"
 )
 
-func NewTripHandler(db database.DBTX) *handler.TripHandler {
-	queries := database.New(db)
-
-	tripRepository := repository.NewTripPostgresRepository(queries)
+func NewTripHandler(db postgres.DBTX) *handler.TripHandler {
+	tripRepository := postgres.NewTripPostgresRepository(db)
 	tripUsecase := usecase.NewTripInteractor(tripRepository)
 	return handler.NewTripHandler(tripUsecase)
 }

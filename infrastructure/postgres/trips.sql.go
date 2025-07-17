@@ -3,7 +3,7 @@
 //   sqlc v1.29.0
 // source: trips.sql
 
-package database
+package postgres
 
 import (
 	"context"

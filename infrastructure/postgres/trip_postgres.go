@@ -1,34 +1,24 @@
-package repository
+package postgres
 
 import (
 	"context"
 	"travel-api/domain"
-	"travel-api/infrastructure/database"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-//go:generate mockgen -destination mock/trip_postgres.go travel-api/infrastructure/repository TripQuerier
-type TripQuerier interface {
-	GetTrip(ctx context.Context, id pgtype.UUID) (database.Trip, error)
-	ListTrips(ctx context.Context) ([]database.Trip, error)
-	CreateTrip(ctx context.Context, arg database.CreateTripParams) error
-	UpdateTrip(ctx context.Context, arg database.UpdateTripParams) error
-	DeleteTrip(ctx context.Context, id pgtype.UUID) error
-}
-
 type TripPostgresRepository struct {
-	queries TripQuerier
+	queries *Queries
 }
 
-func NewTripPostgresRepository(queries TripQuerier) domain.TripRepository {
-	return TripPostgresRepository{
-		queries: queries,
+func NewTripPostgresRepository(db DBTX) domain.TripRepository {
+	return &TripPostgresRepository{
+		queries: New(db),
 	}
 }
 
-func (r TripPostgresRepository) FindByID(ctx context.Context, id domain.TripID) (domain.Trip, error) {
+func (r *TripPostgresRepository) FindByID(ctx context.Context, id domain.TripID) (domain.Trip, error) {
 	var validatedId pgtype.UUID
 	if err := validatedId.Scan(string(id)); err != nil {
 		return domain.Trip{}, err
@@ -46,7 +36,7 @@ func (r TripPostgresRepository) FindByID(ctx context.Context, id domain.TripID) 
 	return r.mapToTrip(record), nil
 }
 
-func (r TripPostgresRepository) FindMany(ctx context.Context) ([]domain.Trip, error) {
+func (r *TripPostgresRepository) FindMany(ctx context.Context) ([]domain.Trip, error) {
 	records, err := r.queries.ListTrips(ctx)
 	if err != nil {
 		return nil, err
@@ -60,7 +50,7 @@ func (r TripPostgresRepository) FindMany(ctx context.Context) ([]domain.Trip, er
 	return trips, nil
 }
 
-func (r TripPostgresRepository) mapToTrip(record database.Trip) domain.Trip {
+func (r *TripPostgresRepository) mapToTrip(record Trip) domain.Trip {
 	return domain.NewTrip(
 		domain.TripID(record.ID.String()),
 		record.Name,
@@ -69,7 +59,7 @@ func (r TripPostgresRepository) mapToTrip(record database.Trip) domain.Trip {
 	)
 }
 
-func (r TripPostgresRepository) Create(ctx context.Context, trip domain.Trip) error {
+func (r *TripPostgresRepository) Create(ctx context.Context, trip domain.Trip) error {
 	var validatedId pgtype.UUID
 	if err := validatedId.Scan(string(trip.ID)); err != nil {
 		return err
@@ -85,7 +75,7 @@ func (r TripPostgresRepository) Create(ctx context.Context, trip domain.Trip) er
 		return err
 	}
 
-	if err := r.queries.CreateTrip(ctx, database.CreateTripParams{
+	if err := r.queries.CreateTrip(ctx, CreateTripParams{
 		ID:        validatedId,
 		Name:      trip.Name,
 		CreatedAt: validatedCreatedAt,
@@ -97,7 +87,7 @@ func (r TripPostgresRepository) Create(ctx context.Context, trip domain.Trip) er
 	return nil
 }
 
-func (r TripPostgresRepository) Update(ctx context.Context, trip domain.Trip) error {
+func (r *TripPostgresRepository) Update(ctx context.Context, trip domain.Trip) error {
 	var validatedId pgtype.UUID
 	if err := validatedId.Scan(string(trip.ID)); err != nil {
 		return err
@@ -108,7 +98,7 @@ func (r TripPostgresRepository) Update(ctx context.Context, trip domain.Trip) er
 		return err
 	}
 
-	if err := r.queries.UpdateTrip(ctx, database.UpdateTripParams{
+	if err := r.queries.UpdateTrip(ctx, UpdateTripParams{
 		ID:        validatedId,
 		Name:      trip.Name,
 		UpdatedAt: validatedUpdatedAt,
@@ -119,7 +109,7 @@ func (r TripPostgresRepository) Update(ctx context.Context, trip domain.Trip) er
 	return nil
 }
 
-func (r TripPostgresRepository) Delete(ctx context.Context, trip domain.Trip) error {
+func (r *TripPostgresRepository) Delete(ctx context.Context, trip domain.Trip) error {
 	var validatedId pgtype.UUID
 	if err := validatedId.Scan(string(trip.ID)); err != nil {
 		return err

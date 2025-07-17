@@ -1,4 +1,4 @@
-package database
+package postgres
 
 import (
 	"context"
@@ -116,20 +116,18 @@ func setupTestContainer(ctx context.Context) (*postgres.PostgresContainer, strin
 	return container, dbUrl, nil
 }
 
-func setup(t *testing.T, ctx context.Context) *Queries {
+func setupDB(t *testing.T, ctx context.Context) *pgx.Conn {
 	t.Helper()
 
-	connection, err := pgx.Connect(ctx, testDbUrl)
+	db, err := pgx.Connect(ctx, testDbUrl)
 	require.NoError(t, err)
 
 	t.Cleanup(func() {
-		err := connection.Close(ctx)
+		err := db.Close(ctx)
 		require.NoError(t, err)
 		err = testContainer.Restore(ctx)
 		require.NoError(t, err)
 	})
 
-	queries := New(connection)
-
-	return queries
+	return db
 }
