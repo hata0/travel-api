@@ -1,4 +1,4 @@
-package controller
+package handler
 
 import (
 	"context"
@@ -13,7 +13,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-//go:generate mockgen -destination mock/trip.go travel-api/interface/controller TripUsecase
+//go:generate mockgen -destination mock/trip.go travel-api/interface/handler TripUsecase
 type TripUsecase interface {
 	Get(ctx context.Context, id string) (output.GetTripOutput, error)
 	List(ctx context.Context) (output.ListTripOutput, error)
@@ -22,25 +22,25 @@ type TripUsecase interface {
 	Delete(ctx context.Context, id string) error
 }
 
-type TripController struct {
+type TripHandler struct {
 	usecase TripUsecase
 }
 
-func NewTripController(usecase TripUsecase) *TripController {
-	return &TripController{
+func NewTripHandler(usecase TripUsecase) *TripHandler {
+	return &TripHandler{
 		usecase: usecase,
 	}
 }
 
-func (controller *TripController) Register(router *gin.Engine) {
-	router.GET("/trips/:trip_id", controller.Get)
-	router.GET("/trips", controller.List)
-	router.POST("/trips", controller.Create)
-	router.PUT("/trips/:trip_id", controller.Update)
-	router.DELETE("/trips/:trip_id", controller.Delete)
+func (handler *TripHandler) Register(router *gin.Engine) {
+	router.GET("/trips/:trip_id", handler.Get)
+	router.GET("/trips", handler.List)
+	router.POST("/trips", handler.Create)
+	router.PUT("/trips/:trip_id", handler.Update)
+	router.DELETE("/trips/:trip_id", handler.Delete)
 }
 
-func (controller *TripController) Get(c *gin.Context) {
+func (handler *TripHandler) Get(c *gin.Context) {
 	var uriParams validator.TripURIParameters
 	if err := c.BindUri(&uriParams); err != nil {
 		fmt.Println(err)
@@ -48,7 +48,7 @@ func (controller *TripController) Get(c *gin.Context) {
 		return
 	}
 
-	tripOutput, err := controller.usecase.Get(c.Request.Context(), uriParams.TripID)
+	tripOutput, err := handler.usecase.Get(c.Request.Context(), uriParams.TripID)
 	if err != nil {
 		switch err {
 		case domain.ErrTripNotFound:
@@ -69,8 +69,8 @@ func (controller *TripController) Get(c *gin.Context) {
 	})
 }
 
-func (controller *TripController) List(c *gin.Context) {
-	tripsOutput, err := controller.usecase.List(c.Request.Context())
+func (handler *TripHandler) List(c *gin.Context) {
+	tripsOutput, err := handler.usecase.List(c.Request.Context())
 	if err != nil {
 		response.NewError(domain.ErrInternalServerError, http.StatusInternalServerError).JSON(c)
 		return
@@ -91,14 +91,14 @@ func (controller *TripController) List(c *gin.Context) {
 	})
 }
 
-func (controller *TripController) Create(c *gin.Context) {
+func (handler *TripHandler) Create(c *gin.Context) {
 	var body validator.CreateTripJSONBody
 	if err := c.BindJSON(&body); err != nil {
 		response.NewError(domain.ErrInternalServerError, http.StatusInternalServerError).JSON(c)
 		return
 	}
 
-	err := controller.usecase.Create(c.Request.Context(), body.Name)
+	err := handler.usecase.Create(c.Request.Context(), body.Name)
 	if err != nil {
 		response.NewError(domain.ErrInternalServerError, http.StatusInternalServerError).JSON(c)
 		return
@@ -107,7 +107,7 @@ func (controller *TripController) Create(c *gin.Context) {
 	response.NewSuccess(domain.SuccessMessage, http.StatusOK).JSON(c)
 }
 
-func (controller *TripController) Update(c *gin.Context) {
+func (handler *TripHandler) Update(c *gin.Context) {
 	var uriParams validator.TripURIParameters
 	if err := c.BindUri(&uriParams); err != nil {
 		response.NewError(domain.ErrInternalServerError, http.StatusInternalServerError).JSON(c)
@@ -120,7 +120,7 @@ func (controller *TripController) Update(c *gin.Context) {
 		return
 	}
 
-	err := controller.usecase.Update(c.Request.Context(), uriParams.TripID, body.Name)
+	err := handler.usecase.Update(c.Request.Context(), uriParams.TripID, body.Name)
 	if err != nil {
 		switch err {
 		case domain.ErrTripNotFound:
@@ -134,14 +134,14 @@ func (controller *TripController) Update(c *gin.Context) {
 	response.NewSuccess(domain.SuccessMessage, http.StatusOK).JSON(c)
 }
 
-func (controller *TripController) Delete(c *gin.Context) {
+func (handler *TripHandler) Delete(c *gin.Context) {
 	var uriParams validator.TripURIParameters
 	if err := c.BindUri(&uriParams); err != nil {
 		response.NewError(domain.ErrInternalServerError, http.StatusInternalServerError).JSON(c)
 		return
 	}
 
-	err := controller.usecase.Delete(c.Request.Context(), uriParams.TripID)
+	err := handler.usecase.Delete(c.Request.Context(), uriParams.TripID)
 	if err != nil {
 		switch err {
 		case domain.ErrTripNotFound:

@@ -1,4 +1,4 @@
-package controller
+package handler
 
 import (
 	"bytes"
@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 	"travel-api/domain"
-	mock_controller "travel-api/interface/controller/mock"
+	mock_handler "travel-api/interface/handler/mock"
 	"travel-api/interface/response"
 	"travel-api/usecase/output"
 
@@ -18,16 +18,15 @@ import (
 	"go.uber.org/mock/gomock"
 )
 
-func TestTripController_Get(t *testing.T) {
+func TestTripHandler_Get(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockUsecase := mock_controller.NewMockTripUsecase(ctrl)
-	// ginのvalidatorを有効にするため、NewTripControllerの前にSetdefaultsする
+	mockUsecase := mock_handler.NewMockTripUsecase(ctrl)
 	gin.SetMode(gin.TestMode)
 	r := gin.Default()
-	tripController := NewTripController(mockUsecase)
-	tripController.Register(r)
+	tripHandler := NewTripHandler(mockUsecase)
+	tripHandler.Register(r)
 
 	tripID := "00000000-0000-0000-0000-000000000001"
 	now := time.Now()
@@ -73,15 +72,15 @@ func TestTripController_Get(t *testing.T) {
 	})
 }
 
-func TestTripController_List(t *testing.T) {
+func TestTripHandler_List(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockUsecase := mock_controller.NewMockTripUsecase(ctrl)
+	mockUsecase := mock_handler.NewMockTripUsecase(ctrl)
 	gin.SetMode(gin.TestMode)
 	r := gin.Default()
-	tripController := NewTripController(mockUsecase)
-	tripController.Register(r)
+	tripHandler := NewTripHandler(mockUsecase)
+	tripHandler.Register(r)
 
 	now := time.Now()
 	expectedTrips := []domain.Trip{
@@ -119,15 +118,15 @@ func TestTripController_List(t *testing.T) {
 	})
 }
 
-func TestTripController_Create(t *testing.T) {
+func TestTripHandler_Create(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockUsecase := mock_controller.NewMockTripUsecase(ctrl)
+	mockUsecase := mock_handler.NewMockTripUsecase(ctrl)
 	gin.SetMode(gin.TestMode)
 	r := gin.Default()
-	tripController := NewTripController(mockUsecase)
-	tripController.Register(r)
+	tripHandler := NewTripHandler(mockUsecase)
+	tripHandler.Register(r)
 
 	tripName := "New Trip"
 
@@ -165,15 +164,15 @@ func TestTripController_Create(t *testing.T) {
 	})
 }
 
-func TestTripController_Update(t *testing.T) {
+func TestTripHandler_Update(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockUsecase := mock_controller.NewMockTripUsecase(ctrl)
+	mockUsecase := mock_handler.NewMockTripUsecase(ctrl)
 	gin.SetMode(gin.TestMode)
 	r := gin.Default()
-	tripController := NewTripController(mockUsecase)
-	tripController.Register(r)
+	tripHandler := NewTripHandler(mockUsecase)
+	tripHandler.Register(r)
 
 	tripID := "00000000-0000-0000-0000-000000000001"
 	updatedName := "Updated Trip"
@@ -203,15 +202,15 @@ func TestTripController_Update(t *testing.T) {
 	})
 }
 
-func TestTripController_Delete(t *testing.T) {
+func TestTripHandler_Delete(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockUsecase := mock_controller.NewMockTripUsecase(ctrl)
+	mockUsecase := mock_handler.NewMockTripUsecase(ctrl)
 	gin.SetMode(gin.TestMode)
 	r := gin.Default()
-	tripController := NewTripController(mockUsecase)
-	tripController.Register(r)
+	tripHandler := NewTripHandler(mockUsecase)
+	tripHandler.Register(r)
 
 	tripID := "00000000-0000-0000-0000-000000000001"
 
