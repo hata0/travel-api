@@ -17,6 +17,10 @@ This project follows the layered architecture of a typical Go language project.
 
 # Coding Rules
 
+## Markdown
+
+- Markdown must be written in English.
+
 ## Go
 
 - Comments in the go code should be written in Japanese.
