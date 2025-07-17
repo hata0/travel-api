@@ -26,7 +26,7 @@ func TestTripHandler_Get(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	r := gin.Default()
 	tripHandler := NewTripHandler(mockUsecase)
-	tripHandler.Register(r)
+	tripHandler.RegisterAPI(r)
 
 	tripID := "00000000-0000-0000-0000-000000000001"
 	now := time.Now()
@@ -80,7 +80,7 @@ func TestTripHandler_List(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	r := gin.Default()
 	tripHandler := NewTripHandler(mockUsecase)
-	tripHandler.Register(r)
+	tripHandler.RegisterAPI(r)
 
 	now := time.Now()
 	expectedTrips := []domain.Trip{
@@ -126,7 +126,7 @@ func TestTripHandler_Create(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	r := gin.Default()
 	tripHandler := NewTripHandler(mockUsecase)
-	tripHandler.Register(r)
+	tripHandler.RegisterAPI(r)
 
 	tripName := "New Trip"
 
@@ -172,7 +172,7 @@ func TestTripHandler_Update(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	r := gin.Default()
 	tripHandler := NewTripHandler(mockUsecase)
-	tripHandler.Register(r)
+	tripHandler.RegisterAPI(r)
 
 	tripID := "00000000-0000-0000-0000-000000000001"
 	updatedName := "Updated Trip"
@@ -210,7 +210,7 @@ func TestTripHandler_Delete(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	r := gin.Default()
 	tripHandler := NewTripHandler(mockUsecase)
-	tripHandler.Register(r)
+	tripHandler.RegisterAPI(r)
 
 	tripID := "00000000-0000-0000-0000-000000000001"
 

@@ -32,15 +32,15 @@ func NewTripHandler(usecase TripUsecase) *TripHandler {
 	}
 }
 
-func (handler *TripHandler) Register(router *gin.Engine) {
-	router.GET("/trips/:trip_id", handler.Get)
-	router.GET("/trips", handler.List)
-	router.POST("/trips", handler.Create)
-	router.PUT("/trips/:trip_id", handler.Update)
-	router.DELETE("/trips/:trip_id", handler.Delete)
+func (handler *TripHandler) RegisterAPI(router *gin.Engine) {
+	router.GET("/trips/:trip_id", handler.get)
+	router.GET("/trips", handler.list)
+	router.POST("/trips", handler.create)
+	router.PUT("/trips/:trip_id", handler.update)
+	router.DELETE("/trips/:trip_id", handler.delete)
 }
 
-func (handler *TripHandler) Get(c *gin.Context) {
+func (handler *TripHandler) get(c *gin.Context) {
 	var uriParams validator.TripURIParameters
 	if err := c.BindUri(&uriParams); err != nil {
 		fmt.Println(err)
@@ -69,7 +69,7 @@ func (handler *TripHandler) Get(c *gin.Context) {
 	})
 }
 
-func (handler *TripHandler) List(c *gin.Context) {
+func (handler *TripHandler) list(c *gin.Context) {
 	tripsOutput, err := handler.usecase.List(c.Request.Context())
 	if err != nil {
 		response.NewError(domain.ErrInternalServerError, http.StatusInternalServerError).JSON(c)
@@ -91,7 +91,7 @@ func (handler *TripHandler) List(c *gin.Context) {
 	})
 }
 
-func (handler *TripHandler) Create(c *gin.Context) {
+func (handler *TripHandler) create(c *gin.Context) {
 	var body validator.CreateTripJSONBody
 	if err := c.BindJSON(&body); err != nil {
 		response.NewError(domain.ErrInternalServerError, http.StatusInternalServerError).JSON(c)
@@ -107,7 +107,7 @@ func (handler *TripHandler) Create(c *gin.Context) {
 	response.NewSuccess(domain.SuccessMessage, http.StatusOK).JSON(c)
 }
 
-func (handler *TripHandler) Update(c *gin.Context) {
+func (handler *TripHandler) update(c *gin.Context) {
 	var uriParams validator.TripURIParameters
 	if err := c.BindUri(&uriParams); err != nil {
 		response.NewError(domain.ErrInternalServerError, http.StatusInternalServerError).JSON(c)
@@ -134,7 +134,7 @@ func (handler *TripHandler) Update(c *gin.Context) {
 	response.NewSuccess(domain.SuccessMessage, http.StatusOK).JSON(c)
 }
 
-func (handler *TripHandler) Delete(c *gin.Context) {
+func (handler *TripHandler) delete(c *gin.Context) {
 	var uriParams validator.TripURIParameters
 	if err := c.BindUri(&uriParams); err != nil {
 		response.NewError(domain.ErrInternalServerError, http.StatusInternalServerError).JSON(c)
