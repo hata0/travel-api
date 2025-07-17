@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 	"travel-api/domain"
+	"travel-api/usecase/output"
 )
 
 type TripInteractor struct {
@@ -16,12 +17,22 @@ func NewTripInteractor(repository domain.TripRepository) *TripInteractor {
 	}
 }
 
-func (i *TripInteractor) Get(ctx context.Context, id string) (domain.Trip, error) {
-	return i.repository.FindByID(ctx, domain.TripID(id))
+func (i *TripInteractor) Get(ctx context.Context, id string) (output.GetTripOutput, error) {
+	trip, err := i.repository.FindByID(ctx, domain.TripID(id))
+	if err != nil {
+		return output.GetTripOutput{}, err
+	}
+
+	return output.NewGetTripOutput(trip), nil
 }
 
-func (i *TripInteractor) List(ctx context.Context) ([]domain.Trip, error) {
-	return i.repository.FindMany(ctx)
+func (i *TripInteractor) List(ctx context.Context) (output.ListTripOutput, error) {
+	trips, err := i.repository.FindMany(ctx)
+	if err != nil {
+		return output.ListTripOutput{}, err
+	}
+
+	return output.NewListTripOutput(trips), nil
 }
 
 func (i *TripInteractor) Create(ctx context.Context, name string) error {

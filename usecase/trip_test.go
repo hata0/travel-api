@@ -7,6 +7,7 @@ import (
 	"time"
 	"travel-api/domain"
 	mock_domain "travel-api/domain/mock"
+	"travel-api/usecase/output"
 
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
@@ -25,10 +26,10 @@ func TestTripInteractor_Get(t *testing.T) {
 
 	mockRepo.EXPECT().FindByID(gomock.Any(), tripID).Return(expectedTrip, nil).Times(1)
 
-	trip, err := interactor.Get(context.Background(), string(tripID))
+	tripOutput, err := interactor.Get(context.Background(), string(tripID))
 
 	assert.NoError(t, err)
-	assert.Equal(t, expectedTrip, trip)
+	assert.Equal(t, output.NewGetTripOutput(expectedTrip), tripOutput)
 }
 
 func TestTripInteractor_Get_Error(t *testing.T) {
@@ -64,10 +65,10 @@ func TestTripInteractor_List(t *testing.T) {
 
 	mockRepo.EXPECT().FindMany(gomock.Any()).Return(expectedTrips, nil).Times(1)
 
-	trips, err := interactor.List(context.Background())
+	tripsOutput, err := interactor.List(context.Background())
 
 	assert.NoError(t, err)
-	assert.Equal(t, expectedTrips, trips)
+	assert.Equal(t, output.NewListTripOutput(expectedTrips), tripsOutput)
 }
 
 func TestTripInteractor_List_Error(t *testing.T) {
