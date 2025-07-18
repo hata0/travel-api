@@ -24,7 +24,6 @@ make migrate-new name=<migration_name>
 - 実際の運用を想定し、アプリケーション側で値の正当性を担保する前提でスキーマを設計する: データベースレベルでの厳密なバリデーションよりも、アプリケーション層でのビジネスロジックに基づいたバリデーションを優先します。
 - 必要な制約 (`NOT NULL` や `UNIQUE`) は必ず設定する
 - 必須カラムには `DEFAULT` を設定せず、アプリケーションで明示的に値を渡す: アプリケーションのビジネスロジックとデータベースのスキーマ定義の乖離を防ぎ、データの一貫性をアプリケーション側で管理するためです。
-- インデックスを適切に追加し、検索パフォーマンスを考慮する
 
 **例 (`up` ファイル):**
 ```sql
@@ -35,9 +34,6 @@ CREATE TABLE IF NOT EXISTS users (
   created_at TIMESTAMPTZ NOT NULL,
   updated_at TIMESTAMPTZ NOT NULL
 );
-
--- email カラムにユニークインデックスを追加し、検索パフォーマンスを向上させる
-CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email ON users (email);
 ```
 
 **例 (`down` ファイル):**
