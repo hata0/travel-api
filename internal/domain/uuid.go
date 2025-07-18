@@ -2,7 +2,17 @@ package domain
 
 import "github.com/google/uuid"
 
-func NewUUID() string {
+// UUIDGenerator はUUIDを生成するためのインターフェースです。
+//go:generate mockgen -destination mock/uuid_generator.go travel-api/internal/domain UUIDGenerator
+type UUIDGenerator interface {
+	NewUUID() string
+}
+
+// DefaultUUIDGenerator はUUIDGeneratorのデフォルト実装です。
+type DefaultUUIDGenerator struct{}
+
+// NewUUID は新しいUUIDを生成します。
+func (g *DefaultUUIDGenerator) NewUUID() string {
 	return uuid.New().String()
 }
 

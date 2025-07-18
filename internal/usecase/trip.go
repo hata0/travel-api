@@ -2,23 +2,31 @@ package usecase
 
 import (
 	"context"
-	"time"
 	"travel-api/internal/domain"
 	"travel-api/internal/usecase/output"
 )
 
 type TripInteractor struct {
-	repository domain.TripRepository
+	repository    domain.TripRepository
+	clock         domain.Clock
+	uuidGenerator domain.UUIDGenerator
 }
 
-func NewTripInteractor(repository domain.TripRepository) *TripInteractor {
+func NewTripInteractor(repository domain.TripRepository, clock domain.Clock, uuidGenerator domain.UUIDGenerator) *TripInteractor {
 	return &TripInteractor{
-		repository: repository,
+		repository:    repository,
+		clock:         clock,
+		uuidGenerator: uuidGenerator,
 	}
 }
 
 func (i *TripInteractor) Get(ctx context.Context, id string) (output.GetTripOutput, error) {
-	trip, err := i.repository.FindByID(ctx, domain.TripID(id))
+	tripID, err := domain.NewTripID(id)
+	if err != nil {
+		return output.GetTripOutput{}, err
+	}
+
+	trip, err := i.repository.FindByID(ctx, tripID)
 	if err != nil {
 		return output.GetTripOutput{}, err
 	}
@@ -36,29 +44,45 @@ func (i *TripInteractor) List(ctx context.Context) (output.ListTripOutput, error
 }
 
 func (i *TripInteractor) Create(ctx context.Context, name string) error {
+	newUUID := i.uuidGenerator.NewUUID()
+	tripID, err := domain.NewTripID(newUUID)
+	if err != nil {
+		return err
+	}
+
 	trip := domain.NewTrip(
-		domain.TripID(domain.NewUUID()),
+		tripID,
 		name,
-		time.Now(),
-		time.Now(),
+		i.clock.Now(),
+		i.clock.Now(),
 	)
 
 	return i.repository.Create(ctx, trip)
 }
 
 func (i *TripInteractor) Update(ctx context.Context, id string, name string) error {
-	trip, err := i.repository.FindByID(ctx, domain.TripID(id))
+	tripID, err := domain.NewTripID(id)
 	if err != nil {
 		return err
 	}
 
-	trip = trip.Update(name, time.Now())
+	trip, err := i.repository.FindByID(ctx, tripID)
+	if err != nil {
+		return err
+	}
+
+	trip = trip.Update(name, i.clock.Now())
 
 	return i.repository.Update(ctx, trip)
 }
 
 func (i *TripInteractor) Delete(ctx context.Context, id string) error {
-	trip, err := i.repository.FindByID(ctx, domain.TripID(id))
+	tripID, err := domain.NewTripID(id)
+	if err != nil {
+		return err
+	}
+
+	trip, err := i.repository.FindByID(ctx, tripID)
 	if err != nil {
 		return err
 	}

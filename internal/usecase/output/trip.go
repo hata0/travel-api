@@ -39,7 +39,7 @@ func NewListTripOutput(trips []domain.Trip) ListTripOutput {
 
 func mapToTrip(trip domain.Trip) Trip {
 	return Trip{
-		ID:        string(trip.ID),
+		ID:        trip.ID.String(),
 		Name:      trip.Name,
 		CreatedAt: trip.CreatedAt,
 		UpdatedAt: trip.UpdatedAt,

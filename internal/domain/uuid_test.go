@@ -7,7 +7,8 @@ import (
 )
 
 func TestNewUUID(t *testing.T) {
-	uuid := NewUUID()
+	g := &DefaultUUIDGenerator{}
+	uuid := g.NewUUID()
 	assert.True(t, IsValidUUID(uuid))
 }
 
