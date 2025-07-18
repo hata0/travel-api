@@ -2,9 +2,8 @@ package handler
 
 import (
 	"context"
-	"fmt"
+	"log/slog"
 	"net/http"
-	"time"
 	"travel-api/internal/domain"
 	"travel-api/internal/interface/response"
 	"travel-api/internal/interface/validator"
@@ -17,7 +16,7 @@ import (
 type TripUsecase interface {
 	Get(ctx context.Context, id string) (output.GetTripOutput, error)
 	List(ctx context.Context) (output.ListTripOutput, error)
-	Create(ctx context.Context, name string) error
+	Create(ctx context.Context, name string) (string, error)
 	Update(ctx context.Context, id string, name string) error
 	Delete(ctx context.Context, id string) error
 }
@@ -42,9 +41,8 @@ func (handler *TripHandler) RegisterAPI(router *gin.Engine) {
 
 func (handler *TripHandler) get(c *gin.Context) {
 	var uriParams validator.TripURIParameters
-	if err := c.BindUri(&uriParams); err != nil {
-		fmt.Println(err)
-		response.NewError(domain.ErrInternalServerError, http.StatusInternalServerError).JSON(c)
+	if err := c.ShouldBindUri(&uriParams); err != nil {
+		response.NewError(err).JSON(c)
 		return
 	}
 
@@ -52,9 +50,10 @@ func (handler *TripHandler) get(c *gin.Context) {
 	if err != nil {
 		switch err {
 		case domain.ErrTripNotFound:
-			response.NewError(err, http.StatusNotFound).JSON(c)
+			response.NewError(err).JSON(c)
 		default:
-			response.NewError(domain.ErrInternalServerError, http.StatusInternalServerError).JSON(c)
+			slog.Error("Failed to get trip", "error", err)
+			response.NewError(err).JSON(c)
 		}
 		return
 	}
@@ -63,8 +62,8 @@ func (handler *TripHandler) get(c *gin.Context) {
 		Trip: response.Trip{
 			ID:        tripOutput.Trip.ID,
 			Name:      tripOutput.Trip.Name,
-			CreatedAt: tripOutput.Trip.CreatedAt.Format(time.RFC3339),
-			UpdatedAt: tripOutput.Trip.UpdatedAt.Format(time.RFC3339),
+			CreatedAt: tripOutput.Trip.CreatedAt,
+			UpdatedAt: tripOutput.Trip.UpdatedAt,
 		},
 	})
 }
@@ -72,7 +71,8 @@ func (handler *TripHandler) get(c *gin.Context) {
 func (handler *TripHandler) list(c *gin.Context) {
 	tripsOutput, err := handler.usecase.List(c.Request.Context())
 	if err != nil {
-		response.NewError(domain.ErrInternalServerError, http.StatusInternalServerError).JSON(c)
+		slog.Error("Failed to list trips", "error", err)
+		response.NewError(err).JSON(c)
 		return
 	}
 
@@ -81,8 +81,8 @@ func (handler *TripHandler) list(c *gin.Context) {
 		formattedTrips[i] = response.Trip{
 			ID:        trip.ID,
 			Name:      trip.Name,
-			CreatedAt: trip.CreatedAt.Format(time.RFC3339),
-			UpdatedAt: trip.UpdatedAt.Format(time.RFC3339),
+			CreatedAt: trip.CreatedAt,
+			UpdatedAt: trip.UpdatedAt,
 		}
 	}
 
@@ -93,30 +93,31 @@ func (handler *TripHandler) list(c *gin.Context) {
 
 func (handler *TripHandler) create(c *gin.Context) {
 	var body validator.CreateTripJSONBody
-	if err := c.BindJSON(&body); err != nil {
-		response.NewError(domain.ErrInternalServerError, http.StatusInternalServerError).JSON(c)
+	if err := c.ShouldBindJSON(&body); err != nil {
+		response.NewError(err).JSON(c)
 		return
 	}
 
-	err := handler.usecase.Create(c.Request.Context(), body.Name)
+	createdTripID, err := handler.usecase.Create(c.Request.Context(), body.Name)
 	if err != nil {
-		response.NewError(domain.ErrInternalServerError, http.StatusInternalServerError).JSON(c)
+		slog.Error("Failed to create trip", "error", err)
+		response.NewError(err).JSON(c)
 		return
 	}
 
-	response.NewSuccess(domain.SuccessMessage, http.StatusOK).JSON(c)
+	response.NewSuccessWithData(domain.SuccessMessage, http.StatusCreated, gin.H{"id": createdTripID}).JSON(c)
 }
 
 func (handler *TripHandler) update(c *gin.Context) {
 	var uriParams validator.TripURIParameters
-	if err := c.BindUri(&uriParams); err != nil {
-		response.NewError(domain.ErrInternalServerError, http.StatusInternalServerError).JSON(c)
+	if err := c.ShouldBindUri(&uriParams); err != nil {
+		response.NewError(err).JSON(c)
 		return
 	}
 
 	var body validator.UpdateTripJSONBody
-	if err := c.BindJSON(&body); err != nil {
-		response.NewError(domain.ErrInternalServerError, http.StatusInternalServerError).JSON(c)
+	if err := c.ShouldBindJSON(&body); err != nil {
+		response.NewError(err).JSON(c)
 		return
 	}
 
@@ -124,9 +125,10 @@ func (handler *TripHandler) update(c *gin.Context) {
 	if err != nil {
 		switch err {
 		case domain.ErrTripNotFound:
-			response.NewError(err, http.StatusNotFound).JSON(c)
+			response.NewError(err).JSON(c)
 		default:
-			response.NewError(domain.ErrInternalServerError, http.StatusInternalServerError).JSON(c)
+			slog.Error("Failed to update trip", "error", err)
+			response.NewError(err).JSON(c)
 		}
 		return
 	}
@@ -136,8 +138,8 @@ func (handler *TripHandler) update(c *gin.Context) {
 
 func (handler *TripHandler) delete(c *gin.Context) {
 	var uriParams validator.TripURIParameters
-	if err := c.BindUri(&uriParams); err != nil {
-		response.NewError(domain.ErrInternalServerError, http.StatusInternalServerError).JSON(c)
+	if err := c.ShouldBindUri(&uriParams); err != nil {
+		response.NewError(err).JSON(c)
 		return
 	}
 
@@ -145,9 +147,10 @@ func (handler *TripHandler) delete(c *gin.Context) {
 	if err != nil {
 		switch err {
 		case domain.ErrTripNotFound:
-			response.NewError(err, http.StatusNotFound).JSON(c)
+			response.NewError(err).JSON(c)
 		default:
-			response.NewError(domain.ErrInternalServerError, http.StatusInternalServerError).JSON(c)
+			slog.Error("Failed to delete trip", "error", err)
+			response.NewError(err).JSON(c)
 		}
 		return
 	}

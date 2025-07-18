@@ -30,7 +30,8 @@ func TestTripHandler_Get(t *testing.T) {
 
 	tripID := "00000000-0000-0000-0000-000000000001"
 	now := time.Now()
-	expectedTrip := domain.NewTrip(domain.TripID(tripID), "Test Trip", now, now)
+	tripIDValue, _ := domain.NewTripID(tripID)
+	expectedTrip := domain.NewTrip(tripIDValue, "Test Trip", now, now)
 	expectedOutput := output.NewGetTripOutput(expectedTrip)
 
 	t.Run("正常系", func(t *testing.T) {
@@ -47,8 +48,8 @@ func TestTripHandler_Get(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, expectedOutput.Trip.ID, resBody.Trip.ID)
 		assert.Equal(t, expectedOutput.Trip.Name, resBody.Trip.Name)
-		assert.Equal(t, expectedOutput.Trip.CreatedAt.Format(time.RFC3339), resBody.Trip.CreatedAt)
-		assert.Equal(t, expectedOutput.Trip.UpdatedAt.Format(time.RFC3339), resBody.Trip.UpdatedAt)
+		assert.Equal(t, expectedOutput.Trip.CreatedAt.Format(time.RFC3339Nano), resBody.Trip.CreatedAt.Format(time.RFC3339Nano))
+		assert.Equal(t, expectedOutput.Trip.UpdatedAt.Format(time.RFC3339Nano), resBody.Trip.UpdatedAt.Format(time.RFC3339Nano))
 	})
 
 	t.Run("異常系: Trip not found", func(t *testing.T) {
@@ -83,9 +84,11 @@ func TestTripHandler_List(t *testing.T) {
 	tripHandler.RegisterAPI(r)
 
 	now := time.Now()
+	tripID1, _ := domain.NewTripID("00000000-0000-0000-0000-000000000001")
+	tripID2, _ := domain.NewTripID("00000000-0000-0000-0000-000000000002")
 	expectedTrips := []domain.Trip{
-		domain.NewTrip("1", "Trip 1", now, now),
-		domain.NewTrip("2", "Trip 2", now, now),
+		domain.NewTrip(tripID1, "Trip 1", now, now),
+		domain.NewTrip(tripID2, "Trip 2", now, now),
 	}
 	expectedOutput := output.NewListTripOutput(expectedTrips)
 
@@ -103,8 +106,8 @@ func TestTripHandler_List(t *testing.T) {
 		assert.Len(t, resBody.Trips, 2)
 		assert.Equal(t, expectedOutput.Trips[0].ID, resBody.Trips[0].ID)
 		assert.Equal(t, expectedOutput.Trips[0].Name, resBody.Trips[0].Name)
-		assert.Equal(t, expectedOutput.Trips[0].CreatedAt.Format(time.RFC3339), resBody.Trips[0].CreatedAt)
-		assert.Equal(t, expectedOutput.Trips[0].UpdatedAt.Format(time.RFC3339), resBody.Trips[0].UpdatedAt)
+		assert.Equal(t, expectedOutput.Trips[0].CreatedAt.Format(time.RFC3339Nano), resBody.Trips[0].CreatedAt.Format(time.RFC3339Nano))
+		assert.Equal(t, expectedOutput.Trips[0].UpdatedAt.Format(time.RFC3339Nano), resBody.Trips[0].UpdatedAt.Format(time.RFC3339Nano))
 	})
 
 	t.Run("異常系: Internal server error", func(t *testing.T) {
@@ -131,7 +134,7 @@ func TestTripHandler_Create(t *testing.T) {
 	tripName := "New Trip"
 
 	t.Run("正常系", func(t *testing.T) {
-		mockUsecase.EXPECT().Create(gomock.Any(), tripName).Return(nil)
+		mockUsecase.EXPECT().Create(gomock.Any(), tripName).Return("new-id", nil)
 
 		body, _ := json.Marshal(gin.H{"name": tripName})
 		w := httptest.NewRecorder()
@@ -139,11 +142,11 @@ func TestTripHandler_Create(t *testing.T) {
 		req.Header.Set("Content-Type", "application/json")
 		r.ServeHTTP(w, req)
 
-		assert.Equal(t, http.StatusOK, w.Code)
+		assert.Equal(t, http.StatusCreated, w.Code)
 	})
 
 	t.Run("異常系: Usecase error", func(t *testing.T) {
-		mockUsecase.EXPECT().Create(gomock.Any(), tripName).Return(errors.New("some error"))
+		mockUsecase.EXPECT().Create(gomock.Any(), tripName).Return("", errors.New("some error"))
 
 		body, _ := json.Marshal(gin.H{"name": tripName})
 		w := httptest.NewRecorder()
@@ -161,6 +164,10 @@ func TestTripHandler_Create(t *testing.T) {
 		r.ServeHTTP(w, req)
 
 		assert.Equal(t, http.StatusBadRequest, w.Code)
+		var resBody map[string]interface{}
+		err := json.Unmarshal(w.Body.Bytes(), &resBody)
+		assert.NoError(t, err)
+		assert.Equal(t, "VALIDATION_ERROR", resBody["code"])
 	})
 }
 
