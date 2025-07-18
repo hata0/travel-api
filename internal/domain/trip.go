@@ -2,12 +2,7 @@ package domain
 
 import (
 	"context"
-	"errors"
 	"time"
-)
-
-var (
-	ErrTripNotFound = errors.New("trip not found")
 )
 
 //go:generate mockgen -destination mock/trip.go travel-api/internal/domain TripRepository

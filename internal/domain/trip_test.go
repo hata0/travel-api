@@ -4,12 +4,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestNewTripID(t *testing.T) {
 	t.Run("正常系: 有効なUUID", func(t *testing.T) {
-		validUUID := "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d"
+		validUUID := uuid.New().String()
 		tripID, err := NewTripID(validUUID)
 		assert.NoError(t, err)
 		assert.Equal(t, TripID{value: validUUID}, tripID)
@@ -31,7 +32,7 @@ func TestNewTripID(t *testing.T) {
 }
 
 func TestNewTrip(t *testing.T) {
-	id, err := NewTripID("abc123def4-e5f6-4a7b-8c9d-0e1f2a3b4c5d")
+	id, err := NewTripID(uuid.New().String())
 	assert.NoError(t, err)
 	name := "name abc"
 	now := time.Date(2000, time.January, 1, 1, 1, 1, 1, time.UTC)
@@ -45,7 +46,7 @@ func TestNewTrip(t *testing.T) {
 }
 
 func TestTrip_Update(t *testing.T) {
-	id, err := NewTripID("abc123def4-e5f6-4a7b-8c9d-0e1f2a3b4c5d")
+	id, err := NewTripID(uuid.New().String())
 	assert.NoError(t, err)
 	name := "name abc"
 	past := time.Date(2000, time.January, 1, 1, 1, 1, 1, time.UTC)

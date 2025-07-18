@@ -88,31 +88,92 @@ type TripRepository interface {
 
 発生する可能性のあるビジネスエラーをドメイン層に定義します。これにより、エラーの種類を明確にし、適切なエラーハンドリングを促します。
 
--   **共通エラー**: `internal/domain/error.go` に定義します。
--   **エンティティ固有のエラー**: 各エンティティのファイル（例: `internal/domain/trip.go`）に定義します。
+-   **エラーコード**: `internal/domain/error_code.go` に定義します。クライアントに返される機械可読なコードです。
+-   **エラー構造体**: `internal/domain/error.go` に定義します。エラーコード、開発者向けメッセージ、およびオプションで根本原因を含みます。
+
+**例 (`internal/domain/error_code.go`):**
+```go
+package domain
+
+type ErrorCode string
+
+func (e ErrorCode) String() string {
+	return string(e)
+}
+
+const (
+	InternalServerError ErrorCode = "INTERNAL_SERVER_ERROR"
+	ValidationError     ErrorCode = "VALIDATION_ERROR"
+	TripNotFound        ErrorCode = "TRIP_NOT_FOUND"
+)
+```
 
 **例 (`internal/domain/error.go`):**
 ```go
 package domain
 
-import "errors"
+import "fmt"
 
+// Error はアプリケーション固有のエラーを表すカスタムエラー型です。
+type Error struct {
+	// Code はクライアントに返される機械可読なエラーコードです。
+	Code ErrorCode
+	// Message は開発者向けのエラーメッセージです。
+	Message string
+	// cause はエラーの根本原因です（オプション）。
+	cause error
+}
+
+// Error はerrorインターフェースを実装します。
+func (e *Error) Error() string {
+	if e.cause != nil {
+		return fmt.Sprintf("%s: %s", e.Message, e.cause)
+	}
+	return e.Message
+}
+
+// Unwrap はエラーチェーンのためにcauseを返します。
+func (e *Error) Unwrap() error {
+	return e.cause
+}
+
+// エラー変数の定義
 var (
-	ErrInternalServerError = errors.New("internal server error")
-	ErrInvalidUUID         = errors.New("invalid uuid format")
+	// ErrInvalidUUID は、UUIDの形式が無効な場合に返されます。
+	ErrInvalidUUID = &Error{Code: ValidationError, Message: "invalid uuid format"}
+	// ErrTripNotFound は、Tripが見つからない場合に返されます。
+	ErrTripNotFound = &Error{Code: TripNotFound, Message: "trip not found"}
+	// ErrInternalServerError は、予期せぬ内部エラーが発生した場合に返されます。
+	// このエラーは通常、具体的なエラー情報でラップして使用します。
+	ErrInternalServerError = &Error{Code: InternalServerError, Message: "internal server error"}
 )
+
+// NewInternalServerError は、具体的なエラー原因を含む内部サーバーエラーを生成します。
+func NewInternalServerError(cause error) error {
+	return &Error{
+		Code:    InternalServerError,
+		Message: "internal server error",
+		cause:   cause,
+	}
+}
 ```
 
-**例 (`internal/domain/trip.go`):**
+## 4. 成功メッセージの定義
+
+アプリケーション全体で共通して使用される成功メッセージを定義します。
+
+-   **ファイルパス**: `internal/domain/success.go` に定義します。
+
+**例 (`internal/domain/success.go`):**
 ```go
 package domain
 
-import "errors"
-
-var (
-	ErrTripNotFound = errors.New("trip not found")
+const (
+	SuccessMessage = "success"
 )
 ```
+
+## 5. テスト
 
 ## 4. テスト
 
@@ -132,12 +193,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestNewTripID(t *testing.T) {
 	t.Run("正常系: 有効なUUID", func(t *testing.T) {
-		validUUID := "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d"
+		validUUID := uuid.New().String()
 		tripID, err := NewTripID(validUUID)
 		assert.NoError(t, err)
 		assert.Equal(t, TripID{value: validUUID}, tripID)
@@ -159,7 +221,7 @@ func TestNewTripID(t *testing.T) {
 }
 
 func TestNewTrip(t *testing.T) {
-	id, err := NewTripID("abc123def4-e5f6-4a7b-8c9d-0e1f2a3b4c5d")
+	id, err := NewTripID(uuid.New().String())
 	assert.NoError(t, err)
 	name := "name abc"
 	now := time.Date(2000, time.January, 1, 1, 1, 1, 1, time.UTC)
@@ -173,7 +235,7 @@ func TestNewTrip(t *testing.T) {
 }
 
 func TestTrip_Update(t *testing.T) {
-	id, err := NewTripID("abc123def4-e5f6-4a7b-8c9d-0e1f2a3b4c5d")
+	id, err := NewTripID(uuid.New().String())
 	assert.NoError(t, err)
 	name := "name abc"
 	past := time.Date(2000, time.January, 1, 1, 1, 1, 1, time.UTC)
