@@ -5,12 +5,19 @@ import (
 	"log"
 	"travel-api/internal/injector"
 
+	"travel-api/internal/config"
+
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 func main() {
-	db, err := pgxpool.New(context.Background(), "postgres://dev_user:dev_pass@localhost:5432/dev_db")
+	dsn, err := config.DSN()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	db, err := pgxpool.New(context.Background(), dsn)
 	if err != nil {
 		log.Fatal("connection failed")
 	}
