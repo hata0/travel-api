@@ -3,7 +3,7 @@
 ドメイン層は、アプリケーションの核となるビジネスロジックとエンティティを定義します。
 ここでは、特定の永続化技術やフレームワークに依存しない、純粋なビジネスルールを記述します。
 
-### 1. エンティティの定義
+## 1. エンティティの定義
 
 ドメインの核となるエンティティ（例: `Trip`）を定義します。
 エンティティは、そのドメインオブジェクトが持つべき属性と、その属性に対する操作をメソッドとして持ちます。
@@ -11,13 +11,26 @@
 -   **ファイルパス**: `internal/domain/<entity_name>.go` (例: `internal/domain/trip.go`)
 -   **内容**:
     -   エンティティを表す構造体を定義します。
-    -   エンティティのIDには、`TripID`のような型エイリアスを定義し、型安全性を高めます。
+    -   エンティティのIDには、`TripID`のような値オブジェクトを定義し、型安全性を高めます。
     -   エンティティの生成には、不変性を保つためのコンストラクタ関数（例: `NewTrip`）を定義します。
     -   エンティティの状態を変更する操作は、値レシーバのメソッドとして定義し、新しいインスタンスを返すことで不変性を維持します（例: `Trip.Update`）。
 
 ```go
 // internal/domain/trip.go の例
-type TripID string // IDの型エイリアス
+type TripID struct {
+	value string
+}
+
+func NewTripID(id string) (TripID, error) {
+	if !IsValidUUID(id) {
+		return TripID{}, ErrInvalidUUID
+	}
+	return TripID{value: id}, nil
+}
+
+func (id TripID) String() string {
+	return id.value
+}
 
 type Trip struct {
 	ID        TripID
@@ -47,7 +60,7 @@ func (t Trip) Update(name string, updatedAt time.Time) Trip {
 }
 ```
 
-### 2. リポジトリインターフェースの定義
+## 2. リポジトリインターフェースの定義
 
 エンティティの永続化操作を抽象化するリポジトリインターフェース（例: `TripRepository`）を定義します。
 このインターフェースは、データベースなどの具体的な永続化層の実装からドメイン層を分離します。
@@ -71,7 +84,7 @@ type TripRepository interface {
 ```
 `//go:generate mockgen` コメントを追加することで、`go generate` コマンド実行時にテスト用のモック実装が自動生成されます。
 
-### 3. エラーの定義
+## 3. エラーの定義
 
 発生する可能性のあるビジネスエラーをドメイン層に定義します。これにより、エラーの種類を明確にし、適切なエラーハンドリングを促します。
 
@@ -86,6 +99,7 @@ import "errors"
 
 var (
 	ErrInternalServerError = errors.New("internal server error")
+	ErrInvalidUUID         = errors.New("invalid uuid format")
 )
 ```
 
@@ -100,7 +114,7 @@ var (
 )
 ```
 
-### 4. テスト
+## 4. テスト
 
 ドメイン層のテストは、エンティティの振る舞いやビジネスロジックが期待通りに動作するかを確認するために重要です。
 
@@ -121,8 +135,31 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestNewTripID(t *testing.T) {
+	t.Run("正常系: 有効なUUID", func(t *testing.T) {
+		validUUID := "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d"
+		tripID, err := NewTripID(validUUID)
+		assert.NoError(t, err)
+		assert.Equal(t, TripID{value: validUUID}, tripID)
+	})
+
+	t.Run("異常系: 無効なUUID", func(t *testing.T) {
+		invalidUUID := "invalid-uuid"
+		tripID, err := NewTripID(invalidUUID)
+		assert.ErrorIs(t, err, ErrInvalidUUID)
+		assert.Equal(t, TripID{}, tripID)
+	})
+
+	t.Run("異常系: 空文字列", func(t *testing.T) {
+		emptyUUID := ""
+		tripID, err := NewTripID(emptyUUID)
+		assert.ErrorIs(t, err, ErrInvalidUUID)
+		assert.Equal(t, TripID{}, tripID)
+	})
+}
+
 func TestNewTrip(t *testing.T) {
-	id := TripID("abc123def")
+	id, _ := NewTripID("abc123def4-e5f6-4a7b-8c9d-0e1f2a3b4c5d")
 	name := "name abc"
 	now := time.Date(2000, time.January, 1, 1, 1, 1, 1, time.UTC)
 
@@ -135,7 +172,7 @@ func TestNewTrip(t *testing.T) {
 }
 
 func TestTrip_Update(t *testing.T) {
-	id := TripID("abc123def")
+	id, _ := NewTripID("abc123def4-e5f6-4a7b-8c9d-0e1f2a3b4c5d")
 	name := "name abc"
 	past := time.Date(2000, time.January, 1, 1, 1, 1, 1, time.UTC)
 	trip := NewTrip(id, name, past, past)
@@ -149,3 +186,4 @@ func TestTrip_Update(t *testing.T) {
 	assert.True(t, updatedTrip.CreatedAt.Equal(past))
 	assert.True(t, updatedTrip.UpdatedAt.Equal(now))
 }
+```

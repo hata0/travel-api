@@ -19,7 +19,20 @@ type TripRepository interface {
 	Delete(ctx context.Context, trip Trip) error
 }
 
-type TripID string
+type TripID struct {
+	value string
+}
+
+func NewTripID(id string) (TripID, error) {
+	if !IsValidUUID(id) {
+		return TripID{}, ErrInvalidUUID
+	}
+	return TripID{value: id}, nil
+}
+
+func (id TripID) String() string {
+	return id.value
+}
 
 type Trip struct {
 	ID        TripID
