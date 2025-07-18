@@ -43,11 +43,11 @@ func (i *TripInteractor) List(ctx context.Context) (output.ListTripOutput, error
 	return output.NewListTripOutput(trips), nil
 }
 
-func (i *TripInteractor) Create(ctx context.Context, name string) error {
+func (i *TripInteractor) Create(ctx context.Context, name string) (string, error) {
 	newUUID := i.uuidGenerator.NewUUID()
 	tripID, err := domain.NewTripID(newUUID)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	trip := domain.NewTrip(
@@ -57,7 +57,12 @@ func (i *TripInteractor) Create(ctx context.Context, name string) error {
 		i.clock.Now(),
 	)
 
-	return i.repository.Create(ctx, trip)
+	err = i.repository.Create(ctx, trip)
+	if err != nil {
+		return "", err
+	}
+
+	return tripID.String(), nil
 }
 
 func (i *TripInteractor) Update(ctx context.Context, id string, name string) error {

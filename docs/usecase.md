@@ -112,8 +112,9 @@ func TestTripInteractor_Create(t *testing.T) {
 
 	mockRepo.EXPECT().Create(gomock.Any(), expectedTrip).Return(nil).Times(1)
 
-	err = interactor.Create(context.Background(), tripName)
+	createdID, err := interactor.Create(context.Background(), tripName)
 
 	assert.NoError(t, err)
+	assert.Equal(t, generatedUUID, createdID)
 }
 ```
