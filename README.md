@@ -6,21 +6,22 @@
 
 ## 技術スタック
 
-- Go 1.24.5
-- Gin
-- PostgreSQL
-- sqlc
-
-## ドキュメント
-
-APIの仕様については、後でコードから openapi を生成してドキュメントとして実装予定
+- 言語: Go 1.24.5
+- Webフレームワーク: Gin
+- データベース: PostgreSQL
+- ORM/SQLジェネレータ: sqlc
+- マイグレーションツール: golang-migrate/migrate
+- テストツール:
+  - testify: アサーションライブラリ
+  - testcontainers-go: Dockerコンテナ管理 (テスト用)
+  - uber-go/mock: 自動モック生成
 
 ## ディレクトリ構成
 
 ```
 cmd/               # アプリケーションのエントリーポイント
 internal/          # 内部的なアプリケーションロジック
-  domain/          # ドメインモデルとビジネスロジック
+  domain/          # コアビジネスロジックとエンティティ
   infrastructure/  # データベースなどの外部依存の実装
   interface/       # リクエストとレスポンスのハンドラ
   usecase/         # アプリケーション固有のビジネスルール
@@ -54,3 +55,20 @@ internal/          # 内部的なアプリケーションロジック
 ```bash
 go test ./...
 ```
+
+## ドキュメント
+
+より詳細な開発ガイドラインや各層の実装方針については、以下のドキュメントを参照してください。
+
+- [開発ガイドライン](./docs/README.md)
+  - [API一覧](./docs/README.md#api一覧)
+  - [作業手順](./docs/README.md#作業手順)
+  - [共通ロジックの実装内容](./docs/README.md#共通ロジックの実装内容)
+  - [cmdディレクトリ](./docs/cmd.md)
+  - [configディレクトリ](./docs/config.md)
+  - [ドメイン層の作成](./docs/domain.md)
+  - [injectorディレクトリ](./docs/injector.md)
+  - [インターフェース層の作成](./docs/interface.md)
+  - [新規テーブル追加フロー](./docs/new_table_flow.md)
+  - [リポジトリの実装方針](./docs/repository_guideline.md)
+  - [ユースケース層の作成](./docs/usecase.md)
