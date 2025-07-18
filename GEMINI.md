@@ -25,6 +25,10 @@ This project follows the layered architecture of a typical Go language project.
 
 - Comments in the go code should be written in Japanese.
 
+## Git
+
+- Commit messages should follow the Conventional Commits rule, but the description should be written in Japanese.
+
 # Directory Patterns
 ```
 cmd/               # Entry point of the application.
