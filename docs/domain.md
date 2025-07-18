@@ -159,7 +159,8 @@ func TestNewTripID(t *testing.T) {
 }
 
 func TestNewTrip(t *testing.T) {
-	id, _ := NewTripID("abc123def4-e5f6-4a7b-8c9d-0e1f2a3b4c5d")
+	id, err := NewTripID("abc123def4-e5f6-4a7b-8c9d-0e1f2a3b4c5d")
+	assert.NoError(t, err)
 	name := "name abc"
 	now := time.Date(2000, time.January, 1, 1, 1, 1, 1, time.UTC)
 
@@ -172,7 +173,8 @@ func TestNewTrip(t *testing.T) {
 }
 
 func TestTrip_Update(t *testing.T) {
-	id, _ := NewTripID("abc123def4-e5f6-4a7b-8c9d-0e1f2a3b4c5d")
+	id, err := NewTripID("abc123def4-e5f6-4a7b-8c9d-0e1f2a3b4c5d")
+	assert.NoError(t, err)
 	name := "name abc"
 	past := time.Date(2000, time.January, 1, 1, 1, 1, 1, time.UTC)
 	trip := NewTrip(id, name, past, past)
