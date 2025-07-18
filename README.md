@@ -28,26 +28,26 @@ internal/          # 内部的なアプリケーションロジック
 
 ## 開発環境の構築
 
-1. **リポジトリをクローンします。**
+1.  **リポジトリをクローンします。**
 
-   ```bash
-   git clone git@github.com:hata0/travel-api.git
-   cd travel-api
-   ```
+    ```bash
+    git clone git@github.com:hata0/travel-api.git
+    cd travel-api
+    ```
 
-2. **Dockerコンテナを起動します。**
+2.  **Dockerコンテナを起動します。**
 
-   ```bash
-   docker-compose up -d
-   ```
+    ```bash
+    docker-compose up -d
+    ```
 
-3. **APIサーバーを起動します。**
+3.  **APIサーバーを起動します。**
 
-   ```bash
-   go run cmd/server/main.go
-   ```
+    ```bash
+    go run cmd/server/main.go
+    ```
 
-   サーバーは `http://localhost:8080` で起動します。
+    サーバーは `http://localhost:8080` で起動します。
 
 ## テスト
 
