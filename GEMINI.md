@@ -12,7 +12,6 @@ This project follows the layered architecture of a typical Go language project.
 # Testing Tools
 - testify: Assertion library
 - testcontainers-go: Docker container management for testing
-- go-testfixtures: Loading test data
 - uber-go/mock: Automatic mock generation
 
 # Coding Rules
