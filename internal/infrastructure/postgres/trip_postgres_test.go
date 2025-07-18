@@ -6,6 +6,7 @@ import (
 	"time"
 	"travel-api/internal/domain"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/stretchr/testify/assert"
@@ -15,7 +16,7 @@ import (
 // createTestTrip はテスト用のTripドメインオブジェクトを生成するヘルパー関数
 func createTestTrip(t *testing.T, name string, createdAt, updatedAt time.Time) domain.Trip {
 	t.Helper()
-	id, err := domain.NewTripID(domain.NewUUID()) // 動的にUUIDを生成
+	id, err := domain.NewTripID(uuid.New().String()) // 動的にUUIDを生成
 	require.NoError(t, err)
 	return domain.NewTrip(id, name, createdAt, updatedAt)
 }
@@ -76,7 +77,7 @@ func TestTripPostgresRepository_FindByID(t *testing.T) {
 	})
 
 	t.Run("異常系: レコードが存在しない", func(t *testing.T) {
-		id, err := domain.NewTripID(domain.NewUUID())
+		id, err := domain.NewTripID(uuid.New().String())
 		require.NoError(t, err)
 
 		_, err = repo.FindByID(ctx, id)

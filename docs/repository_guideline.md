@@ -239,7 +239,7 @@ func TestTripPostgresRepository_Create(t *testing.T) {
 func TestTripPostgresRepository_FindByID(t *testing.T) {
     // ...
 	t.Run("異常系: レコードが存在しない", func(t *testing.T) {
-		id, err := domain.NewTripID(domain.NewUUID())
+		id, err := domain.NewTripID(uuid.New().String())
 		require.NoError(t, err)
 
 		_, err = repo.FindByID(ctx, id)
