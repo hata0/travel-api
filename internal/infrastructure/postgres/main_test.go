@@ -2,12 +2,10 @@ package postgres
 
 import (
 	"context"
-	"database/sql"
 	"log"
 	"os"
 	"testing"
 
-	"github.com/go-testfixtures/testfixtures/v3"
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
@@ -88,26 +86,6 @@ func setupTestContainer(ctx context.Context) (*postgres.PostgresContainer, strin
 		return nil, "", dbErr
 	}
 
-	// テストデータを挿入
-	db, err := sql.Open("pgx", dbUrl)
-	if err != nil {
-		return nil, "", err
-	}
-
-	fixtures, err := testfixtures.New(
-		testfixtures.Database(db),
-		testfixtures.Dialect("postgres"),
-		testfixtures.Directory("fixtures"),
-	)
-	if err != nil {
-		return nil, "", err
-	}
-	if err := fixtures.Load(); err != nil {
-		return nil, "", err
-	}
-
-	db.Close()
-
 	// スナップショットを作成
 	if err := container.Snapshot(ctx, postgres.WithSnapshotName("test-db-snapshot")); err != nil {
 		return nil, "", err
@@ -125,6 +103,7 @@ func setupDB(t *testing.T, ctx context.Context) *pgx.Conn {
 	t.Cleanup(func() {
 		err := db.Close(ctx)
 		require.NoError(t, err)
+		// 各テストの終了時にスナップショットを復元
 		err = testContainer.Restore(ctx)
 		require.NoError(t, err)
 	})
