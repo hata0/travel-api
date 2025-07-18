@@ -64,7 +64,27 @@ DROP TABLE IF EXISTS users;
 
 クエリファイルは `internal/infrastructure/postgres/sql/queries/` ディレクトリに配置してください。ファイル名は `<table_name>.sql` (例: `users.sql`) とします。
 
-クエリには `sqlc` が認識できる特別なコメントを追加します。例: `-- name: CreateUser :exec`
+クエリには `sqlc` が認識できる特別なコメントを追加します。このコメントは、`sqlc` がGoの関数を生成する際のヒントとなります。
+
+-   `-- name: <QueryName> :one`: 単一のレコードを返すクエリ。
+-   `-- name: <QueryName> :many`: 複数のレコードを返すクエリ。
+-   `-- name: <QueryName> :exec`: レコードを返さないクエリ（INSERT, UPDATE, DELETEなど）。
+
+**例 (`users.sql`):**
+```sql
+-- name: CreateUser :exec
+INSERT INTO users (id, username, email, password_hash, created_at, updated_at)
+VALUES ($1, $2, $3, $4, $5, $6);
+
+-- name: GetUserByEmail :one
+SELECT id, username, email, password_hash, created_at, updated_at FROM users
+WHERE email = $1 LIMIT 1;
+```
+
+**ベストプラクティス**:
+-   各クエリファイルは、特定のテーブルまたは関連する一連の操作に特化させます。
+-   クエリ名は、そのクエリが何を行うかを明確に示します（例: `GetUserByID`, `ListUsers`, `CreateUser`）。
+-   パラメータは `$1`, `$2` のようにプレースホルダを使用します。`sqlc` がこれらをGoの関数の引数にマッピングします。
 
 ### 4. Goコードの自動生成
 
