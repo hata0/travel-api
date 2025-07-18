@@ -20,15 +20,22 @@ make migrate-new name=<migration_name>
 
 生成された `up` ファイルに `CREATE TABLE` 文を記述します。`down` ファイルには、テーブルを削除する `DROP TABLE` 文を記述してください。
 
+**ベストプラクティス**:
+実務を想定した実装にしてください。
+以下のような `sql` を作成することを推奨します。
+
 **例 (`up` ファイル):**
 ```sql
 CREATE TABLE IF NOT EXISTS users (
   id UUID PRIMARY KEY,
   email TEXT UNIQUE NOT NULL,
-  password TEXT NOT NULL,
+  password_hash TEXT NOT NULL, -- パスワードのハッシュ値を保存
   created_at TIMESTAMPTZ NOT NULL,
   updated_at TIMESTAMPTZ NOT NULL
 );
+
+-- email カラムにユニークインデックスを追加し、検索パフォーマンスを向上させる
+CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email ON users (email);
 ```
 
 **例 (`down` ファイル):**
