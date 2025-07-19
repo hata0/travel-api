@@ -158,23 +158,6 @@ func NewInternalServerError(cause error) error {
 }
 ```
 
-## 4. 成功メッセージの定義
-
-アプリケーション全体で共通して使用される成功メッセージを定義します。
-
--   **ファイルパス**: `internal/domain/success.go` に定義します。
-
-**例 (`internal/domain/success.go`):**
-```go
-package domain
-
-const (
-	SuccessMessage = "success"
-)
-```
-
-## 5. テスト
-
 ## 4. テスト
 
 ドメイン層のテストは、エンティティの振る舞いやビジネスロジックが期待通りに動作するかを確認するために重要です。
