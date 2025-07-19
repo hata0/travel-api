@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 	"travel-api/internal/domain"
-	mock_handler "travel-api/internal/interface/handler/mock"
 	"travel-api/internal/interface/response"
+	mock_handler "travel-api/internal/usecase/mock"
 	"travel-api/internal/usecase/output"
 
 	"github.com/gin-gonic/gin"

@@ -4,6 +4,7 @@ type RegisterResponse struct {
 	UserID string `json:"user_id"`
 }
 
-type LoginResponse struct {
-	Token string `json:"token"`
+type AuthTokenResponse struct {
+	Token        string `json:"token"`
+	RefreshToken string `json:"refresh_token"`
 }

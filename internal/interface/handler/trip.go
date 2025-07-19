@@ -1,31 +1,21 @@
 package handler
 
 import (
-	"context"
 	"log/slog"
 	"net/http"
 	"travel-api/internal/domain"
 	"travel-api/internal/interface/response"
 	"travel-api/internal/interface/validator"
-	"travel-api/internal/usecase/output"
+	"travel-api/internal/usecase"
 
 	"github.com/gin-gonic/gin"
 )
 
-//go:generate mockgen -destination mock/trip.go travel-api/internal/interface/handler TripUsecase
-type TripUsecase interface {
-	Get(ctx context.Context, id string) (output.GetTripOutput, error)
-	List(ctx context.Context) (output.ListTripOutput, error)
-	Create(ctx context.Context, name string) (string, error)
-	Update(ctx context.Context, id string, name string) error
-	Delete(ctx context.Context, id string) error
-}
-
 type TripHandler struct {
-	usecase TripUsecase
+	usecase usecase.TripUsecase
 }
 
-func NewTripHandler(usecase TripUsecase) *TripHandler {
+func NewTripHandler(usecase usecase.TripUsecase) *TripHandler {
 	return &TripHandler{
 		usecase: usecase,
 	}
@@ -105,7 +95,7 @@ func (handler *TripHandler) create(c *gin.Context) {
 		return
 	}
 
-	response.NewSuccessWithData(domain.SuccessMessage, http.StatusCreated, gin.H{"id": createdTripID}).JSON(c)
+	c.JSON(http.StatusCreated, response.CreateTripResponse{ID: createdTripID})
 }
 
 func (handler *TripHandler) update(c *gin.Context) {
@@ -133,7 +123,7 @@ func (handler *TripHandler) update(c *gin.Context) {
 		return
 	}
 
-	response.NewSuccess(domain.SuccessMessage, http.StatusOK).JSON(c)
+	c.JSON(http.StatusOK, response.SuccessResponse{Message: "success"})
 }
 
 func (handler *TripHandler) delete(c *gin.Context) {
@@ -155,5 +145,5 @@ func (handler *TripHandler) delete(c *gin.Context) {
 		return
 	}
 
-	response.NewSuccess(domain.SuccessMessage, http.StatusOK).JSON(c)
+	c.JSON(http.StatusOK, response.SuccessResponse{Message: "success"})
 }

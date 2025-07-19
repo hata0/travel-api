@@ -20,6 +20,10 @@ type (
 	ListTripResponse struct {
 		Trips []Trip `json:"trips"`
 	}
+
+	CreateTripResponse struct {
+		ID string `json:"id"`
+	}
 )
 
 // MarshalJSON はTrip構造体をJSONにマーシャリングする際のカスタム処理を提供します。

@@ -1,28 +1,20 @@
 package handler
 
 import (
-	"context"
 	"log/slog"
 	"net/http"
-	"travel-api/internal/domain"
 	"travel-api/internal/interface/response"
 	"travel-api/internal/interface/validator"
-	"travel-api/internal/usecase/output"
+	"travel-api/internal/usecase"
 
 	"github.com/gin-gonic/gin"
 )
 
-//go:generate mockgen -destination mock/auth.go travel-api/internal/interface/handler AuthUsecase
-type AuthUsecase interface {
-	Register(ctx context.Context, username, email, password string) (output.RegisterOutput, error)
-	Login(ctx context.Context, email, password string) (output.LoginOutput, error)
-}
-
 type AuthHandler struct {
-	usecase AuthUsecase
+	usecase usecase.AuthUsecase
 }
 
-func NewAuthHandler(usecase AuthUsecase) *AuthHandler {
+func NewAuthHandler(usecase usecase.AuthUsecase) *AuthHandler {
 	return &AuthHandler{
 		usecase: usecase,
 	}
@@ -31,6 +23,7 @@ func NewAuthHandler(usecase AuthUsecase) *AuthHandler {
 func (handler *AuthHandler) RegisterAPI(router *gin.Engine) {
 	router.POST("/register", handler.register)
 	router.POST("/login", handler.login)
+	router.POST("/refresh", handler.refresh)
 }
 
 func (handler *AuthHandler) register(c *gin.Context) {
@@ -47,7 +40,7 @@ func (handler *AuthHandler) register(c *gin.Context) {
 		return
 	}
 
-	response.NewSuccessWithData(domain.SuccessMessage, http.StatusCreated, gin.H{"user_id": output.UserID}).JSON(c)
+	c.JSON(http.StatusCreated, response.RegisterResponse{UserID: output.UserID})
 }
 
 func (handler *AuthHandler) login(c *gin.Context) {
@@ -64,5 +57,28 @@ func (handler *AuthHandler) login(c *gin.Context) {
 		return
 	}
 
-	response.NewSuccessWithData(domain.SuccessMessage, http.StatusOK, gin.H{"token": output.Token}).JSON(c)
+	c.JSON(http.StatusOK, response.AuthTokenResponse{
+		Token:        output.Token,
+		RefreshToken: output.RefreshToken,
+	})
+}
+
+func (handler *AuthHandler) refresh(c *gin.Context) {
+	var body validator.RefreshTokenJSONBody
+	if err := c.ShouldBindJSON(&body); err != nil {
+		response.NewError(err).JSON(c)
+		return
+	}
+
+	output, err := handler.usecase.VerifyRefreshToken(c.Request.Context(), body.RefreshToken)
+	if err != nil {
+		slog.Error("Failed to refresh token", "error", err)
+		response.NewError(err).JSON(c)
+		return
+	}
+
+	c.JSON(http.StatusOK, response.AuthTokenResponse{
+		Token:        output.Token,
+		RefreshToken: output.RefreshToken,
+	})
 }

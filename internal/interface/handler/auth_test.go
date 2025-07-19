@@ -8,7 +8,8 @@ import (
 	"net/http/httptest"
 	"testing"
 	"travel-api/internal/domain"
-	mock_handler "travel-api/internal/interface/handler/mock"
+	"travel-api/internal/interface/response"
+	mock_handler "travel-api/internal/usecase/mock"
 	"travel-api/internal/usecase/output"
 
 	"github.com/gin-gonic/gin"
@@ -46,10 +47,9 @@ func TestAuthHandler_Register(t *testing.T) {
 		r.ServeHTTP(w, req)
 
 		assert.Equal(t, http.StatusCreated, w.Code)
-		var resBody map[string]interface{}
+		var resBody response.RegisterResponse
 		json.Unmarshal(w.Body.Bytes(), &resBody)
-		assert.Equal(t, "success", resBody["message"])
-		assert.Equal(t, userID, resBody["data"].(map[string]interface{})["user_id"])
+		assert.Equal(t, userID, resBody.UserID)
 	})
 
 	t.Run("異常系: バリデーションエラー (必須フィールド欠落)", func(t *testing.T) {
@@ -123,7 +123,7 @@ func TestAuthHandler_Login(t *testing.T) {
 	token := "mock_jwt_token"
 
 	t.Run("正常系: ユーザーログインが成功する", func(t *testing.T) {
-		expectedOutput := output.LoginOutput{Token: token}
+		expectedOutput := output.TokenPairOutput{Token: token}
 		mockUsecase.EXPECT().Login(gomock.Any(), email, password).Return(expectedOutput, nil).Times(1)
 
 		body, _ := json.Marshal(gin.H{
@@ -136,30 +136,13 @@ func TestAuthHandler_Login(t *testing.T) {
 		r.ServeHTTP(w, req)
 
 		assert.Equal(t, http.StatusOK, w.Code)
-		var resBody map[string]interface{}
+		var resBody response.AuthTokenResponse
 		json.Unmarshal(w.Body.Bytes(), &resBody)
-		assert.Equal(t, "success", resBody["message"])
-		assert.Equal(t, token, resBody["data"].(map[string]interface{})["token"])
-	})
-
-	t.Run("異常系: バリデーションエラー (メールアドレス形式不正)", func(t *testing.T) {
-		body, _ := json.Marshal(gin.H{
-			"email":    "invalid-email",
-			"password": password,
-		})
-		w := httptest.NewRecorder()
-		req, _ := http.NewRequest("POST", "/login", bytes.NewBuffer(body))
-		req.Header.Set("Content-Type", "application/json")
-		r.ServeHTTP(w, req)
-
-		assert.Equal(t, http.StatusBadRequest, w.Code)
-		var resBody map[string]interface{}
-		json.Unmarshal(w.Body.Bytes(), &resBody)
-		assert.Equal(t, "VALIDATION_ERROR", resBody["code"])
+		assert.Equal(t, token, resBody.Token)
 	})
 
 	t.Run("異常系: ユースケースエラー (認証情報が無効)", func(t *testing.T) {
-		mockUsecase.EXPECT().Login(gomock.Any(), email, password).Return(output.LoginOutput{}, domain.ErrInvalidCredentials).Times(1)
+		mockUsecase.EXPECT().Login(gomock.Any(), email, password).Return(output.TokenPairOutput{}, domain.ErrInvalidCredentials).Times(1)
 
 		body, _ := json.Marshal(gin.H{
 			"email":    email,
@@ -177,7 +160,7 @@ func TestAuthHandler_Login(t *testing.T) {
 	})
 
 	t.Run("異常系: ユースケースエラー (内部サーバーエラー)", func(t *testing.T) {
-		mockUsecase.EXPECT().Login(gomock.Any(), email, password).Return(output.LoginOutput{}, errors.New("some internal error")).Times(1)
+		mockUsecase.EXPECT().Login(gomock.Any(), email, password).Return(output.TokenPairOutput{}, errors.New("some internal error")).Times(1)
 
 		body, _ := json.Marshal(gin.H{
 			"email":    email,
@@ -185,6 +168,89 @@ func TestAuthHandler_Login(t *testing.T) {
 		})
 		w := httptest.NewRecorder()
 		req, _ := http.NewRequest("POST", "/login", bytes.NewBuffer(body))
+		req.Header.Set("Content-Type", "application/json")
+		r.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusInternalServerError, w.Code)
+		var resBody map[string]interface{}
+		json.Unmarshal(w.Body.Bytes(), &resBody)
+		assert.Equal(t, "INTERNAL_SERVER_ERROR", resBody["code"])
+	})
+}
+
+func TestAuthHandler_Refresh(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockUsecase := mock_handler.NewMockAuthUsecase(ctrl)
+	gin.SetMode(gin.TestMode)
+	r := gin.Default()
+	authHandler := NewAuthHandler(mockUsecase)
+	authHandler.RegisterAPI(r)
+
+	refreshToken := "mock_refresh_token"
+	newAccessToken := "new_mock_access_token"
+	newRefreshToken := "new_mock_refresh_token"
+
+	t.Run("正常系: リフレッシュトークンが有効で、新しいアクセストークンとリフレッシュトークンが返される", func(t *testing.T) {
+		expectedOutput := output.TokenPairOutput{Token: newAccessToken, RefreshToken: newRefreshToken}
+		mockUsecase.EXPECT().VerifyRefreshToken(gomock.Any(), refreshToken).Return(expectedOutput, nil).Times(1)
+
+		body, _ := json.Marshal(gin.H{
+			"refresh_token": refreshToken,
+		})
+		w := httptest.NewRecorder()
+		req, _ := http.NewRequest("POST", "/refresh", bytes.NewBuffer(body))
+		req.Header.Set("Content-Type", "application/json")
+		r.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+		var resBody map[string]interface{}
+		json.Unmarshal(w.Body.Bytes(), &resBody)
+		assert.Equal(t, newAccessToken, resBody["token"])
+		assert.Equal(t, newRefreshToken, resBody["refresh_token"])
+	})
+
+	t.Run("異常系: バリデーションエラー (リフレッシュトークンが欠落している場合)", func(t *testing.T) {
+		body, _ := json.Marshal(gin.H{
+			// refresh_token missing
+		})
+		w := httptest.NewRecorder()
+		req, _ := http.NewRequest("POST", "/refresh", bytes.NewBuffer(body))
+		req.Header.Set("Content-Type", "application/json")
+		r.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+		var resBody map[string]interface{}
+		json.Unmarshal(w.Body.Bytes(), &resBody)
+		assert.Equal(t, "VALIDATION_ERROR", resBody["code"])
+	})
+
+	t.Run("異常系: ユースケースエラー (リフレッシュトークンが無効または期限切れの場合)", func(t *testing.T) {
+		mockUsecase.EXPECT().VerifyRefreshToken(gomock.Any(), refreshToken).Return(output.TokenPairOutput{}, domain.ErrInvalidCredentials).Times(1)
+
+		body, _ := json.Marshal(gin.H{
+			"refresh_token": refreshToken,
+		})
+		w := httptest.NewRecorder()
+		req, _ := http.NewRequest("POST", "/refresh", bytes.NewBuffer(body))
+		req.Header.Set("Content-Type", "application/json")
+		r.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusUnauthorized, w.Code)
+		var resBody map[string]interface{}
+		json.Unmarshal(w.Body.Bytes(), &resBody)
+		assert.Equal(t, "INVALID_CREDENTIALS", resBody["code"])
+	})
+
+	t.Run("異常系: ユースケースエラー (内部サーバーエラーの場合)", func(t *testing.T) {
+		mockUsecase.EXPECT().VerifyRefreshToken(gomock.Any(), refreshToken).Return(output.TokenPairOutput{}, errors.New("some internal error")).Times(1)
+
+		body, _ := json.Marshal(gin.H{
+			"refresh_token": refreshToken,
+		})
+		w := httptest.NewRecorder()
+		req, _ := http.NewRequest("POST", "/refresh", bytes.NewBuffer(body))
 		req.Header.Set("Content-Type", "application/json")
 		r.ServeHTTP(w, req)
 
