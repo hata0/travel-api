@@ -6,6 +6,15 @@ import (
 	"travel-api/internal/usecase/output"
 )
 
+//go:generate mockgen -destination mock/trip.go travel-api/internal/usecase TripUsecase
+type TripUsecase interface {
+	Get(ctx context.Context, id string) (output.GetTripOutput, error)
+	List(ctx context.Context) (output.ListTripOutput, error)
+	Create(ctx context.Context, name string) (string, error)
+	Update(ctx context.Context, id string, name string) error
+	Delete(ctx context.Context, id string) error
+}
+
 type TripInteractor struct {
 	repository    domain.TripRepository
 	clock         domain.Clock

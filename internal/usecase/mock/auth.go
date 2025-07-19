@@ -42,10 +42,10 @@ func (m *MockAuthUsecase) EXPECT() *MockAuthUsecaseMockRecorder {
 }
 
 // Login mocks base method.
-func (m *MockAuthUsecase) Login(ctx context.Context, email, password string) (output.LoginOutput, error) {
+func (m *MockAuthUsecase) Login(ctx context.Context, email, password string) (output.TokenPairOutput, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Login", ctx, email, password)
-	ret0, _ := ret[0].(output.LoginOutput)
+	ret0, _ := ret[0].(output.TokenPairOutput)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -86,10 +86,10 @@ func (mr *MockAuthUsecaseMockRecorder) RevokeRefreshToken(ctx, refreshToken any)
 }
 
 // VerifyRefreshToken mocks base method.
-func (m *MockAuthUsecase) VerifyRefreshToken(ctx context.Context, refreshToken string) (output.LoginOutput, error) {
+func (m *MockAuthUsecase) VerifyRefreshToken(ctx context.Context, refreshToken string) (output.TokenPairOutput, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "VerifyRefreshToken", ctx, refreshToken)
-	ret0, _ := ret[0].(output.LoginOutput)
+	ret0, _ := ret[0].(output.TokenPairOutput)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

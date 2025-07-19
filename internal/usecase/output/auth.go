@@ -4,7 +4,7 @@ type RegisterOutput struct {
 	UserID string
 }
 
-type LoginOutput struct {
+type TokenPairOutput struct {
 	Token        string
 	RefreshToken string
 }
