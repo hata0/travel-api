@@ -18,3 +18,4 @@ APIの仕様については、後ほどコードから OpenAPI を生成し、�
 - [injector](./injector.md)
 - [config](./config.md)
 - [共通ロジック](./common_logic.md)
+- [認証システム](./auth.md)

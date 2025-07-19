@@ -11,6 +11,7 @@ import (
 	"time"
 	"travel-api/internal/config"
 	"travel-api/internal/injector"
+	"travel-api/internal/interface/middleware"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -32,7 +33,16 @@ func main() {
 
 	router := gin.Default()
 
+	injector.NewAuthHandler(db).RegisterAPI(router)
 	injector.NewTripHandler(db).RegisterAPI(router)
+
+	// 認証が必要なAPIグループ
+	authRequired := router.Group("/")
+	authRequired.Use(middleware.AuthMiddleware())
+	{
+		// ここに認証が必要なAPIを登録
+		// 例: authRequired.GET("/protected", handler.ProtectedHandler)
+	}
 
 	srv := &http.Server{
 		Addr:    ":8080",

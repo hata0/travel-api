@@ -50,6 +50,12 @@ func mapErrorCodeToHTTPStatus(code domain.ErrorCode) int {
 		return http.StatusBadRequest
 	case domain.TripNotFound:
 		return http.StatusNotFound
+	case domain.UserNotFound:
+		return http.StatusNotFound
+	case domain.UserAlreadyExists:
+		return http.StatusConflict
+	case domain.InvalidCredentials:
+		return http.StatusUnauthorized
 	case domain.InternalServerError:
 		return http.StatusInternalServerError
 	default:

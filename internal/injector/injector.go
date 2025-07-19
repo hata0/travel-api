@@ -14,3 +14,11 @@ func NewTripHandler(db postgres.DBTX) *handler.TripHandler {
 	tripUsecase := usecase.NewTripInteractor(tripRepository, clock, uuidGenerator)
 	return handler.NewTripHandler(tripUsecase)
 }
+
+func NewAuthHandler(db postgres.DBTX) *handler.AuthHandler {
+	userRepository := postgres.NewUserPostgresRepository(db)
+	clock := &domain.SystemClock{}
+	uuidGenerator := &domain.DefaultUUIDGenerator{}
+	authUsecase := usecase.NewAuthInteractor(userRepository, clock, uuidGenerator)
+	return handler.NewAuthHandler(authUsecase)
+}

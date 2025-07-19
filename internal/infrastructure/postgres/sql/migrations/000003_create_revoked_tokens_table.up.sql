@@ -1,0 +1,6 @@
+CREATE TABLE IF NOT EXISTS revoked_tokens (
+  id UUID PRIMARY KEY,
+  token_jti TEXT NOT NULL UNIQUE,
+  expires_at TIMESTAMPTZ NOT NULL,
+  revoked_at TIMESTAMPTZ NOT NULL
+);

@@ -4,18 +4,39 @@
 
 - [ ] **認証・認可機能の追加**
   - JWTなどを用いて、APIエンドポイントへのアクセスを保護する認証・認可のミドルウェアを導入する。
-  - [ ] **ステップ1: ユーザー管理のためのデータベース準備**
+  - [x] **ステップ1: ユーザー管理のためのデータベース準備**
     - [x] `users`テーブルのマイグレーションファイル作成
     - [x] `users`テーブル用のSQLクエリ作成 (`sqlc`)
   - [x] **ステップ2: 依存ライブラリの追加**
     - [x] JWTライブラリの追加 (`go get github.com/golang-jwt/jwt/v5`)
-  - [ ] **ステップ3: ドメインとユースケースの作成**
+  - [x] **ステップ3: ドメインとユースケースの作成**
     - [x] `user`ドメインの定義
-    - [ ] `auth`ユースケースの作成 (ユーザー登録・ログイン処理)
-  - [ ] **ステップ4: 設定の追加**
-    - [ ] JWT秘密鍵を環境変数に追加 (`.env`と`config.go`)
+    - [x] `UserRepository`のインフラ層実装 (`internal/infrastructure/postgres/user_postgres.go`)
+    - [x] モックの再生成 (`go generate ./...`)
+    - [x] `auth`ユースケースの作成 (ユーザー登録・ログイン処理)
+      - [x] 入出力の定義 (`internal/usecase/output/auth.go`)
+      - [x] JWTトークンの生成と返却 (`internal/usecase/auth.go`)
+      - [x] テストの作成 (`internal/usecase/auth_test.go`)
+  - [x] **ステップ4: 設定の追加**
+    - [x] JWT秘密鍵を環境変数に追加 (`.env`と`config.go`)
   - [ ] **ステップ5: インターフェース層の実装**
-    - [ ] `auth`ハンドラの作成 (`/register`, `/login`)
-    - [ ] 認証ミドルウェアの作成
-  - [ ] **ステップ6: ルーティングの更新**
-    - [ ] `main.go`で認証ミドルウェアを適用
+    - [x] `auth`ハンドラの作成 (`/register`, `/login`)
+    - [x] 認証ミドルウェアの作成
+  - [ ] **ステップ7: 認証ミドルウェアの改善**
+    - [x] トークンの失効メカニズムの導入
+      - [x] `revoked_tokens`テーブルのマイグレーションファイル作成
+      - [x] `revoked_tokens`テーブルのSQLクエリ作成 (`sqlc`)
+      - [x] `RevokedToken`ドメインの定義
+      - [x] `RevokedTokenRepository`のインフラ層実装 (`internal/infrastructure/postgres/revoked_token_postgres.go`)
+      - [x] `RevokedTokenRepository`のテスト作成 (`internal/infrastructure/postgres/revoked_token_postgres_test.go`)
+        - [x] `Create`メソッドの異常系テスト（重複するJTI）
+    - [ ] リフレッシュトークンの導入
+      - [x] `LoginOutput`に`RefreshToken`フィールドを追加
+      - [x] `auth`ユースケースでリフレッシュトークンを生成
+      - [x] リフレッシュトークンをデータベースで管理するためのテーブル設計と実装
+      - [x] リフレッシュトークンの検証と失効ロジックの実装
+      - [ ] アクセストークンをリフレッシュするAPIエンドポイントの作成
+    - [ ] テスト容易性の向上 (DIの徹底)
+    - [ ] レートリミット/ブルートフォース対策の導入
+  - [x] **ステップ6: ルーティングの更新**
+    - [x] `main.go`で認証ミドルウェアを適用

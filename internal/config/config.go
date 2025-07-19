@@ -29,3 +29,14 @@ func DSN() (string, error) {
 	// データベース接続文字列を構築
 	return fmt.Sprintf("postgres://%s:%s@%s:%s/%s", dbUser, dbPass, dbHost, dbPort, dbName), nil
 }
+
+// JWTSecret は、JWTの秘密鍵を環境変数から取得します。
+// 環境変数が設定されていない場合は、エラーを返します。
+func JWTSecret() (string, error) {
+	_ = godotenv.Load()
+	jwtSecret := os.Getenv("JWT_SECRET")
+	if jwtSecret == "" {
+		return "", fmt.Errorf("JWT_SECRET environment variable not set")
+	}
+	return jwtSecret, nil
+}
