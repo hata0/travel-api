@@ -62,27 +62,69 @@ func (t Trip) Update(name string, updatedAt time.Time) Trip {
 
 ## 2. リポジトリインターフェースの定義
 
-エンティティの永続化操作を抽象化するリポジトリインターフェース（例: `TripRepository`）を定義します。
-このインターフェースは、データベースなどの具体的な永続化層の実装からドメイン層を分離します。
+エンティティの永続化操作を抽象化するリポジトリインターフェースを定義します。このインターフェースは、ドメイン層をデータベースなどの具体的な永続化層の実装から分離するための重要な役割を担います。
 
--   **ファイルパス**: `internal/domain/<entity_name>.go` (エンティティと同じファイルに定義することが多い)
--   **内容**:
-    -   CRUD (Create, Read, Update, Delete) 操作に対応するメソッドを定義します。
-    -   各メソッドは `context.Context` を第一引数に取ります。
-    -   エラーハンドリングのために、ドメイン固有のエラー（例: `ErrTripNotFound`）を返します。
+### リポジトリインターフェース実装チェックリスト
+
+新しいリポジトリインターフェースを定義する際は、以下の項目を確認してください。
+
+-   [ ] **ファイルと場所**: インターフェースはエンティティと同じファイルに定義されていますか？ (例: `internal/domain/trip.go` に `TripRepository` を定義)
+-   [ ] **命名規則**: インターフェース名は `<EntityName>Repository` という形式ですか？ (例: `TripRepository`)
+-   [ ] **メソッドのシグネチャ**:
+    -   [ ] すべてのメソッドの第一引数は `context.Context` ですか？
+    -   [ ] メソッドはドメイン固有のエラー（例: `domain.ErrTripNotFound`）または `error` を返しますか？
+-   [ ] **引数の型（最重要）**:
+    -   [ ] **検索系メソッド** (`FindByID`, `FindByEmail`など) のIDやキー引数は、プリミティブ型 (`string`, `int`) ではなく、**値オブジェクト** (`domain.TripID`, `domain.Email`) になっていますか？
+    -   [ ] **操作系メソッド** (`Create`, `Update`, `Delete`) の引数は、IDだけでなく**ドメインエンティティ全体** (`domain.Trip`) を受け取るようになっていますか？
+-   [ ] **操作の網羅性**: CRUD (Create, Read, Update, Delete) に対応する基本的なメソッドが定義されていますか？
+    -   `Create(ctx context.Context, entity Entity) error`
+    -   `FindByID(ctx context.Context, id EntityID) (Entity, error)`
+    -   `Update(ctx context.Context, entity Entity) error`
+    -   `Delete(ctx context.Context, entity Entity) error`
+    -   (必要に応じて) `FindMany`, `FindBy...` など
+-   [ ] **モック生成**: `//go:generate mockgen` コメントがインターフェース定義の上に追加されていますか？
+
+---
+
+### 良い実装例
+
+上記のチェックリストに基づいた `TripRepository` の実装例です。
 
 ```go
 // internal/domain/trip.go の例
 //go:generate mockgen -destination mock/trip.go travel-api/internal/domain TripRepository
 type TripRepository interface {
+	// FindByID は指定されたIDを持つTripエンティティを検索します。
+	// 引数にはTripID値オブジェクトを使用し、型安全性を確保します。
 	FindByID(ctx context.Context, id TripID) (Trip, error)
+	// FindMany はすべてのTripエンティティを検索します。
 	FindMany(ctx context.Context) ([]Trip, error)
+	// Create は新しいTripエンティティを永続化します。
+	// 引数にはTripエンティティ全体を使用します。
 	Create(ctx context.Context, trip Trip) error
+	// Update は既存のTripエンティティを更新します。
+	// 引数には更新対象のTripエンティティ全体を使用します。
 	Update(ctx context.Context, trip Trip) error
+	// Delete は指定されたTripエンティティを削除します。
+	// 引数には削除対象のTripエンティティ全体を使用します。
 	Delete(ctx context.Context, trip Trip) error
 }
 ```
 `//go:generate mockgen` コメントを追加することで、`go generate` コマンド実行時にテスト用のモック実装が自動生成されます。
+
+### アンチパターン（避けるべき実装）
+
+-   **プリミティブ型を直接使用する**: `string`や`int`などのプリミティブ型をエンティティの識別子として直接引数に取ることは避けてください。例えば、`FindByID(ctx context.Context, id string)` のようにすると、UUID以外の任意の文字列も受け入れてしまい、型安全性が損なわれます。
+-   **エンティティの一部のみを引数に取る**: `Delete(ctx context.Context, id string)` のように、ドメインエンティティ全体ではなく、その一部のプリミティブな識別子のみを引数に取ることも避けるべきです。これは、メソッドの意図を曖昧にし、ドメインロジックがリポジトリ層に漏れ出す原因となります。
+
+```go
+// Bad Example: internal/domain/trip.go
+type TripRepository interface {
+    FindByID(ctx context.Context, id string) (Trip, error) // Bad: string型を直接使用
+    Delete(ctx context.Context, id string) error           // Bad: string型を直接使用
+    // ...
+}
+```
 
 ## 3. エラーの定義
 
