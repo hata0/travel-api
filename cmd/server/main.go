@@ -37,8 +37,13 @@ func main() {
 	injector.NewTripHandler(db).RegisterAPI(router)
 
 	// 認証が必要なAPIグループ
+	jwtSecret, err := config.JWTSecret()
+	if err != nil {
+		slog.Error("Failed to get JWT secret", "error", err)
+		os.Exit(1)
+	}
 	authRequired := router.Group("/")
-	authRequired.Use(middleware.AuthMiddleware())
+	authRequired.Use(middleware.AuthMiddleware(jwtSecret))
 	{
 		// ここに認証が必要なAPIを登録
 		// 例: authRequired.GET("/protected", handler.ProtectedHandler)

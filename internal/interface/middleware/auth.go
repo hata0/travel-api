@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log/slog"
 	"strings"
-	"travel-api/internal/config"
 	"travel-api/internal/domain"
 	"travel-api/internal/interface/presenter"
 
@@ -12,7 +11,7 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-func AuthMiddleware() gin.HandlerFunc {
+func AuthMiddleware(jwtSecret string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
@@ -31,13 +30,6 @@ func AuthMiddleware() gin.HandlerFunc {
 		}
 
 		tokenString := tokenParts[1]
-
-		jwtSecret, err := config.JWTSecret()
-		if err != nil {
-			c.JSON(presenter.ConvertToHTTPError(domain.NewInternalServerError(err)))
-			c.Abort()
-			return
-		}
 
 		token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 			// 署名方法の検証
