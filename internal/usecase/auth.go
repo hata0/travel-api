@@ -67,7 +67,7 @@ func (i *AuthInteractor) Register(ctx context.Context, username, email, password
 	// ユーザーを保存
 	err = i.userRepository.Create(ctx, user)
 	if err != nil {
-		return output.RegisterOutput{}, domain.NewInternalServerError(err)
+		return output.RegisterOutput{}, err
 	}
 
 	return output.RegisterOutput{UserID: userID.String()}, nil
@@ -82,7 +82,7 @@ func (i *AuthInteractor) checkUserExistence(ctx context.Context, username, email
 	}
 	var appErr *domain.Error
 	if !errors.As(err, &appErr) || appErr.Code != domain.UserNotFound {
-		return domain.NewInternalServerError(err)
+		return err
 	}
 
 	// メールアドレスが既に存在するか確認
@@ -91,7 +91,7 @@ func (i *AuthInteractor) checkUserExistence(ctx context.Context, username, email
 		return domain.ErrUserAlreadyExists
 	}
 	if !errors.As(err, &appErr) || appErr.Code != domain.UserNotFound {
-		return domain.NewInternalServerError(err)
+		return err
 	}
 	return nil
 }
@@ -105,7 +105,7 @@ func (i *AuthInteractor) Login(ctx context.Context, email, password string) (out
 		if errors.As(err, &appErr) && appErr.Code == domain.UserNotFound {
 			return output.TokenPairOutput{}, domain.ErrInvalidCredentials
 		}
-		return output.TokenPairOutput{}, domain.NewInternalServerError(err)
+		return output.TokenPairOutput{}, err
 	}
 
 	// パスワードの検証
@@ -170,17 +170,17 @@ func (i *AuthInteractor) VerifyRefreshToken(ctx context.Context, refreshToken st
 	// リフレッシュトークンの有効期限をチェック
 	if i.clock.Now().After(foundToken.ExpiresAt) {
 		// 期限切れの場合は削除
-		_ = i.refreshTokenRepository.Delete(ctx, refreshToken)
+	_ = i.refreshTokenRepository.Delete(ctx, foundToken)
 		return output.TokenPairOutput{}, domain.ErrInvalidCredentials
 	}
 
 	// 古いリフレッシュトークンを削除
-	_ = i.refreshTokenRepository.Delete(ctx, refreshToken)
+	_ = i.refreshTokenRepository.Delete(ctx, foundToken)
 
 	// 新しいアクセストークンとリフレッシュトークンを生成
 	user, err := i.userRepository.FindByID(ctx, foundToken.UserID)
 	if err != nil {
-		return output.TokenPairOutput{}, domain.NewInternalServerError(err)
+		return output.TokenPairOutput{}, err
 	}
 
 	accessToken := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
@@ -221,5 +221,9 @@ func (i *AuthInteractor) VerifyRefreshToken(ctx context.Context, refreshToken st
 
 func (i *AuthInteractor) RevokeRefreshToken(ctx context.Context, refreshToken string) error {
 	// リフレッシュトークンをデータベースから削除
-	return i.refreshTokenRepository.Delete(ctx, refreshToken)
+	foundToken, err := i.refreshTokenRepository.FindByToken(ctx, refreshToken)
+	if err != nil {
+		return err
+	}
+	return i.refreshTokenRepository.Delete(ctx, foundToken)
 }

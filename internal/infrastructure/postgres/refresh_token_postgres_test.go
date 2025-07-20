@@ -141,7 +141,7 @@ func TestRefreshTokenPostgresRepository_Delete(t *testing.T) {
 	insertTestRefreshToken(t, ctx, dbConn, token)
 
 	t.Run("正常系: リフレッシュトークンが削除される", func(t *testing.T) {
-		err := repo.Delete(ctx, tokenStr)
+		err := repo.Delete(ctx, token)
 		assert.NoError(t, err)
 
 		// DBから直接取得して削除されたことを検証

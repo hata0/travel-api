@@ -56,7 +56,7 @@ func (mr *MockRefreshTokenRepositoryMockRecorder) Create(ctx, token any) *gomock
 }
 
 // Delete mocks base method.
-func (m *MockRefreshTokenRepository) Delete(ctx context.Context, token string) error {
+func (m *MockRefreshTokenRepository) Delete(ctx context.Context, token domain.RefreshToken) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Delete", ctx, token)
 	ret0, _ := ret[0].(error)

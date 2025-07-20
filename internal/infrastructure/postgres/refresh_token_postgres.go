@@ -64,8 +64,8 @@ func (r *RefreshTokenPostgresRepository) FindByToken(ctx context.Context, token 
 	return r.mapToRefreshToken(record), nil
 }
 
-func (r *RefreshTokenPostgresRepository) Delete(ctx context.Context, token string) error {
-	if err := r.queries.DeleteRefreshToken(ctx, token); err != nil {
+func (r *RefreshTokenPostgresRepository) Delete(ctx context.Context, token domain.RefreshToken) error {
+	if err := r.queries.DeleteRefreshToken(ctx, token.Token); err != nil {
 		return domain.NewInternalServerError(err)
 	}
 	return nil

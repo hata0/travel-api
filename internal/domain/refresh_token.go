@@ -9,7 +9,7 @@ import (
 type RefreshTokenRepository interface {
 	Create(ctx context.Context, token RefreshToken) error
 	FindByToken(ctx context.Context, token string) (RefreshToken, error)
-	Delete(ctx context.Context, token string) error
+		Delete(ctx context.Context, token RefreshToken) error
 }
 
 type RefreshTokenID struct {

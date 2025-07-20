@@ -76,13 +76,11 @@ func TestAuthInteractor_Register(t *testing.T) {
 		mockUUIDGenerator.EXPECT().NewUUID().Return(generatedUUID).Times(1)
 		mockClock.EXPECT().Now().Return(now).Times(2)
 
-		expectedErr := errors.New("db error")
+		expectedErr := domain.ErrUserAlreadyExists
 		mockRepo.EXPECT().Create(gomock.Any(), gomock.Any()).Return(expectedErr).Times(1)
 
 		_, err := interactor.Register(context.Background(), username, email, password)
-		assert.Error(t, err)
-		var appErr *domain.Error
-		assert.True(t, errors.As(err, &appErr) && appErr.Code == domain.InternalServerError, "expected internal server error")
+		assert.ErrorIs(t, err, domain.ErrUserAlreadyExists)
 	})
 }
 
@@ -208,7 +206,7 @@ func TestAuthInteractor_VerifyRefreshToken(t *testing.T) {
 		mockClock.EXPECT().Now().Return(now).Times(4) // 有効期限チェックと新しいトークン生成時
 
 		// 古いリフレッシュトークンが削除されることを期待
-		mockRefreshTokenRepo.EXPECT().Delete(gomock.Any(), refreshTokenString).Return(nil).Times(1)
+		mockRefreshTokenRepo.EXPECT().Delete(gomock.Any(), refreshToken).Return(nil).Times(1)
 
 		// FindByIDがユーザーを返すことを期待
 		mockUserRepo.EXPECT().FindByID(gomock.Any(), userDomainID).Return(expectedUser, nil).Times(1)
@@ -262,7 +260,7 @@ func TestAuthInteractor_VerifyRefreshToken(t *testing.T) {
 		mockClock.EXPECT().Now().Return(now).Times(1)
 
 		// 期限切れトークンが削除されることを期待
-		mockRefreshTokenRepo.EXPECT().Delete(gomock.Any(), refreshTokenString).Return(nil).Times(1)
+		mockRefreshTokenRepo.EXPECT().Delete(gomock.Any(), expiredRefreshToken).Return(nil).Times(1)
 
 		_, err = interactor.VerifyRefreshToken(context.Background(), refreshTokenString)
 
@@ -272,19 +270,17 @@ func TestAuthInteractor_VerifyRefreshToken(t *testing.T) {
 	t.Run("異常系: FindByIDでエラー", func(t *testing.T) {
 		mockRefreshTokenRepo.EXPECT().FindByToken(gomock.Any(), refreshTokenString).Return(refreshToken, nil).Times(1)
 		mockClock.EXPECT().Now().Return(now).Times(1)
-		mockRefreshTokenRepo.EXPECT().Delete(gomock.Any(), refreshTokenString).Return(nil).Times(1)
-		mockUserRepo.EXPECT().FindByID(gomock.Any(), userDomainID).Return(domain.User{}, errors.New("db error")).Times(1)
+		mockRefreshTokenRepo.EXPECT().Delete(gomock.Any(), refreshToken).Return(nil).Times(1)
+		mockUserRepo.EXPECT().FindByID(gomock.Any(), userDomainID).Return(domain.User{}, domain.ErrUserNotFound).Times(1)
 
 		_, err := interactor.VerifyRefreshToken(context.Background(), refreshTokenString)
-		assert.Error(t, err)
-		var appErr *domain.Error
-		assert.True(t, errors.As(err, &appErr) && appErr.Code == domain.InternalServerError, "expected internal server error")
+		assert.ErrorIs(t, err, domain.ErrUserNotFound)
 	})
 
 	t.Run("異常系: リフレッシュトークン保存でエラー", func(t *testing.T) {
 		mockRefreshTokenRepo.EXPECT().FindByToken(gomock.Any(), refreshTokenString).Return(refreshToken, nil).Times(1)
 		mockClock.EXPECT().Now().Return(now).Times(4)
-		mockRefreshTokenRepo.EXPECT().Delete(gomock.Any(), refreshTokenString).Return(nil).Times(1)
+		mockRefreshTokenRepo.EXPECT().Delete(gomock.Any(), refreshToken).Return(nil).Times(1)
 		mockUserRepo.EXPECT().FindByID(gomock.Any(), userDomainID).Return(expectedUser, nil).Times(1)
 		mockUUIDGenerator.EXPECT().NewUUID().Return(uuid.New().String()).Times(1)
 		mockRefreshTokenRepo.EXPECT().Create(gomock.Any(), gomock.Any()).Return(errors.New("db error")).Times(1)
@@ -309,22 +305,31 @@ func TestAuthInteractor_RevokeRefreshToken(t *testing.T) {
 	interactor := NewAuthInteractor(mockUserRepo, mockRefreshTokenRepo, mockClock, mockUUIDGenerator)
 
 	refreshTokenString := "token-to-revoke"
+	userID := "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d"
+	userDomainID, _ := domain.NewUserID(userID)
+	now := time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC)
+	expiresAt := now.Add(time.Hour * 24 * 7)
+	refreshTokenID, err := domain.NewRefreshTokenID(uuid.New().String())
+	assert.NoError(t, err)
+	refreshToken := domain.NewRefreshToken(refreshTokenID, userDomainID, refreshTokenString, expiresAt, now)
 
 	t.Run("正常系: リフレッシュトークンが正常に失効される", func(t *testing.T) {
+		// FindByTokenがリフレッシュトークンを返すことを期待
+		mockRefreshTokenRepo.EXPECT().FindByToken(gomock.Any(), refreshTokenString).Return(refreshToken, nil).Times(1)
 		// Deleteがエラーを返さないことを期待
-		mockRefreshTokenRepo.EXPECT().Delete(gomock.Any(), refreshTokenString).Return(nil).Times(1)
+		mockRefreshTokenRepo.EXPECT().Delete(gomock.Any(), refreshToken).Return(nil).Times(1)
 
 		err := interactor.RevokeRefreshToken(context.Background(), refreshTokenString)
 
 		assert.NoError(t, err)
 	})
 
-	t.Run("異常系: リポジトリからエラーが返された場合", func(t *testing.T) {
-		expectedErr := errors.New("db error")
-		mockRefreshTokenRepo.EXPECT().Delete(gomock.Any(), refreshTokenString).Return(expectedErr).Times(1)
+	t.Run("異常系: リフレッシュトークンが見つからない", func(t *testing.T) {
+		// FindByTokenがTokenNotFoundを返すことを期待
+		mockRefreshTokenRepo.EXPECT().FindByToken(gomock.Any(), refreshTokenString).Return(domain.RefreshToken{}, domain.ErrTokenNotFound).Times(1)
 
 		err := interactor.RevokeRefreshToken(context.Background(), refreshTokenString)
 
-		assert.ErrorIs(t, err, expectedErr)
+		assert.ErrorIs(t, err, domain.ErrTokenNotFound)
 	})
 }
