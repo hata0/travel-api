@@ -8,7 +8,7 @@ import (
 	"net/http/httptest"
 	"testing"
 	"travel-api/internal/domain"
-	"travel-api/internal/interface/response"
+	"travel-api/internal/interface/presenter"
 	mock_handler "travel-api/internal/usecase/mock"
 	"travel-api/internal/usecase/output"
 
@@ -47,7 +47,7 @@ func TestAuthHandler_Register(t *testing.T) {
 		r.ServeHTTP(w, req)
 
 		assert.Equal(t, http.StatusCreated, w.Code)
-		var resBody response.RegisterResponse
+		var resBody presenter.RegisterResponse
 		json.Unmarshal(w.Body.Bytes(), &resBody)
 		assert.Equal(t, userID, resBody.UserID)
 	})
@@ -136,7 +136,7 @@ func TestAuthHandler_Login(t *testing.T) {
 		r.ServeHTTP(w, req)
 
 		assert.Equal(t, http.StatusOK, w.Code)
-		var resBody response.AuthTokenResponse
+		var resBody presenter.AuthTokenResponse
 		json.Unmarshal(w.Body.Bytes(), &resBody)
 		assert.Equal(t, token, resBody.Token)
 	})

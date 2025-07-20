@@ -1,4 +1,4 @@
-package response
+package presenter
 
 import (
 	"encoding/json"
@@ -10,15 +10,13 @@ import (
 	"strings"
 	"travel-api/internal/domain"
 
-	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 )
 
 type Error struct {
-	StatusCode int
-	Code       string      `json:"code"`
-	Message    string      `json:"message"`
-	Details    interface{} `json:"details,omitempty"`
+	Code    string      `json:"code"`
+	Message string      `json:"message"`
+	Details interface{} `json:"details,omitempty"`
 }
 
 type ValidationErrorDetail struct {
@@ -72,15 +70,14 @@ func mapErrorCodeToHTTPStatus(code domain.ErrorCode) int {
 	}
 }
 
-func NewError(err error) Error {
+func ConvertToHTTPError(err error) (int, Error) {
 	var validationErrs validator.ValidationErrors
 	if errors.As(err, &validationErrs) {
 		// バリデーションエラー: クライアント開発者向けに詳細な情報を提供します。
-		return Error{
-			StatusCode: http.StatusBadRequest,
-			Code:       domain.ValidationError.String(),
-			Message:    "Input validation failed. Please check the details field for more information.",
-			Details:    formatValidationErrors(validationErrs),
+		return http.StatusBadRequest, Error{
+			Code:    domain.ValidationError.String(),
+			Message: "Input validation failed. Please check the details field for more information.",
+			Details: formatValidationErrors(validationErrs),
 		}
 	}
 
@@ -88,20 +85,18 @@ func NewError(err error) Error {
 	if errors.As(err, &unmarshalTypeError) {
 		// JSONの型エラー: どのフィールドで問題があったかを具体的に伝えます。
 		message := fmt.Sprintf("Invalid JSON type provided for field '%s'.", unmarshalTypeError.Field)
-		return Error{
-			StatusCode: http.StatusBadRequest,
-			Code:       domain.ValidationError.String(),
-			Message:    message,
+		return http.StatusBadRequest, Error{
+			Code:    domain.ValidationError.String(),
+			Message: message,
 		}
 	}
 
 	var syntaxError *json.SyntaxError
 	if errors.As(err, &syntaxError) || errors.Is(err, io.EOF) || errors.Is(err, io.ErrUnexpectedEOF) {
 		// JSON構文エラー: クライアントには一般的なメッセージを返します。
-		return Error{
-			StatusCode: http.StatusBadRequest,
-			Code:       domain.ValidationError.String(),
-			Message:    "The request body contains badly-formed JSON.",
+		return http.StatusBadRequest, Error{
+			Code:    domain.ValidationError.String(),
+			Message: "The request body contains badly-formed JSON.",
 		}
 	}
 
@@ -113,27 +108,17 @@ func NewError(err error) Error {
 			slog.Error("Internal server error occurred", "details", appErr.Error())
 		}
 		// クライアントには、エラーの原因(cause)を含まない、公開可能なメッセージのみを返します。
-		return Error{
-			StatusCode: mapErrorCodeToHTTPStatus(appErr.Code),
-			Code:       appErr.Code.String(),
-			Message:    appErr.Message,
+		return mapErrorCodeToHTTPStatus(appErr.Code), Error{
+			Code:    appErr.Code.String(),
+			Message: appErr.Message,
 		}
 	}
 
 	// 上記のいずれにも当てはまらない、予期せぬエラー。
 	// 詳細をログに記録し、クライアントには一般的なメッセージを返して、内部実装の詳細が漏洩しないようにします。
 	slog.Error("An unexpected error occurred", "error", err)
-	return Error{
-		StatusCode: http.StatusInternalServerError,
-		Code:       domain.InternalServerError.String(),
-		Message:    "An unexpected internal server error has occurred. Please contact support if the problem persists.",
+	return http.StatusInternalServerError, Error{
+		Code:    domain.InternalServerError.String(),
+		Message: "An unexpected internal server error has occurred. Please contact support if the problem persists.",
 	}
-}
-
-func (e Error) JSON(c *gin.Context) {
-	c.JSON(e.StatusCode, gin.H{
-		"code":    e.Code,
-		"message": e.Message,
-		"details": e.Details,
-	})
 }

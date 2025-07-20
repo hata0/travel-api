@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 	"travel-api/internal/domain"
-	"travel-api/internal/interface/response"
+	"travel-api/internal/interface/presenter"
 	mock_handler "travel-api/internal/usecase/mock"
 	"travel-api/internal/usecase/output"
 
@@ -43,7 +43,7 @@ func TestTripHandler_Get(t *testing.T) {
 
 		assert.Equal(t, http.StatusOK, w.Code)
 
-		var resBody response.GetTripResponse
+		var resBody presenter.GetTripResponse
 		err := json.Unmarshal(w.Body.Bytes(), &resBody)
 		assert.NoError(t, err)
 		assert.Equal(t, expectedOutput.Trip.ID, resBody.Trip.ID)
@@ -90,7 +90,7 @@ func TestTripHandler_List(t *testing.T) {
 		r.ServeHTTP(w, req)
 
 		assert.Equal(t, http.StatusOK, w.Code)
-		var resBody response.ListTripResponse
+		var resBody presenter.ListTripResponse
 		err := json.Unmarshal(w.Body.Bytes(), &resBody)
 		assert.NoError(t, err)
 		assert.Len(t, resBody.Trips, 2)
@@ -108,7 +108,7 @@ func TestTripHandler_List(t *testing.T) {
 		r.ServeHTTP(w, req)
 
 		assert.Equal(t, http.StatusOK, w.Code)
-		var resBody response.ListTripResponse
+		var resBody presenter.ListTripResponse
 		err := json.Unmarshal(w.Body.Bytes(), &resBody)
 		assert.NoError(t, err)
 		assert.Empty(t, resBody.Trips)

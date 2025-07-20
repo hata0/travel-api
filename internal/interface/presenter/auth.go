@@ -1,4 +1,4 @@
-package response
+package presenter
 
 type RegisterResponse struct {
 	UserID string `json:"user_id"`

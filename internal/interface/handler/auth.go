@@ -2,7 +2,7 @@ package handler
 
 import (
 	"net/http"
-	"travel-api/internal/interface/response"
+	"travel-api/internal/interface/presenter"
 	"travel-api/internal/interface/validator"
 	"travel-api/internal/usecase"
 
@@ -28,33 +28,33 @@ func (handler *AuthHandler) RegisterAPI(router *gin.Engine) {
 func (handler *AuthHandler) register(c *gin.Context) {
 	var body validator.RegisterJSONBody
 	if err := c.ShouldBindJSON(&body); err != nil {
-		response.NewError(err).JSON(c)
+		c.JSON(presenter.ConvertToHTTPError(err))
 		return
 	}
 
 	output, err := handler.usecase.Register(c.Request.Context(), body.Username, body.Email, body.Password)
 	if err != nil {
-		response.NewError(err).JSON(c)
+		c.JSON(presenter.ConvertToHTTPError(err))
 		return
 	}
 
-	c.JSON(http.StatusCreated, response.RegisterResponse{UserID: output.UserID})
+	c.JSON(http.StatusCreated, presenter.RegisterResponse{UserID: output.UserID})
 }
 
 func (handler *AuthHandler) login(c *gin.Context) {
 	var body validator.LoginJSONBody
 	if err := c.ShouldBindJSON(&body); err != nil {
-		response.NewError(err).JSON(c)
+		c.JSON(presenter.ConvertToHTTPError(err))
 		return
 	}
 
 	output, err := handler.usecase.Login(c.Request.Context(), body.Email, body.Password)
 	if err != nil {
-		response.NewError(err).JSON(c)
+		c.JSON(presenter.ConvertToHTTPError(err))
 		return
 	}
 
-	c.JSON(http.StatusOK, response.AuthTokenResponse{
+	c.JSON(http.StatusOK, presenter.AuthTokenResponse{
 		Token:        output.Token,
 		RefreshToken: output.RefreshToken,
 	})
@@ -63,17 +63,17 @@ func (handler *AuthHandler) login(c *gin.Context) {
 func (handler *AuthHandler) refresh(c *gin.Context) {
 	var body validator.RefreshTokenJSONBody
 	if err := c.ShouldBindJSON(&body); err != nil {
-		response.NewError(err).JSON(c)
+		c.JSON(presenter.ConvertToHTTPError(err))
 		return
 	}
 
 	output, err := handler.usecase.VerifyRefreshToken(c.Request.Context(), body.RefreshToken)
 	if err != nil {
-		response.NewError(err).JSON(c)
+		c.JSON(presenter.ConvertToHTTPError(err))
 		return
 	}
 
-	c.JSON(http.StatusOK, response.AuthTokenResponse{
+	c.JSON(http.StatusOK, presenter.AuthTokenResponse{
 		Token:        output.Token,
 		RefreshToken: output.RefreshToken,
 	})
