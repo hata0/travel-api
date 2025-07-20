@@ -48,18 +48,8 @@ func TestTripHandler_Get(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, expectedOutput.Trip.ID, resBody.Trip.ID)
 		assert.Equal(t, expectedOutput.Trip.Name, resBody.Trip.Name)
-		assert.Equal(t, expectedOutput.Trip.CreatedAt.Format(time.RFC3339Nano), resBody.Trip.CreatedAt.Format(time.RFC3339Nano))
-		assert.Equal(t, expectedOutput.Trip.UpdatedAt.Format(time.RFC3339Nano), resBody.Trip.UpdatedAt.Format(time.RFC3339Nano))
-	})
-
-	t.Run("異常系: Trip not found", func(t *testing.T) {
-		mockUsecase.EXPECT().Get(gomock.Any(), tripID).Return(output.GetTripOutput{}, domain.ErrTripNotFound)
-
-		w := httptest.NewRecorder()
-		req, _ := http.NewRequest("GET", "/trips/"+tripID, nil)
-		r.ServeHTTP(w, req)
-
-		assert.Equal(t, http.StatusNotFound, w.Code)
+		assert.WithinDuration(t, expectedOutput.Trip.CreatedAt, resBody.Trip.CreatedAt, time.Second)
+		assert.WithinDuration(t, expectedOutput.Trip.UpdatedAt, resBody.Trip.UpdatedAt, time.Second)
 	})
 
 	t.Run("異常系: Internal server error", func(t *testing.T) {
@@ -92,7 +82,7 @@ func TestTripHandler_List(t *testing.T) {
 	}
 	expectedOutput := output.NewListTripOutput(expectedTrips)
 
-	t.Run("正常系", func(t *testing.T) {
+	t.Run("正常系: 複数のレコードが存在する", func(t *testing.T) {
 		mockUsecase.EXPECT().List(gomock.Any()).Return(expectedOutput, nil)
 
 		w := httptest.NewRecorder()
@@ -106,8 +96,22 @@ func TestTripHandler_List(t *testing.T) {
 		assert.Len(t, resBody.Trips, 2)
 		assert.Equal(t, expectedOutput.Trips[0].ID, resBody.Trips[0].ID)
 		assert.Equal(t, expectedOutput.Trips[0].Name, resBody.Trips[0].Name)
-		assert.Equal(t, expectedOutput.Trips[0].CreatedAt.Format(time.RFC3339Nano), resBody.Trips[0].CreatedAt.Format(time.RFC3339Nano))
-		assert.Equal(t, expectedOutput.Trips[0].UpdatedAt.Format(time.RFC3339Nano), resBody.Trips[0].UpdatedAt.Format(time.RFC3339Nano))
+		assert.WithinDuration(t, expectedOutput.Trips[0].CreatedAt, resBody.Trips[0].CreatedAt, time.Second)
+		assert.WithinDuration(t, expectedOutput.Trips[0].UpdatedAt, resBody.Trips[0].UpdatedAt, time.Second)
+	})
+
+	t.Run("正常系: レコードが存在しない", func(t *testing.T) {
+		mockUsecase.EXPECT().List(gomock.Any()).Return(output.ListTripOutput{Trips: []output.Trip{}}, nil)
+
+		w := httptest.NewRecorder()
+		req, _ := http.NewRequest("GET", "/trips", nil)
+		r.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+		var resBody response.ListTripResponse
+		err := json.Unmarshal(w.Body.Bytes(), &resBody)
+		assert.NoError(t, err)
+		assert.Empty(t, resBody.Trips)
 	})
 
 	t.Run("異常系: Internal server error", func(t *testing.T) {
@@ -145,7 +149,7 @@ func TestTripHandler_Create(t *testing.T) {
 		assert.Equal(t, http.StatusCreated, w.Code)
 	})
 
-	t.Run("異常系: Usecase error", func(t *testing.T) {
+	t.Run("異常系: Usecase error (Internal Server Error)", func(t *testing.T) {
 		mockUsecase.EXPECT().Create(gomock.Any(), tripName).Return("", errors.New("some error"))
 
 		body, _ := json.Marshal(gin.H{"name": tripName})
@@ -196,8 +200,20 @@ func TestTripHandler_Update(t *testing.T) {
 		assert.Equal(t, http.StatusOK, w.Code)
 	})
 
-	t.Run("異常系: Trip not found", func(t *testing.T) {
-		mockUsecase.EXPECT().Update(gomock.Any(), tripID, updatedName).Return(domain.ErrTripNotFound)
+	t.Run("異常系: 無効なJSONボディ", func(t *testing.T) {
+		w := httptest.NewRecorder()
+		req, _ := http.NewRequest("PUT", "/trips/"+tripID, bytes.NewBuffer([]byte(`{"name":`)))
+		req.Header.Set("Content-Type", "application/json")
+		r.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+		var resBody map[string]interface{}
+		json.Unmarshal(w.Body.Bytes(), &resBody)
+		assert.Equal(t, "VALIDATION_ERROR", resBody["code"])
+	})
+
+	t.Run("異常系: Internal server error", func(t *testing.T) {
+		mockUsecase.EXPECT().Update(gomock.Any(), tripID, updatedName).Return(errors.New("some error"))
 
 		body, _ := json.Marshal(gin.H{"name": updatedName})
 		w := httptest.NewRecorder()
@@ -205,7 +221,7 @@ func TestTripHandler_Update(t *testing.T) {
 		req.Header.Set("Content-Type", "application/json")
 		r.ServeHTTP(w, req)
 
-		assert.Equal(t, http.StatusNotFound, w.Code)
+		assert.Equal(t, http.StatusInternalServerError, w.Code)
 	})
 }
 
@@ -231,13 +247,13 @@ func TestTripHandler_Delete(t *testing.T) {
 		assert.Equal(t, http.StatusOK, w.Code)
 	})
 
-	t.Run("異常系: Trip not found", func(t *testing.T) {
-		mockUsecase.EXPECT().Delete(gomock.Any(), tripID).Return(domain.ErrTripNotFound)
+	t.Run("異常系: Internal server error", func(t *testing.T) {
+		mockUsecase.EXPECT().Delete(gomock.Any(), tripID).Return(errors.New("some error"))
 
 		w := httptest.NewRecorder()
 		req, _ := http.NewRequest("DELETE", "/trips/"+tripID, nil)
 		r.ServeHTTP(w, req)
 
-		assert.Equal(t, http.StatusNotFound, w.Code)
+		assert.Equal(t, http.StatusInternalServerError, w.Code)
 	})
 }

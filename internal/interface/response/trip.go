@@ -3,6 +3,7 @@ package response
 import (
 	"encoding/json"
 	"time"
+	"travel-api/internal/usecase/output"
 )
 
 type (
@@ -25,6 +26,32 @@ type (
 		ID string `json:"id"`
 	}
 )
+
+func NewGetTripResponse(out output.GetTripOutput) GetTripResponse {
+	return GetTripResponse{
+		Trip: Trip{
+			ID:        out.Trip.ID,
+			Name:      out.Trip.Name,
+			CreatedAt: out.Trip.CreatedAt,
+			UpdatedAt: out.Trip.UpdatedAt,
+		},
+	}
+}
+
+func NewListTripResponse(out output.ListTripOutput) ListTripResponse {
+	formattedTrips := make([]Trip, len(out.Trips))
+	for i, trip := range out.Trips {
+		formattedTrips[i] = Trip{
+			ID:        trip.ID,
+			Name:      trip.Name,
+			CreatedAt: trip.CreatedAt,
+			UpdatedAt: trip.UpdatedAt,
+		}
+	}
+	return ListTripResponse{
+		Trips: formattedTrips,
+	}
+}
 
 // MarshalJSON はTrip構造体をJSONにマーシャリングする際のカスタム処理を提供します。
 // CreatedAtとUpdatedAtフィールドをRFC3339形式でフォーマットします。

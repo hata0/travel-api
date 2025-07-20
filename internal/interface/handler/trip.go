@@ -1,9 +1,7 @@
 package handler
 
 import (
-	"log/slog"
 	"net/http"
-	"travel-api/internal/domain"
 	"travel-api/internal/interface/response"
 	"travel-api/internal/interface/validator"
 	"travel-api/internal/usecase"
@@ -38,47 +36,21 @@ func (handler *TripHandler) get(c *gin.Context) {
 
 	tripOutput, err := handler.usecase.Get(c.Request.Context(), uriParams.TripID)
 	if err != nil {
-		switch err {
-		case domain.ErrTripNotFound:
-			response.NewError(err).JSON(c)
-		default:
-			slog.Error("Failed to get trip", "error", err)
-			response.NewError(err).JSON(c)
-		}
+		response.NewError(err).JSON(c)
 		return
 	}
 
-	c.JSON(http.StatusOK, response.GetTripResponse{
-		Trip: response.Trip{
-			ID:        tripOutput.Trip.ID,
-			Name:      tripOutput.Trip.Name,
-			CreatedAt: tripOutput.Trip.CreatedAt,
-			UpdatedAt: tripOutput.Trip.UpdatedAt,
-		},
-	})
+	c.JSON(http.StatusOK, response.NewGetTripResponse(tripOutput))
 }
 
 func (handler *TripHandler) list(c *gin.Context) {
 	tripsOutput, err := handler.usecase.List(c.Request.Context())
 	if err != nil {
-		slog.Error("Failed to list trips", "error", err)
 		response.NewError(err).JSON(c)
 		return
 	}
 
-	formattedTrips := make([]response.Trip, len(tripsOutput.Trips))
-	for i, trip := range tripsOutput.Trips {
-		formattedTrips[i] = response.Trip{
-			ID:        trip.ID,
-			Name:      trip.Name,
-			CreatedAt: trip.CreatedAt,
-			UpdatedAt: trip.UpdatedAt,
-		}
-	}
-
-	c.JSON(http.StatusOK, response.ListTripResponse{
-		Trips: formattedTrips,
-	})
+	c.JSON(http.StatusOK, response.NewListTripResponse(tripsOutput))
 }
 
 func (handler *TripHandler) create(c *gin.Context) {
@@ -90,7 +62,6 @@ func (handler *TripHandler) create(c *gin.Context) {
 
 	createdTripID, err := handler.usecase.Create(c.Request.Context(), body.Name)
 	if err != nil {
-		slog.Error("Failed to create trip", "error", err)
 		response.NewError(err).JSON(c)
 		return
 	}
@@ -113,13 +84,7 @@ func (handler *TripHandler) update(c *gin.Context) {
 
 	err := handler.usecase.Update(c.Request.Context(), uriParams.TripID, body.Name)
 	if err != nil {
-		switch err {
-		case domain.ErrTripNotFound:
-			response.NewError(err).JSON(c)
-		default:
-			slog.Error("Failed to update trip", "error", err)
-			response.NewError(err).JSON(c)
-		}
+		response.NewError(err).JSON(c)
 		return
 	}
 
@@ -135,13 +100,7 @@ func (handler *TripHandler) delete(c *gin.Context) {
 
 	err := handler.usecase.Delete(c.Request.Context(), uriParams.TripID)
 	if err != nil {
-		switch err {
-		case domain.ErrTripNotFound:
-			response.NewError(err).JSON(c)
-		default:
-			slog.Error("Failed to delete trip", "error", err)
-			response.NewError(err).JSON(c)
-		}
+		response.NewError(err).JSON(c)
 		return
 	}
 

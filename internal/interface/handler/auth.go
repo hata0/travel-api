@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"log/slog"
 	"net/http"
 	"travel-api/internal/interface/response"
 	"travel-api/internal/interface/validator"
@@ -35,7 +34,6 @@ func (handler *AuthHandler) register(c *gin.Context) {
 
 	output, err := handler.usecase.Register(c.Request.Context(), body.Username, body.Email, body.Password)
 	if err != nil {
-		slog.Error("Failed to register user", "error", err)
 		response.NewError(err).JSON(c)
 		return
 	}
@@ -52,7 +50,6 @@ func (handler *AuthHandler) login(c *gin.Context) {
 
 	output, err := handler.usecase.Login(c.Request.Context(), body.Email, body.Password)
 	if err != nil {
-		slog.Error("Failed to login user", "error", err)
 		response.NewError(err).JSON(c)
 		return
 	}
@@ -72,7 +69,6 @@ func (handler *AuthHandler) refresh(c *gin.Context) {
 
 	output, err := handler.usecase.VerifyRefreshToken(c.Request.Context(), body.RefreshToken)
 	if err != nil {
-		slog.Error("Failed to refresh token", "error", err)
 		response.NewError(err).JSON(c)
 		return
 	}

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"strings"
 	"travel-api/internal/domain"
@@ -50,6 +51,8 @@ func mapErrorCodeToHTTPStatus(code domain.ErrorCode) int {
 		return http.StatusBadRequest
 	case domain.TripNotFound:
 		return http.StatusNotFound
+	case domain.TripAlreadyExists:
+		return http.StatusConflict
 	case domain.UserNotFound:
 		return http.StatusNotFound
 	case domain.UserAlreadyExists:
@@ -58,7 +61,13 @@ func mapErrorCodeToHTTPStatus(code domain.ErrorCode) int {
 		return http.StatusUnauthorized
 	case domain.InternalServerError:
 		return http.StatusInternalServerError
+	case domain.TokenNotFound:
+		return http.StatusNotFound
+	case domain.TokenAlreadyExists:
+		return http.StatusConflict
 	default:
+		// 未知のErrorCodeが渡された場合は、ログに記録し、500エラーを返す
+		slog.Error("unknown error code", "code", code)
 		return http.StatusInternalServerError
 	}
 }
@@ -66,53 +75,58 @@ func mapErrorCodeToHTTPStatus(code domain.ErrorCode) int {
 func NewError(err error) Error {
 	var validationErrs validator.ValidationErrors
 	if errors.As(err, &validationErrs) {
+		// バリデーションエラー: クライアント開発者向けに詳細な情報を提供します。
 		return Error{
 			StatusCode: http.StatusBadRequest,
 			Code:       domain.ValidationError.String(),
-			Message:    "validation failed",
+			Message:    "Input validation failed. Please check the details field for more information.",
 			Details:    formatValidationErrors(validationErrs),
 		}
 	}
 
 	var unmarshalTypeError *json.UnmarshalTypeError
 	if errors.As(err, &unmarshalTypeError) {
+		// JSONの型エラー: どのフィールドで問題があったかを具体的に伝えます。
+		message := fmt.Sprintf("Invalid JSON type provided for field '%s'.", unmarshalTypeError.Field)
 		return Error{
 			StatusCode: http.StatusBadRequest,
 			Code:       domain.ValidationError.String(),
-			Message:    fmt.Sprintf("invalid type for field %s: expected %s, got %s", unmarshalTypeError.Field, unmarshalTypeError.Type.String(), unmarshalTypeError.Value),
+			Message:    message,
 		}
 	}
 
 	var syntaxError *json.SyntaxError
-	if errors.As(err, &syntaxError) {
+	if errors.As(err, &syntaxError) || errors.Is(err, io.EOF) || errors.Is(err, io.ErrUnexpectedEOF) {
+		// JSON構文エラー: クライアントには一般的なメッセージを返します。
 		return Error{
 			StatusCode: http.StatusBadRequest,
 			Code:       domain.ValidationError.String(),
-			Message:    "invalid json syntax",
-		}
-	}
-
-	if errors.Is(err, io.EOF) || errors.Is(err, io.ErrUnexpectedEOF) {
-		return Error{
-			StatusCode: http.StatusBadRequest,
-			Code:       domain.ValidationError.String(),
-			Message:    "invalid json format",
+			Message:    "The request body contains badly-formed JSON.",
 		}
 	}
 
 	var appErr *domain.Error
 	if errors.As(err, &appErr) {
+		// アプリケーションで定義されたドメインエラー。
+		// 内部サーバーエラーの場合は、運用者が追跡できるよう詳細をログに出力します。
+		if appErr.Code == domain.InternalServerError {
+			slog.Error("Internal server error occurred", "details", appErr.Error())
+		}
+		// クライアントには、エラーの原因(cause)を含まない、公開可能なメッセージのみを返します。
 		return Error{
 			StatusCode: mapErrorCodeToHTTPStatus(appErr.Code),
 			Code:       appErr.Code.String(),
-			Message:    appErr.Error(),
+			Message:    appErr.Message,
 		}
 	}
 
+	// 上記のいずれにも当てはまらない、予期せぬエラー。
+	// 詳細をログに記録し、クライアントには一般的なメッセージを返して、内部実装の詳細が漏洩しないようにします。
+	slog.Error("An unexpected error occurred", "error", err)
 	return Error{
 		StatusCode: http.StatusInternalServerError,
 		Code:       domain.InternalServerError.String(),
-		Message:    err.Error(),
+		Message:    "An unexpected internal server error has occurred. Please contact support if the problem persists.",
 	}
 }
 
