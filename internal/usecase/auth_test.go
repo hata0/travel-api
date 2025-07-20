@@ -264,8 +264,7 @@ func TestAuthInteractor_VerifyRefreshToken(t *testing.T) {
 		mockRevokedTokenRepo.EXPECT().Create(gomock.Any(), revokedToken).Return(nil).Times(1)
 		mockRefreshTokenRepo.EXPECT().Delete(gomock.Any(), refreshToken).Return(nil).Times(1)
 
-		// FindByIDがユーザーを返すことを期待
-		mockUserRepo.EXPECT().FindByID(gomock.Any(), userID).Return(user, nil).Times(1)
+		
 
 		// 新しいリフレッシュトークンが保存されることを期待
 		mockRefreshTokenRepo.EXPECT().Create(gomock.Any(), newRefreshToken).Return(nil).Times(1)
@@ -360,23 +359,7 @@ func TestAuthInteractor_VerifyRefreshToken(t *testing.T) {
 		assert.ErrorIs(t, err, domain.ErrInvalidCredentials)
 	})
 
-	t.Run("異常系: FindByIDでエラー", func(t *testing.T) {
-		mockRevokedTokenRepo.EXPECT().FindByJTI(gomock.Any(), refreshTokenString).Return(domain.RevokedToken{}, domain.ErrTokenNotFound).Times(1)
-		mockTransactionManager.EXPECT().RunInTx(gomock.Any(), gomock.Any()).DoAndReturn(
-			func(ctx context.Context, fn func(ctx context.Context) error) error {
-				return fn(ctx)
-			},
-		).Times(1)
-		mockRefreshTokenRepo.EXPECT().FindByToken(gomock.Any(), refreshTokenString).Return(refreshToken, nil).Times(1)
-		mockClock.EXPECT().Now().Return(now).Times(2)
-		mockUUIDGenerator.EXPECT().NewUUID().Return(revokedTokenIDString).Times(1)
-		mockRevokedTokenRepo.EXPECT().Create(gomock.Any(), revokedToken).Return(nil).Times(1)
-		mockRefreshTokenRepo.EXPECT().Delete(gomock.Any(), refreshToken).Return(nil).Times(1)
-		mockUserRepo.EXPECT().FindByID(gomock.Any(), userID).Return(domain.User{}, domain.ErrUserNotFound).Times(1)
-
-		_, err := interactor.VerifyRefreshToken(context.Background(), refreshTokenString)
-		assert.ErrorIs(t, err, domain.ErrUserNotFound)
-	})
+	
 
 	t.Run("異常系: リフレッシュトークン保存でエラー", func(t *testing.T) {
 		mockRevokedTokenRepo.EXPECT().FindByJTI(gomock.Any(), refreshTokenString).Return(domain.RevokedToken{}, domain.ErrTokenNotFound).Times(1)
@@ -399,7 +382,7 @@ func TestAuthInteractor_VerifyRefreshToken(t *testing.T) {
 
 		mockRevokedTokenRepo.EXPECT().Create(gomock.Any(), revokedToken).Return(nil).Times(1)
 		mockRefreshTokenRepo.EXPECT().Delete(gomock.Any(), refreshToken).Return(nil).Times(1)
-		mockUserRepo.EXPECT().FindByID(gomock.Any(), userID).Return(user, nil).Times(1)
+		
 		mockRefreshTokenRepo.EXPECT().Create(gomock.Any(), newRefreshToken).Return(errors.New("db error")).Times(1)
 		os.Setenv("JWT_SECRET", "your_jwt_secret_key")
 		defer os.Unsetenv("JWT_SECRET")

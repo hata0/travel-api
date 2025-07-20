@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"log/slog"
+	"time"
 	"travel-api/internal/config"
 	"travel-api/internal/domain"
 	"travel-api/internal/usecase/output"
@@ -123,30 +124,16 @@ func (i *AuthInteractor) Login(ctx context.Context, email, password string) (out
 			return domain.NewInternalServerError(err)
 		}
 
-		// JWTトークンの生成
-		token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-			"user_id": user.ID.String(),
-			"exp":     i.clock.Now().Add(config.AccessTokenExpiration()).Unix(),
-		})
-
-		jwtSecret, err := config.JWTSecret()
+		accessTokenString, refreshTokenString, err := i.generateTokenPair(user.ID, i.clock.Now())
 		if err != nil {
-			return domain.NewInternalServerError(err)
+			return err
 		}
 
-		tokenString, err := token.SignedString([]byte(jwtSecret))
-		if err != nil {
-			return domain.NewInternalServerError(err)
-		}
-
-		// リフレッシュトークンの生成
-		refreshTokenString := i.uuidGenerator.NewUUID()
+		// リフレッシュトークンをデータベースに保存
 		refreshTokenID, err := domain.NewRefreshTokenID(refreshTokenString)
 		if err != nil {
 			return domain.NewInternalServerError(err)
 		}
-
-		// リフレッシュトークンをデータベースに保存
 		newRefreshToken := domain.NewRefreshToken(
 			refreshTokenID,
 			user.ID,
@@ -154,12 +141,11 @@ func (i *AuthInteractor) Login(ctx context.Context, email, password string) (out
 			i.clock.Now().Add(config.RefreshTokenExpiration()),
 			i.clock.Now(),
 		)
-		err = i.refreshTokenRepository.Create(txCtx, newRefreshToken)
-		if err != nil {
+		if err := i.refreshTokenRepository.Create(txCtx, newRefreshToken); err != nil {
 			return domain.NewInternalServerError(err)
 		}
 
-		tokenPair = output.TokenPairOutput{Token: tokenString, RefreshToken: refreshTokenString}
+		tokenPair = output.TokenPairOutput{Token: accessTokenString, RefreshToken: refreshTokenString}
 		return nil
 	})
 
@@ -221,28 +207,11 @@ func (i *AuthInteractor) VerifyRefreshToken(ctx context.Context, refreshToken st
 			return domain.NewInternalServerError(err)
 		}
 
-		// 新しいアクセストークンとリフレッシュトークンを生成
-		user, err := i.userRepository.FindByID(txCtx, foundToken.UserID)
+		accessTokenString, newRefreshTokenString, err := i.generateTokenPair(foundToken.UserID, i.clock.Now())
 		if err != nil {
 			return err
 		}
 
-		accessToken := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-			"user_id": user.ID.String(),
-			"exp":     i.clock.Now().Add(config.AccessTokenExpiration()).Unix(),
-		})
-
-		jwtSecret, err := config.JWTSecret()
-		if err != nil {
-			return domain.NewInternalServerError(err)
-		}
-
-		accessTokenString, err := accessToken.SignedString([]byte(jwtSecret))
-		if err != nil {
-			return domain.NewInternalServerError(err)
-		}
-
-		newRefreshTokenString := i.uuidGenerator.NewUUID()
 		newRefreshTokenID, err := domain.NewRefreshTokenID(newRefreshTokenString)
 		if err != nil {
 			return domain.NewInternalServerError(err)
@@ -250,7 +219,7 @@ func (i *AuthInteractor) VerifyRefreshToken(ctx context.Context, refreshToken st
 
 		newRefreshToken := domain.NewRefreshToken(
 			newRefreshTokenID,
-			user.ID,
+			foundToken.UserID,
 			newRefreshTokenString,
 			i.clock.Now().Add(config.RefreshTokenExpiration()),
 			i.clock.Now(),
@@ -273,4 +242,28 @@ func (i *AuthInteractor) RevokeRefreshToken(ctx context.Context, refreshToken st
 		return err
 	}
 	return i.refreshTokenRepository.Delete(ctx, foundToken)
+}
+
+// generateTokenPair はアクセストークンとリフレッシュトークン文字列を生成します。
+func (i *AuthInteractor) generateTokenPair(userID domain.UserID, now time.Time) (string, string, error) {
+	// JWTトークンの生成
+	accessToken := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"user_id": userID.String(),
+		"exp":     now.Add(config.AccessTokenExpiration()).Unix(),
+	})
+
+	jwtSecret, err := config.JWTSecret()
+	if err != nil {
+		return "", "", domain.NewInternalServerError(err)
+	}
+
+	accessTokenString, err := accessToken.SignedString([]byte(jwtSecret))
+	if err != nil {
+		return "", "", domain.NewInternalServerError(err)
+	}
+
+	// リフレッシュトークンの生成
+	refreshTokenString := i.uuidGenerator.NewUUID()
+
+	return accessTokenString, refreshTokenString, nil
 }
