@@ -57,7 +57,7 @@ func TestAuthInteractor_Register(t *testing.T) {
 
 		_, err := interactor.Register(context.Background(), username, email, password)
 
-		assert.ErrorIs(t, err, domain.ErrUserAlreadyExists)
+		assert.ErrorIs(t, err, domain.ErrUsernameAlreadyExists)
 	})
 
 	t.Run("異常系: メールアドレスが既に存在する", func(t *testing.T) {
@@ -68,7 +68,7 @@ func TestAuthInteractor_Register(t *testing.T) {
 
 		_, err := interactor.Register(context.Background(), username, email, password)
 
-		assert.ErrorIs(t, err, domain.ErrUserAlreadyExists)
+		assert.ErrorIs(t, err, domain.ErrEmailAlreadyExists)
 	})
 
 	t.Run("異常系: リポジトリCreate失敗", func(t *testing.T) {

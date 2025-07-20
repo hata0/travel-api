@@ -13,6 +13,8 @@ const (
 	TripAlreadyExists   ErrorCode = "TRIP_ALREADY_EXISTS"
 	UserNotFound        ErrorCode = "USER_NOT_FOUND"
 	UserAlreadyExists   ErrorCode = "USER_ALREADY_EXISTS"
+	UsernameAlreadyExists ErrorCode = "USERNAME_ALREADY_EXISTS"
+	EmailAlreadyExists  ErrorCode = "EMAIL_ALREADY_EXISTS"
 	InvalidCredentials  ErrorCode = "INVALID_CREDENTIALS"
 	TokenNotFound       ErrorCode = "TOKEN_NOT_FOUND"
 	TokenAlreadyExists  ErrorCode = "TOKEN_ALREADY_EXISTS"

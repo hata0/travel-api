@@ -83,7 +83,7 @@ func (i *AuthInteractor) checkUserExistence(ctx context.Context, username, email
 	// ユーザー名が既に存在するか確認
 	_, err := i.userRepository.FindByUsername(ctx, username)
 	if err == nil {
-		return domain.ErrUserAlreadyExists
+		return domain.ErrUsernameAlreadyExists
 	}
 	var appErr *domain.Error
 	if !errors.As(err, &appErr) || appErr.Code != domain.UserNotFound {
@@ -93,7 +93,7 @@ func (i *AuthInteractor) checkUserExistence(ctx context.Context, username, email
 	// メールアドレスが既に存在するか確認
 	_, err = i.userRepository.FindByEmail(ctx, email)
 	if err == nil {
-		return domain.ErrUserAlreadyExists
+		return domain.ErrEmailAlreadyExists
 	}
 	if !errors.As(err, &appErr) || appErr.Code != domain.UserNotFound {
 		return err

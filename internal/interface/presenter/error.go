@@ -53,7 +53,9 @@ func mapErrorCodeToHTTPStatus(code domain.ErrorCode) int {
 		return http.StatusConflict
 	case domain.UserNotFound:
 		return http.StatusNotFound
-	case domain.UserAlreadyExists:
+	case domain.UserAlreadyExists,
+		domain.UsernameAlreadyExists,
+		domain.EmailAlreadyExists:
 		return http.StatusConflict
 	case domain.InvalidCredentials:
 		return http.StatusUnauthorized

@@ -40,6 +40,10 @@ var (
 	ErrUserNotFound = &Error{Code: UserNotFound, Message: "user not found"}
 	// ErrUserAlreadyExists は、ユーザーが既に存在する場合に返されます。
 	ErrUserAlreadyExists = &Error{Code: UserAlreadyExists, Message: "user already exists"}
+	// ErrUsernameAlreadyExists は、ユーザー名が既に存在する場合に返されます。
+	ErrUsernameAlreadyExists = &Error{Code: UsernameAlreadyExists, Message: "username already exists"}
+	// ErrEmailAlreadyExists は、メールアドレスが既に存在する場合に返されます。
+	ErrEmailAlreadyExists = &Error{Code: EmailAlreadyExists, Message: "email already exists"}
 	// ErrInvalidCredentials は、認証情報が無効な場合に返されます。
 	ErrInvalidCredentials = &Error{Code: InvalidCredentials, Message: "invalid credentials"}
 	// ErrTokenNotFound は、トークンが見つからない場合に返されます。
