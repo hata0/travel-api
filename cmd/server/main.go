@@ -43,7 +43,8 @@ func main() {
 		os.Exit(1)
 	}
 	authRequired := router.Group("/")
-	authRequired.Use(middleware.AuthMiddleware(jwtSecret))
+	authRequired.Use(middleware.RateLimitMiddleware(100, time.Minute))
+		authRequired.Use(middleware.AuthMiddleware(jwtSecret))
 	{
 		// ここに認証が必要なAPIを登録
 		// 例: authRequired.GET("/protected", handler.ProtectedHandler)
