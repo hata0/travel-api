@@ -46,9 +46,9 @@
 
 ## ドキュメント更新
 
-- [ ] `docs/cmd.md`のコード例を`cmd/server/main.go`の現在の実装に合わせて更新する。
-- [ ] `docs/injector.md`のコード例に`NewAuthHandler`の記述を追加する。
-- [ ] `docs/config.md`のコード例に`JWTSecret()`関数の記述を追加する。
+- [x] `docs/cmd.md`のコード例を`cmd/server/main.go`の現在の実装に合わせて更新する。
+- [x] `docs/injector.md`のコード例に`NewAuthHandler`の記述を追加する。
+- [x] `docs/config.md`のコード例に`JWTSecret()`関数の記述を追加する。
 
 ## 実運用における改善点
 
