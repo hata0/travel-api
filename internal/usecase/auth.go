@@ -170,7 +170,7 @@ func (i *AuthInteractor) VerifyRefreshToken(ctx context.Context, refreshToken st
 	// リフレッシュトークンの有効期限をチェック
 	if i.clock.Now().After(foundToken.ExpiresAt) {
 		// 期限切れの場合は削除
-	_ = i.refreshTokenRepository.Delete(ctx, foundToken)
+		_ = i.refreshTokenRepository.Delete(ctx, foundToken)
 		return output.TokenPairOutput{}, domain.ErrInvalidCredentials
 	}
 

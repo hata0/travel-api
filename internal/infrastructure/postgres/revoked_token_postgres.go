@@ -37,7 +37,7 @@ func (r *RevokedTokenPostgresRepository) Create(ctx context.Context, token domai
 		ExpiresAt: validatedExpiresAt,
 		RevokedAt: validatedRevokedAt,
 	}); err != nil {
-		var pgErr *pgconn.PgError // pgconn.PgError を使用
+		var pgErr *pgconn.PgError                            // pgconn.PgError を使用
 		if errors.As(err, &pgErr) && pgErr.Code == "23505" { // 23505 is unique_violation
 			return domain.ErrTokenAlreadyExists // 重複エラーを返す
 		}

@@ -3,6 +3,7 @@ package domain
 import "time"
 
 // Clock は現在時刻を取得するためのインターフェースです。
+//
 //go:generate mockgen -destination mock/clock.go travel-api/internal/domain Clock
 type Clock interface {
 	Now() time.Time
