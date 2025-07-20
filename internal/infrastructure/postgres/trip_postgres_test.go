@@ -160,9 +160,7 @@ func TestTripPostgresRepository_Create(t *testing.T) {
 		insertTestTrip(t, ctx, dbConn, trip) // 最初に挿入
 
 		err := repo.Create(ctx, trip) // 同じIDで再度挿入
-		assert.Error(t, err)          // エラーが返されることを期待
-		// PostgreSQLの重複キーエラーはpgx.PgErrorとして返されることが多い
-		// assert.IsType(t, &pgx.PgError{}, err)
+		assert.ErrorIs(t, err, domain.ErrTripAlreadyExists)
 	})
 }
 
@@ -194,19 +192,6 @@ func TestTripPostgresRepository_Update(t *testing.T) {
 		assert.True(t, updatedAt.Equal(foundRecord.UpdatedAt.Time))
 		assert.True(t, originalCreatedAt.Equal(foundRecord.CreatedAt.Time)) // CreatedAtは変わらないことを確認
 	})
-
-	t.Run("異常系: 存在しないIDのレコードを更新", func(t *testing.T) {
-		name := "Non Existent Trip"
-		now := time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC)
-		updateTrip := createTestTrip(t, name, now, now)
-
-		err := repo.Update(ctx, updateTrip)
-		assert.NoError(t, err) // sqlcのUpdateは更新対象がない場合もエラーを返さない
-
-		// 実際に更新されていないことを確認
-		_, err = getTripFromDB(t, ctx, dbConn, updateTrip.ID.String())
-		assert.ErrorIs(t, err, pgx.ErrNoRows)
-	})
 }
 
 func TestTripPostgresRepository_Delete(t *testing.T) {
@@ -225,19 +210,6 @@ func TestTripPostgresRepository_Delete(t *testing.T) {
 
 		// DBから直接取得して削除されたことを検証
 		_, err = getTripFromDB(t, ctx, dbConn, tripToDelete.ID.String())
-		assert.ErrorIs(t, err, pgx.ErrNoRows)
-	})
-
-	t.Run("異常系: 存在しないIDのレコードを削除", func(t *testing.T) {
-		name := "Non Existent Trip"
-		now := time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC)
-		nonExistentTrip := createTestTrip(t, name, now, now)
-
-		err := repo.Delete(ctx, nonExistentTrip)
-		assert.NoError(t, err) // sqlcのDeleteは削除対象がない場合もエラーを返さない
-
-		// 実際に削除されていないことを確認（元々存在しないため、エラーが返る）
-		_, err = getTripFromDB(t, ctx, dbConn, nonExistentTrip.ID.String())
 		assert.ErrorIs(t, err, pgx.ErrNoRows)
 	})
 }

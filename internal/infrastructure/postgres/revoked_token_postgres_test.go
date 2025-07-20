@@ -83,9 +83,7 @@ func TestRevokedTokenPostgresRepository_Create(t *testing.T) {
 		token2 := createTestRevokedToken(t, jti, expiresAt, revokedAt)
 
 		err := repo.Create(ctx, token2)
-		assert.Error(t, err)
-		// PostgreSQLの重複キーエラーはpgx.PgErrorとして返されることが多い
-		// assert.IsType(t, &pgx.PgError{}, err)
+		assert.ErrorIs(t, err, domain.ErrTokenAlreadyExists)
 	})
 }
 

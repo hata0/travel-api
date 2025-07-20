@@ -31,6 +31,8 @@ var (
 	ErrInvalidUUID = &Error{Code: ValidationError, Message: "invalid uuid format"}
 	// ErrTripNotFound は、Tripが見つからない場合に返されます。
 	ErrTripNotFound = &Error{Code: TripNotFound, Message: "trip not found"}
+	// ErrTripAlreadyExists は、Tripが既に存在する場合に返されます。
+	ErrTripAlreadyExists = &Error{Code: TripAlreadyExists, Message: "trip already exists"}
 	// ErrInternalServerError は、予期せぬ内部エラーが発生した場合に返されます。
 	// このエラーは通常、具体的なエラー情報でラップして使用します。
 	ErrInternalServerError = &Error{Code: InternalServerError, Message: "internal server error"}
@@ -42,6 +44,8 @@ var (
 	ErrInvalidCredentials = &Error{Code: InvalidCredentials, Message: "invalid credentials"}
 	// ErrTokenNotFound は、トークンが見つからない場合に返されます。
 	ErrTokenNotFound = &Error{Code: TokenNotFound, Message: "token not found"}
+	// ErrTokenAlreadyExists は、トークンが既に存在する場合に返されます。
+	ErrTokenAlreadyExists = &Error{Code: TokenAlreadyExists, Message: "token already exists"}
 )
 
 // NewInternalServerError は、具体的なエラー原因を含む内部サーバーエラーを生成します。

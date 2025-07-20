@@ -98,9 +98,7 @@ func TestUserPostgresRepository_Create(t *testing.T) {
 		user2 := createTestUser(t, username2, email, passwordHash, now, now)
 
 		err := repo.Create(ctx, user2)
-		assert.Error(t, err)
-		// PostgreSQLの重複キーエラーはpgx.PgErrorとして返されることが多い
-		// assert.IsType(t, &pgx.PgError{}, err)
+		assert.ErrorIs(t, err, domain.ErrUserAlreadyExists)
 	})
 
 	t.Run("異常系: 重複するユーザー名で作成", func(t *testing.T) {
@@ -115,8 +113,7 @@ func TestUserPostgresRepository_Create(t *testing.T) {
 		user2 := createTestUser(t, username, email2, passwordHash, now, now)
 
 		err := repo.Create(ctx, user2)
-		assert.Error(t, err)
-		// assert.IsType(t, &pgx.PgError{}, err)
+		assert.ErrorIs(t, err, domain.ErrUserAlreadyExists)
 	})
 }
 

@@ -2,10 +2,12 @@ package postgres
 
 import (
 	"context"
+	"errors"
 	"time"
 	"travel-api/internal/domain"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
@@ -39,7 +41,11 @@ func (r *RefreshTokenPostgresRepository) Create(ctx context.Context, token domai
 		ExpiresAt: validatedExpiresAt,
 		CreatedAt: validatedCreatedAt,
 	}); err != nil {
-		return err
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" { // 23505 is unique_violation
+			return domain.ErrTokenAlreadyExists
+		}
+		return domain.NewInternalServerError(err)
 	}
 
 	return nil
@@ -51,7 +57,7 @@ func (r *RefreshTokenPostgresRepository) FindByToken(ctx context.Context, token 
 		if err == pgx.ErrNoRows {
 			return domain.RefreshToken{}, domain.ErrTokenNotFound
 		} else {
-			return domain.RefreshToken{}, err
+			return domain.RefreshToken{}, domain.NewInternalServerError(err)
 		}
 	}
 
@@ -60,7 +66,7 @@ func (r *RefreshTokenPostgresRepository) FindByToken(ctx context.Context, token 
 
 func (r *RefreshTokenPostgresRepository) Delete(ctx context.Context, token string) error {
 	if err := r.queries.DeleteRefreshToken(ctx, token); err != nil {
-		return err
+		return domain.NewInternalServerError(err)
 	}
 	return nil
 }

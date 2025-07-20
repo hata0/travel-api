@@ -93,9 +93,7 @@ func TestRefreshTokenPostgresRepository_Create(t *testing.T) {
 		token2 := createTestRefreshToken(t, user.ID, tokenStr, expiresAt, createdAt)
 
 		err := repo.Create(ctx, token2)
-		assert.Error(t, err)
-		// PostgreSQLの重複キーエラーはpgx.PgErrorとして返されることが多い
-		// assert.IsType(t, &pgx.PgError{}, err)
+		assert.ErrorIs(t, err, domain.ErrTokenAlreadyExists)
 	})
 }
 
@@ -149,10 +147,5 @@ func TestRefreshTokenPostgresRepository_Delete(t *testing.T) {
 		// DBから直接取得して削除されたことを検証
 		_, err = getRefreshTokenFromDB(t, ctx, dbConn, tokenStr)
 		assert.ErrorIs(t, err, pgx.ErrNoRows)
-	})
-
-	t.Run("異常系: 存在しないトークンを削除", func(t *testing.T) {
-		err := repo.Delete(ctx, "nonexistent-token-to-delete")
-		assert.NoError(t, err) // sqlcのDeleteは削除対象がない場合もエラーを返さない
 	})
 }

@@ -38,7 +38,7 @@ func NewTripPostgresRepository(db DBTX) domain.TripRepository {
 
 リポジトリの重要な責務の一つが、ドメイン層で定義された型（例: `domain.TripID`, `time.Time`）と、`sqlc`が生成する`pgtype`パッケージの型（例: `pgtype.UUID`, `pgtype.Timestamptz`）との間のマッピングです。
 
--   **DBからの読み取り時**: `pgtype` からドメインの型へ変換します。このロジックは `mapToTrip` のようなプライベートなヘルパー関数にカプセル化すると良いでしょう。
+-   **DBからの読み取り時**: `pgtype` からドメインの型へ変換します。このロジックは `mapToTrip` のようなプライベートなヘルパー関数にカプセル化します。
 -   **DBへの書き込み時**: ドメインの型から `pgtype` へ変換します。
 
 **例 (`trip_postgres.go`):**
@@ -47,53 +47,87 @@ func NewTripPostgresRepository(db DBTX) domain.TripRepository {
 func (r *TripPostgresRepository) mapToTrip(record Trip) domain.Trip {
 	var id domain.TripID
 	if record.ID.Valid {
-		// pgtype.UUID から domain.TripID へ
 		id, _ = domain.NewTripID(record.ID.String())
 	}
-    // ...
-	return domain.NewTrip(id, record.Name, createdAt, updatedAt)
+
+	var createdAt time.Time
+	if record.CreatedAt.Valid {
+		createdAt = record.CreatedAt.Time
+	}
+
+	var updatedAt time.Time
+	if record.UpdatedAt.Valid {
+		updatedAt = record.UpdatedAt.Time
+	}
+
+	return domain.NewTrip(
+		id,
+		record.Name,
+		createdAt,
+		updatedAt,
+	)
 }
 
 // Create はドメインオブジェクト(domain.Trip)を受け取り、DBにレコードを作成します。
 func (r *TripPostgresRepository) Create(ctx context.Context, trip domain.Trip) error {
 	var validatedId pgtype.UUID
-	// domain.TripID から pgtype.UUID へ
 	_ = validatedId.Scan(trip.ID.String())
 
 	var validatedCreatedAt pgtype.Timestamptz
-	// time.Time から pgtype.Timestamptz へ
 	_ = validatedCreatedAt.Scan(trip.CreatedAt)
 
-    // ...
+	var validatedUpdatedAt pgtype.Timestamptz
+	_ = validatedUpdatedAt.Scan(trip.UpdatedAt)
 
 	// sqlcが生成したCreateTrip関数を呼び出す
-	return r.queries.CreateTrip(ctx, CreateTripParams{
+	if err := r.queries.CreateTrip(ctx, CreateTripParams{
 		ID:        validatedId,
 		Name:      trip.Name,
 		CreatedAt: validatedCreatedAt,
 		UpdatedAt: validatedUpdatedAt,
-	})
+	}); err != nil {
+        // ... エラーハンドリング ...
+    }
+    return nil
 }
 ```
 
 ### 3. エラーハンドリング
 
-データベース操作中に発生したエラーは、リポジトリ層でキャッチし、ドメイン層で定義された適切なエラー（例: `domain.ErrTripNotFound`）に変換して返します。これにより、上位層（ユースケース層やハンドラ層）は、`pgx.ErrNoRows`のようなデータベース固有のエラーに依存することなく、ビジネスロジックに基づいたエラーハンドリングを行えます。
+データベース操作中に発生したエラーは、リポジトリ層でハンドリングし、ドメイン層で定義された適切なエラーに変換して返します。これにより、上位層（ユースケース層）は、データベース固有のエラー型に依存することなく、ビジネスロジックに基づいたエラーハンドリングを行えます。
+
+-   **Read (`Find...`系メソッド)**: レコードが存在しないことを示す `pgx.ErrNoRows` を、`domain.ErrTripNotFound` のようなドメイン固有の「Not Found」エラーに変換します。
+-   **Create (`Create`メソッド)**: 主キーやユニークキーの重複違反 (`pgconn.PgError` の `Code: "23505"`) を検知し、`domain.ErrTripAlreadyExists` のようなドメイン固有の「Already Exists」エラーに変換します。
+-   **Update/Delete**: これらのメソッドでは、対象レコードが存在しない場合でも `sqlc` はエラーを返しません。ユースケース層で事前に存在確認を行う設計のため、リポジトリ層ではエラーハンドリングは不要です。
+-   **その他のエラー**: 上記以外の予期せぬデータベースエラーは、すべて `domain.NewInternalServerError(err)` でラップし、根本原因を保持しつつ、上位層には一貫した内部サーバーエラーとして報告します。
 
 **例 (`trip_postgres.go`):**
 ```go
+// FindByIDでのエラーハンドリング
 func (r *TripPostgresRepository) FindByID(ctx context.Context, id domain.TripID) (domain.Trip, error) {
 	// ...
 	record, err := r.queries.GetTrip(ctx, validatedId)
 	if err != nil {
-		// pgx固有のエラーをドメインエラーに変換
 		if err == pgx.ErrNoRows {
-			return domain.Trip{}, domain.ErrTripNotFound
+			return domain.Trip{}, domain.ErrTripNotFound // Not Foundエラーに変換
 		} else {
-			return domain.Trip{}, err
+			return domain.Trip{}, domain.NewInternalServerError(err) // その他のエラーをラップ
 		}
 	}
-	// ...
+	return r.mapToTrip(record), nil
+}
+
+// Createでのエラーハンドリング
+func (r *TripPostgresRepository) Create(ctx context.Context, trip domain.Trip) error {
+    // ...
+	if err := r.queries.CreateTrip(ctx, params); err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" { // 23505 is unique_violation
+			return domain.ErrTripAlreadyExists // Already Existsエラーに変換
+		}
+		return domain.NewInternalServerError(err) // その他のエラーをラップ
+	}
+	return nil
 }
 ```
 
@@ -118,7 +152,8 @@ func testMain(m *testing.M) int {
 	// 1. テストコンテナをセットアップ
 	container, dbUrl, err := setupTestContainer(ctx)
 	if err != nil {
-		// ... エラー処理
+		log.Printf("error setting up test container: %v", err)
+		return 1
 	}
 	testContainer = container
 	testDbUrl = dbUrl
@@ -128,32 +163,10 @@ func testMain(m *testing.M) int {
 
 	// 3. コンテナを終了
 	if err := testContainer.Terminate(ctx); err != nil {
-		// ... エラー処理
+		log.Printf("error terminating test container: %v", err)
 	}
 
 	return code
-}
-
-func setupTestContainer(ctx context.Context) (*postgres.PostgresContainer, string, error) {
-	// PostgreSQL コンテナを起動
-	container, err := postgres.Run(ctx, "postgres:17.4-bookworm", ...)
-	// ...
-	// 接続文字列を取得
-	dbUrl, err := container.ConnectionString(ctx, "sslmode=disable")
-	// ...
-	// マイグレーションを実行
-	mig, err := migrate.New("file://sql/migrations", dbUrl)
-	// ...
-	if err := mig.Up(); err != nil {
-		// ...
-	}
-	// ...
-	// スナップショットを作成
-	if err := container.Snapshot(ctx, postgres.WithSnapshotName("test-db-snapshot")); err != nil {
-		// ...
-	}
-
-	return container, dbUrl, nil
 }
 ```
 
@@ -166,12 +179,10 @@ func setupTestContainer(ctx context.Context) (*postgres.PostgresContainer, strin
 func setupDB(t *testing.T, ctx context.Context) *pgx.Conn {
 	t.Helper()
 
-	// テスト用のDBに接続
 	db, err := pgx.Connect(ctx, testDbUrl)
 	require.NoError(t, err)
 
 	t.Cleanup(func() {
-		// テスト終了時に接続を閉じる
 		err := db.Close(ctx)
 		require.NoError(t, err)
 		// スナップショットを復元してDBをクリーンな状態に戻す
@@ -180,14 +191,6 @@ func setupDB(t *testing.T, ctx context.Context) *pgx.Conn {
 	})
 
 	return db
-}
-
-func TestTripPostgresRepository_FindByID(t *testing.T) {
-	ctx := context.Background()
-	// 各テストの開始時にクリーンなDB接続を取得
-	dbConn := setupDB(t, ctx)
-	repo := NewTripPostgresRepository(dbConn)
-    // ... テストロジック
 }
 ```
 
@@ -205,34 +208,20 @@ func TestTripPostgresRepository_FindByID(t *testing.T) {
 func insertTestTrip(t *testing.T, ctx context.Context, db DBTX, trip domain.Trip) {
 	t.Helper()
 	queries := New(db);
-    // ... 型変換
+    // ... 型変換とDBへの挿入 ...
 	err := queries.CreateTrip(ctx, CreateTripParams{...})
 	require.NoError(t, err)
-}
-
-func TestTripPostgresRepository_Create(t *testing.T) {
-    // ...
-	t.Run("正常系: 新しいレコードが作成される", func(t *testing.T) {
-		trip := createTestTrip(t, "New Trip", now, now)
-
-		err := repo.Create(ctx, trip)
-		assert.NoError(t, err)
-
-		// DBから直接取得して検証
-		createdRecord, err := getTripFromDB(t, ctx, dbConn, trip.ID.String())
-		assert.NoError(t, err)
-		assert.Equal(t, trip.Name, createdRecord.Name)
-	})
 }
 ```
 
 #### 4.4. 網羅的なテスト
 
-正常系（Happy Path）だけでなく、異常系やエッジケースも網羅的にテストします。
+正常系（Happy Path）だけでなく、リポジトリが返しうるすべてのエラーパターンを網羅的にテストします。
 
--   存在しないレコードの取得、更新、削除
--   重複するキーでの挿入（DBの制約違反）
--   空のテーブルに対する一覧取得
+-   **`FindByID`**: 正常にレコードが取得できるケースと、レコードが存在しない場合に`domain.ErrTripNotFound`が返るケースをテストします。
+-   **`FindMany`**: レコードが複数存在する場合と、1件も存在しない場合に空のスライスが返るケースをテストします。
+-   **`Create`**: 正常にレコードが作成できるケースと、主キーが重複した場合に`domain.ErrTripAlreadyExists`が返るケースをテストします。
+-   **`Update`/`Delete`**: 正常にレコードが更新・削除できるケースをテストします。ユースケース層で存在確認を行うため、リポジトリ層のテストでは対象レコードが存在する正常系のみをテスト対象とします。
 
 **例 (`trip_postgres_test.go`):**
 ```go
@@ -245,6 +234,18 @@ func TestTripPostgresRepository_FindByID(t *testing.T) {
 		_, err = repo.FindByID(ctx, id)
 
 		assert.ErrorIs(t, err, domain.ErrTripNotFound)
+	})
+}
+
+func TestTripPostgresRepository_Create(t *testing.T) {
+    // ...
+	t.Run("異常系: 重複するIDで作成", func(t *testing.T) {
+		// ...
+		trip := createTestTrip(t, "Existing Trip", now, now)
+		insertTestTrip(t, ctx, dbConn, trip) // 最初に挿入
+
+		err := repo.Create(ctx, trip) // 同じIDで再度挿入
+		assert.ErrorIs(t, err, domain.ErrTripAlreadyExists)
 	})
 }
 ```
