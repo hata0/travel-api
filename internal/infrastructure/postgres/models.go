@@ -18,6 +18,7 @@ type RefreshToken struct {
 
 type RevokedToken struct {
 	ID        pgtype.UUID
+	UserID    pgtype.UUID
 	TokenJti  string
 	ExpiresAt pgtype.Timestamptz
 	RevokedAt pgtype.Timestamptz

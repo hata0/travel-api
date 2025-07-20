@@ -3,6 +3,7 @@ package usecase
 import (
 	"context"
 	"errors"
+	"log/slog"
 	"time"
 	"travel-api/internal/config"
 	"travel-api/internal/domain"
@@ -23,15 +24,17 @@ type AuthUsecase interface {
 type AuthInteractor struct {
 	userRepository         domain.UserRepository
 	refreshTokenRepository domain.RefreshTokenRepository
+	revokedTokenRepository domain.RevokedTokenRepository
 	clock                  domain.Clock
 	uuidGenerator          domain.UUIDGenerator
 	transactionManager     domain.TransactionManager
 }
 
-func NewAuthInteractor(userRepository domain.UserRepository, refreshTokenRepository domain.RefreshTokenRepository, clock domain.Clock, uuidGenerator domain.UUIDGenerator, transactionManager domain.TransactionManager) *AuthInteractor {
+func NewAuthInteractor(userRepository domain.UserRepository, refreshTokenRepository domain.RefreshTokenRepository, revokedTokenRepository domain.RevokedTokenRepository, clock domain.Clock, uuidGenerator domain.UUIDGenerator, transactionManager domain.TransactionManager) *AuthInteractor {
 	return &AuthInteractor{
 		userRepository:         userRepository,
 		refreshTokenRepository: refreshTokenRepository,
+		revokedTokenRepository: revokedTokenRepository,
 		clock:                  clock,
 		uuidGenerator:          uuidGenerator,
 		transactionManager:     transactionManager,
@@ -166,7 +169,23 @@ func (i *AuthInteractor) Login(ctx context.Context, email, password string) (out
 
 func (i *AuthInteractor) VerifyRefreshToken(ctx context.Context, refreshToken string) (output.TokenPairOutput, error) {
 	var tokenPair output.TokenPairOutput
-	err := i.transactionManager.RunInTx(ctx, func(txCtx context.Context) error {
+
+	// まず失効済みトークンでないか確認
+	_, err := i.revokedTokenRepository.FindByJTI(ctx, refreshToken)
+	if err == nil {
+		// 失効済みトークンが見つかった場合、再利用攻撃の可能性がある
+		// このトークンに紐づくユーザーのセッションをすべて無効化する
+		foundToken, findErr := i.refreshTokenRepository.FindByToken(ctx, refreshToken)
+		if findErr == nil {
+			// ユーザーIDに紐づくすべてのリフレッシュトークンを削除
+			if delErr := i.refreshTokenRepository.DeleteByUserID(ctx, foundToken.UserID); delErr != nil {
+				slog.Error("Failed to delete all refresh tokens for user after reuse detection", "error", delErr, "userID", foundToken.UserID.String())
+			}
+		}
+		return output.TokenPairOutput{}, domain.ErrInvalidCredentials
+	}
+
+	err = i.transactionManager.RunInTx(ctx, func(txCtx context.Context) error {
 		// リフレッシュトークンをデータベースから検索
 		foundToken, err := i.refreshTokenRepository.FindByToken(txCtx, refreshToken)
 		if err != nil {
@@ -184,8 +203,24 @@ func (i *AuthInteractor) VerifyRefreshToken(ctx context.Context, refreshToken st
 			return domain.ErrInvalidCredentials
 		}
 
-		// 古いリフレッシュトークンを削除
-		_ = i.refreshTokenRepository.Delete(txCtx, foundToken)
+		// 古いリフレッシュトークンを失効済みとして記録し、削除する
+		revokedTokenID, uuidErr := domain.NewRevokedTokenID(i.uuidGenerator.NewUUID())
+		if uuidErr != nil {
+			return domain.NewInternalServerError(uuidErr)
+		}
+		revokedToken := domain.NewRevokedToken(
+			revokedTokenID,
+			foundToken.UserID,
+			foundToken.Token,
+			foundToken.ExpiresAt,
+			i.clock.Now(),
+		)
+		if err := i.revokedTokenRepository.Create(txCtx, revokedToken); err != nil {
+			return domain.NewInternalServerError(err)
+		}
+		if err := i.refreshTokenRepository.Delete(txCtx, foundToken); err != nil {
+			return domain.NewInternalServerError(err)
+		}
 
 		// 新しいアクセストークンとリフレッシュトークンを生成
 		user, err := i.userRepository.FindByID(txCtx, foundToken.UserID)
@@ -221,8 +256,7 @@ func (i *AuthInteractor) VerifyRefreshToken(ctx context.Context, refreshToken st
 			i.clock.Now().Add(time.Hour*24*7), // 7日間有効
 			i.clock.Now(),
 		)
-		err = i.refreshTokenRepository.Create(txCtx, newRefreshToken)
-		if err != nil {
+		if err := i.refreshTokenRepository.Create(txCtx, newRefreshToken); err != nil {
 			return domain.NewInternalServerError(err)
 		}
 

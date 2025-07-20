@@ -11,6 +11,7 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 	"golang.org/x/crypto/bcrypt"
 
@@ -24,7 +25,7 @@ func TestAuthInteractor_Register(t *testing.T) {
 	mockRepo := mock_domain.NewMockUserRepository(ctrl)
 	mockClock := mock_domain.NewMockClock(ctrl)
 	mockUUIDGenerator := mock_domain.NewMockUUIDGenerator(ctrl)
-	interactor := NewAuthInteractor(mockRepo, mock_domain.NewMockRefreshTokenRepository(ctrl), mockClock, mockUUIDGenerator, mock_domain.NewMockTransactionManager(ctrl))
+	interactor := NewAuthInteractor(mockRepo, mock_domain.NewMockRefreshTokenRepository(ctrl), mock_domain.NewMockRevokedTokenRepository(ctrl), mockClock, mockUUIDGenerator, mock_domain.NewMockTransactionManager(ctrl))
 
 	username := "testuser"
 	email := "test@example.com"
@@ -92,9 +93,8 @@ func TestAuthInteractor_Login(t *testing.T) {
 	mockRefreshTokenRepo := mock_domain.NewMockRefreshTokenRepository(ctrl)
 	mockClock := mock_domain.NewMockClock(ctrl)
 	mockUUIDGenerator := mock_domain.NewMockUUIDGenerator(ctrl)
-	mockUUIDGenerator = mock_domain.NewMockUUIDGenerator(ctrl)
 	mockTransactionManager := mock_domain.NewMockTransactionManager(ctrl)
-	interactor := NewAuthInteractor(mockUserRepo, mockRefreshTokenRepo, mockClock, mockUUIDGenerator, mockTransactionManager)
+	interactor := NewAuthInteractor(mockUserRepo, mockRefreshTokenRepo, mock_domain.NewMockRevokedTokenRepository(ctrl), mockClock, mockUUIDGenerator, mockTransactionManager)
 
 	email := "test@example.com"
 	password := "password123"
@@ -204,25 +204,41 @@ func TestAuthInteractor_VerifyRefreshToken(t *testing.T) {
 
 	mockUserRepo := mock_domain.NewMockUserRepository(ctrl)
 	mockRefreshTokenRepo := mock_domain.NewMockRefreshTokenRepository(ctrl)
+	mockRevokedTokenRepo := mock_domain.NewMockRevokedTokenRepository(ctrl)
 	mockClock := mock_domain.NewMockClock(ctrl)
 	mockUUIDGenerator := mock_domain.NewMockUUIDGenerator(ctrl)
-	NewAuthInteractor(mockUserRepo, mockRefreshTokenRepo, mockClock, mockUUIDGenerator, mock_domain.NewMockTransactionManager(ctrl))
+	mockTransactionManager := mock_domain.NewMockTransactionManager(ctrl)
+	interactor := NewAuthInteractor(mockUserRepo, mockRefreshTokenRepo, mockRevokedTokenRepo, mockClock, mockUUIDGenerator, mockTransactionManager)
 
 	refreshTokenString := "valid-refresh-token"
-	userID := "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d"
-	userDomainID, _ := domain.NewUserID(userID)
+	userIDString := "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d"
+	userID, _ := domain.NewUserID(userIDString)
 	now := time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC)
 	expiresAt := now.Add(time.Hour * 24 * 7)
 
 	// テスト用のユーザーとリフレッシュトークン
-	expectedUser := domain.NewUser(userDomainID, "testuser", "test@example.com", "hashedpass", now, now)
+	user := domain.NewUser(userID, "testuser", "test@example.com", "hashedpass", now, now)
 	refreshTokenID, err := domain.NewRefreshTokenID(uuid.New().String())
 	assert.NoError(t, err)
-	refreshToken := domain.NewRefreshToken(refreshTokenID, userDomainID, refreshTokenString, expiresAt, now)
+	refreshToken := domain.NewRefreshToken(refreshTokenID, userID, refreshTokenString, expiresAt, now)
+	revokedTokenIDString := uuid.New().String()
+	revokedTokenID, err := domain.NewRevokedTokenID(revokedTokenIDString)
+	require.NoError(t, err)
+	revokedToken := domain.NewRevokedToken(revokedTokenID, userID, refreshToken.Token, refreshToken.ExpiresAt, now)
+
+	newRefreshTokenIDString := uuid.New().String()
+	newRefreshTokenID, err := domain.NewRefreshTokenID(newRefreshTokenIDString)
+	assert.NoError(t, err)
+	newRefreshToken := domain.NewRefreshToken(
+		newRefreshTokenID,
+		user.ID,
+		newRefreshTokenIDString,
+		now.Add(time.Hour*24*7),
+		now,
+	)
 
 	t.Run("正常系: リフレッシュトークンが検証され、新しいアクセストークンとリフレッシュトークンが発行される", func(t *testing.T) {
-		mockTransactionManager := mock_domain.NewMockTransactionManager(ctrl)
-		interactor := NewAuthInteractor(mockUserRepo, mockRefreshTokenRepo, mockClock, mockUUIDGenerator, mockTransactionManager)
+		mockRevokedTokenRepo.EXPECT().FindByJTI(gomock.Any(), refreshTokenString).Return(domain.RevokedToken{}, domain.ErrTokenNotFound).Times(1)
 		mockTransactionManager.EXPECT().RunInTx(gomock.Any(), gomock.Any()).DoAndReturn(
 			func(ctx context.Context, fn func(ctx context.Context) error) error {
 				return fn(ctx)
@@ -232,29 +248,26 @@ func TestAuthInteractor_VerifyRefreshToken(t *testing.T) {
 		mockRefreshTokenRepo.EXPECT().FindByToken(gomock.Any(), refreshTokenString).Return(refreshToken, nil).Times(1)
 
 		// Clockが現在時刻を返すことを期待
-		mockClock.EXPECT().Now().Return(now).Times(4) // 有効期限チェックと新しいトークン生成時
+		mockClock.EXPECT().Now().Return(now).Times(5) // 有効期限チェックと新しいトークン生成時
 
-		// 古いリフレッシュトークンが削除されることを期待
+		callCount := 0
+		mockUUIDGenerator.EXPECT().NewUUID().DoAndReturn(func() string {
+			callCount++
+			if callCount == 1 {
+				return revokedTokenIDString
+			}
+			return newRefreshTokenIDString
+		}).Times(2)
+
+		// 古いリフレッシュトークンが失効済みとして記録され、削除されることを期待
+		mockRevokedTokenRepo.EXPECT().Create(gomock.Any(), revokedToken).Return(nil).Times(1)
 		mockRefreshTokenRepo.EXPECT().Delete(gomock.Any(), refreshToken).Return(nil).Times(1)
 
 		// FindByIDがユーザーを返すことを期待
-		mockUserRepo.EXPECT().FindByID(gomock.Any(), userDomainID).Return(expectedUser, nil).Times(1)
-
-		newRefreshTokenString := uuid.New().String()
-		// UUIDGeneratorが新しいリフレッシュトークンを生成することを期待
-		mockUUIDGenerator.EXPECT().NewUUID().Return(newRefreshTokenString).Times(1)
+		mockUserRepo.EXPECT().FindByID(gomock.Any(), userID).Return(user, nil).Times(1)
 
 		// 新しいリフレッシュトークンが保存されることを期待
-		newRefreshTokenID, err := domain.NewRefreshTokenID(newRefreshTokenString)
-		assert.NoError(t, err)
-		expectedNewRefreshToken := domain.NewRefreshToken(
-			newRefreshTokenID,
-			expectedUser.ID,
-			newRefreshTokenString,
-			now.Add(time.Hour*24*7),
-			now,
-		)
-		mockRefreshTokenRepo.EXPECT().Create(gomock.Any(), expectedNewRefreshToken).Return(nil).Times(1)
+		mockRefreshTokenRepo.EXPECT().Create(gomock.Any(), newRefreshToken).Return(nil).Times(1)
 
 		// JWTSecretが秘密鍵を返すことを期待
 		os.Setenv("JWT_SECRET", "your_jwt_secret_key")
@@ -264,12 +277,13 @@ func TestAuthInteractor_VerifyRefreshToken(t *testing.T) {
 
 		assert.NoError(t, err)
 		assert.NotEmpty(t, output.Token)
-		assert.Equal(t, newRefreshTokenString, output.RefreshToken)
+		assert.Equal(t, newRefreshTokenIDString, output.RefreshToken)
 	})
 
 	t.Run("異常系: リフレッシュトークンが見つからない", func(t *testing.T) {
-		mockTransactionManager := mock_domain.NewMockTransactionManager(ctrl)
-		interactor := NewAuthInteractor(mockUserRepo, mockRefreshTokenRepo, mockClock, mockUUIDGenerator, mockTransactionManager)
+		// FindByJTIがTokenNotFoundを返すことを期待
+		mockRevokedTokenRepo.EXPECT().FindByJTI(gomock.Any(), refreshTokenString).Return(domain.RevokedToken{}, domain.ErrTokenNotFound).Times(1)
+
 		mockTransactionManager.EXPECT().RunInTx(gomock.Any(), gomock.Any()).DoAndReturn(
 			func(ctx context.Context, fn func(ctx context.Context) error) error {
 				return fn(ctx)
@@ -284,8 +298,9 @@ func TestAuthInteractor_VerifyRefreshToken(t *testing.T) {
 	})
 
 	t.Run("異常系: リフレッシュトークンの有効期限が切れている", func(t *testing.T) {
-		mockTransactionManager := mock_domain.NewMockTransactionManager(ctrl)
-		interactor := NewAuthInteractor(mockUserRepo, mockRefreshTokenRepo, mockClock, mockUUIDGenerator, mockTransactionManager)
+		// FindByJTIがTokenNotFoundを返すことを期待
+		mockRevokedTokenRepo.EXPECT().FindByJTI(gomock.Any(), refreshTokenString).Return(domain.RevokedToken{}, domain.ErrTokenNotFound).Times(1)
+
 		mockTransactionManager.EXPECT().RunInTx(gomock.Any(), gomock.Any()).DoAndReturn(
 			func(ctx context.Context, fn func(ctx context.Context) error) error {
 				return fn(ctx)
@@ -294,7 +309,7 @@ func TestAuthInteractor_VerifyRefreshToken(t *testing.T) {
 		// 期限切れのリフレッシュトークン
 		expiredRefreshTokenID, err := domain.NewRefreshTokenID(uuid.New().String())
 		assert.NoError(t, err)
-		expiredRefreshToken := domain.NewRefreshToken(expiredRefreshTokenID, userDomainID, refreshTokenString, now.Add(-time.Hour), now)
+		expiredRefreshToken := domain.NewRefreshToken(expiredRefreshTokenID, userID, refreshTokenString, now.Add(-time.Hour), now)
 
 		// FindByTokenが期限切れトークンを返すことを期待
 		mockRefreshTokenRepo.EXPECT().FindByToken(gomock.Any(), refreshTokenString).Return(expiredRefreshToken, nil).Times(1)
@@ -310,37 +325,81 @@ func TestAuthInteractor_VerifyRefreshToken(t *testing.T) {
 		assert.ErrorIs(t, err, domain.ErrInvalidCredentials)
 	})
 
-	t.Run("異常系: FindByIDでエラー", func(t *testing.T) {
-		mockTransactionManager := mock_domain.NewMockTransactionManager(ctrl)
-		interactor := NewAuthInteractor(mockUserRepo, mockRefreshTokenRepo, mockClock, mockUUIDGenerator, mockTransactionManager)
+	t.Run("異常系: 古いリフレッシュトークンの削除に失敗", func(t *testing.T) {
+		// FindByJTIがTokenNotFoundを返すことを期待
+		mockRevokedTokenRepo.EXPECT().FindByJTI(gomock.Any(), refreshTokenString).Return(domain.RevokedToken{}, domain.ErrTokenNotFound).Times(1)
+
 		mockTransactionManager.EXPECT().RunInTx(gomock.Any(), gomock.Any()).DoAndReturn(
 			func(ctx context.Context, fn func(ctx context.Context) error) error {
 				return fn(ctx)
 			},
 		).Times(1)
 		mockRefreshTokenRepo.EXPECT().FindByToken(gomock.Any(), refreshTokenString).Return(refreshToken, nil).Times(1)
-		mockClock.EXPECT().Now().Return(now).Times(1)
+		mockClock.EXPECT().Now().Return(now).Times(2)
+		mockUUIDGenerator.EXPECT().NewUUID().Return(revokedTokenIDString).Times(1)
+		mockRevokedTokenRepo.EXPECT().Create(gomock.Any(), revokedToken).Return(nil).Times(1)
+		// Deleteがエラーを返すことを期待
+		expectedErr := domain.ErrInternalServerError
+		mockRefreshTokenRepo.EXPECT().Delete(gomock.Any(), refreshToken).Return(expectedErr).Times(1)
+
+		_, err := interactor.VerifyRefreshToken(context.Background(), refreshTokenString)
+		assert.ErrorIs(t, err, domain.ErrInternalServerError)
+	})
+
+	t.Run("異常系: リフレッシュトークンが再利用された場合", func(t *testing.T) {
+		// FindByJTIが失効済みトークンを返すことを期待
+		mockRevokedTokenRepo.EXPECT().FindByJTI(gomock.Any(), refreshTokenString).Return(domain.RevokedToken{}, nil).Times(1)
+		// FindByTokenがリフレッシュトークンを返すことを期待
+		mockRefreshTokenRepo.EXPECT().FindByToken(gomock.Any(), refreshTokenString).Return(refreshToken, nil).Times(1)
+		// DeleteByUserIDが呼び出されることを期待
+		mockRefreshTokenRepo.EXPECT().DeleteByUserID(gomock.Any(), userID).Return(nil).Times(1)
+
+		_, err := interactor.VerifyRefreshToken(context.Background(), refreshTokenString)
+
+		assert.ErrorIs(t, err, domain.ErrInvalidCredentials)
+	})
+
+	t.Run("異常系: FindByIDでエラー", func(t *testing.T) {
+		mockRevokedTokenRepo.EXPECT().FindByJTI(gomock.Any(), refreshTokenString).Return(domain.RevokedToken{}, domain.ErrTokenNotFound).Times(1)
+		mockTransactionManager.EXPECT().RunInTx(gomock.Any(), gomock.Any()).DoAndReturn(
+			func(ctx context.Context, fn func(ctx context.Context) error) error {
+				return fn(ctx)
+			},
+		).Times(1)
+		mockRefreshTokenRepo.EXPECT().FindByToken(gomock.Any(), refreshTokenString).Return(refreshToken, nil).Times(1)
+		mockClock.EXPECT().Now().Return(now).Times(2)
+		mockUUIDGenerator.EXPECT().NewUUID().Return(revokedTokenIDString).Times(1)
+		mockRevokedTokenRepo.EXPECT().Create(gomock.Any(), revokedToken).Return(nil).Times(1)
 		mockRefreshTokenRepo.EXPECT().Delete(gomock.Any(), refreshToken).Return(nil).Times(1)
-		mockUserRepo.EXPECT().FindByID(gomock.Any(), userDomainID).Return(domain.User{}, domain.ErrUserNotFound).Times(1)
+		mockUserRepo.EXPECT().FindByID(gomock.Any(), userID).Return(domain.User{}, domain.ErrUserNotFound).Times(1)
 
 		_, err := interactor.VerifyRefreshToken(context.Background(), refreshTokenString)
 		assert.ErrorIs(t, err, domain.ErrUserNotFound)
 	})
 
 	t.Run("異常系: リフレッシュトークン保存でエラー", func(t *testing.T) {
-		mockTransactionManager := mock_domain.NewMockTransactionManager(ctrl)
-		interactor := NewAuthInteractor(mockUserRepo, mockRefreshTokenRepo, mockClock, mockUUIDGenerator, mockTransactionManager)
+		mockRevokedTokenRepo.EXPECT().FindByJTI(gomock.Any(), refreshTokenString).Return(domain.RevokedToken{}, domain.ErrTokenNotFound).Times(1)
 		mockTransactionManager.EXPECT().RunInTx(gomock.Any(), gomock.Any()).DoAndReturn(
 			func(ctx context.Context, fn func(ctx context.Context) error) error {
 				return fn(ctx)
 			},
 		).Times(1)
 		mockRefreshTokenRepo.EXPECT().FindByToken(gomock.Any(), refreshTokenString).Return(refreshToken, nil).Times(1)
-		mockClock.EXPECT().Now().Return(now).Times(4)
+		mockClock.EXPECT().Now().Return(now).Times(5)
+
+		callCount := 0
+		mockUUIDGenerator.EXPECT().NewUUID().DoAndReturn(func() string {
+			callCount++
+			if callCount == 1 {
+				return revokedTokenIDString
+			}
+			return newRefreshTokenIDString
+		}).Times(2)
+
+		mockRevokedTokenRepo.EXPECT().Create(gomock.Any(), revokedToken).Return(nil).Times(1)
 		mockRefreshTokenRepo.EXPECT().Delete(gomock.Any(), refreshToken).Return(nil).Times(1)
-		mockUserRepo.EXPECT().FindByID(gomock.Any(), userDomainID).Return(expectedUser, nil).Times(1)
-		mockUUIDGenerator.EXPECT().NewUUID().Return(uuid.New().String()).Times(1)
-		mockRefreshTokenRepo.EXPECT().Create(gomock.Any(), gomock.Any()).Return(errors.New("db error")).Times(1)
+		mockUserRepo.EXPECT().FindByID(gomock.Any(), userID).Return(user, nil).Times(1)
+		mockRefreshTokenRepo.EXPECT().Create(gomock.Any(), newRefreshToken).Return(errors.New("db error")).Times(1)
 		os.Setenv("JWT_SECRET", "your_jwt_secret_key")
 		defer os.Unsetenv("JWT_SECRET")
 
@@ -355,11 +414,8 @@ func TestAuthInteractor_RevokeRefreshToken(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockUserRepo := mock_domain.NewMockUserRepository(ctrl)
 	mockRefreshTokenRepo := mock_domain.NewMockRefreshTokenRepository(ctrl)
-	mockClock := mock_domain.NewMockClock(ctrl)
-	mockUUIDGenerator := mock_domain.NewMockUUIDGenerator(ctrl)
-	interactor := NewAuthInteractor(mockUserRepo, mockRefreshTokenRepo, mockClock, mockUUIDGenerator, mock_domain.NewMockTransactionManager(ctrl))
+	interactor := NewAuthInteractor(mock_domain.NewMockUserRepository(ctrl), mockRefreshTokenRepo, mock_domain.NewMockRevokedTokenRepository(ctrl), mock_domain.NewMockClock(ctrl), mock_domain.NewMockUUIDGenerator(ctrl), mock_domain.NewMockTransactionManager(ctrl))
 
 	refreshTokenString := "token-to-revoke"
 	userID := "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d"

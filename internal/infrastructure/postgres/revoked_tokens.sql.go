@@ -12,12 +12,13 @@ import (
 )
 
 const createRevokedToken = `-- name: CreateRevokedToken :exec
-INSERT INTO revoked_tokens (id, token_jti, expires_at, revoked_at)
-VALUES ($1, $2, $3, $4)
+INSERT INTO revoked_tokens (id, user_id, token_jti, expires_at, revoked_at)
+VALUES ($1, $2, $3, $4, $5)
 `
 
 type CreateRevokedTokenParams struct {
 	ID        pgtype.UUID
+	UserID    pgtype.UUID
 	TokenJti  string
 	ExpiresAt pgtype.Timestamptz
 	RevokedAt pgtype.Timestamptz
@@ -26,6 +27,7 @@ type CreateRevokedTokenParams struct {
 func (q *Queries) CreateRevokedToken(ctx context.Context, arg CreateRevokedTokenParams) error {
 	_, err := q.db.Exec(ctx, createRevokedToken,
 		arg.ID,
+		arg.UserID,
 		arg.TokenJti,
 		arg.ExpiresAt,
 		arg.RevokedAt,
@@ -34,7 +36,7 @@ func (q *Queries) CreateRevokedToken(ctx context.Context, arg CreateRevokedToken
 }
 
 const getRevokedTokenByJTI = `-- name: GetRevokedTokenByJTI :one
-SELECT id, token_jti, expires_at, revoked_at FROM revoked_tokens
+SELECT id, user_id, token_jti, expires_at, revoked_at FROM revoked_tokens
 WHERE token_jti = $1 LIMIT 1
 `
 
@@ -43,6 +45,7 @@ func (q *Queries) GetRevokedTokenByJTI(ctx context.Context, tokenJti string) (Re
 	var i RevokedToken
 	err := row.Scan(
 		&i.ID,
+		&i.UserID,
 		&i.TokenJti,
 		&i.ExpiresAt,
 		&i.RevokedAt,

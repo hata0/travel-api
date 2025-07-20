@@ -28,14 +28,16 @@ func (id RevokedTokenID) String() string {
 
 type RevokedToken struct {
 	ID        RevokedTokenID
+	UserID    UserID
 	TokenJTI  string
 	ExpiresAt time.Time
 	RevokedAt time.Time
 }
 
-func NewRevokedToken(id RevokedTokenID, tokenJTI string, expiresAt, revokedAt time.Time) RevokedToken {
+func NewRevokedToken(id RevokedTokenID, userID UserID, tokenJTI string, expiresAt, revokedAt time.Time) RevokedToken {
 	return RevokedToken{
 		ID:        id,
+		UserID:    userID,
 		TokenJTI:  tokenJTI,
 		ExpiresAt: expiresAt,
 		RevokedAt: revokedAt,

@@ -1,11 +1,10 @@
 # TODO
 
-## 改善タスク一覧
+## Improvement Task List
 
-## 実運用における改善点
+## Operational Improvements
 
-- [ ] **認証・認可機能の改善**
-  - [ ] リフレッシュトークンローテーションにおけるエラーハンドリングの強化: 古いトークンの削除失敗時のリカバリ戦略を検討する。
-  - [ ] リフレッシュトークンの再利用攻撃に対するより厳密な対策を検討する（例: リフレッシュトークンファミリーの管理、使用済みトークンの即時失効など）。
-  - [ ] JWT秘密鍵のよりセキュアな管理方法を検討する（例: シークレット管理サービスとの連携）。
-  
+- [x] **Authentication and Authorization Enhancements**
+  - [x] Strengthen error handling in refresh token rotation: Consider recovery strategies for failed deletion of old tokens.
+  - [x] Explore stricter measures against refresh token reuse attacks (e.g., managing refresh token families, immediate invalidation of used tokens).
+  - [ ] Investigate more secure management methods for JWT secret keys (e.g., integration with secret management services).

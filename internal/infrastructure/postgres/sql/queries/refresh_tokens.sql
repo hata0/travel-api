@@ -9,3 +9,7 @@ WHERE token = $1 LIMIT 1;
 -- name: DeleteRefreshToken :exec
 DELETE FROM refresh_tokens
 WHERE id = $1;
+
+-- name: DeleteRefreshTokensByUserID :exec
+DELETE FROM refresh_tokens
+WHERE user_id = $1;

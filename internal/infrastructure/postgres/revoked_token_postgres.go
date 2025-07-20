@@ -27,6 +27,9 @@ func (r *RevokedTokenPostgresRepository) Create(ctx context.Context, token domai
 	var validatedId pgtype.UUID
 	_ = validatedId.Scan(token.ID.String())
 
+	var validatedUserID pgtype.UUID
+	_ = validatedUserID.Scan(token.UserID.String())
+
 	var validatedExpiresAt pgtype.Timestamptz
 	_ = validatedExpiresAt.Scan(token.ExpiresAt)
 
@@ -35,6 +38,7 @@ func (r *RevokedTokenPostgresRepository) Create(ctx context.Context, token domai
 
 	if err := queries.CreateRevokedToken(ctx, CreateRevokedTokenParams{
 		ID:        validatedId,
+		UserID:    validatedUserID,
 		TokenJti:  token.TokenJTI,
 		ExpiresAt: validatedExpiresAt,
 		RevokedAt: validatedRevokedAt,
@@ -70,6 +74,11 @@ func (r *RevokedTokenPostgresRepository) mapToRevokedToken(record RevokedToken) 
 		id, _ = domain.NewRevokedTokenID(record.ID.String())
 	}
 
+	var userID domain.UserID
+	if record.UserID.Valid {
+		userID, _ = domain.NewUserID(record.UserID.String())
+	}
+
 	var expiresAt time.Time
 	if record.ExpiresAt.Valid {
 		expiresAt = record.ExpiresAt.Time
@@ -82,6 +91,7 @@ func (r *RevokedTokenPostgresRepository) mapToRevokedToken(record RevokedToken) 
 
 	return domain.NewRevokedToken(
 		id,
+		userID,
 		record.TokenJti,
 		expiresAt,
 		revokedAt,

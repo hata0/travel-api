@@ -45,6 +45,16 @@ func (q *Queries) DeleteRefreshToken(ctx context.Context, id pgtype.UUID) error 
 	return err
 }
 
+const deleteRefreshTokensByUserID = `-- name: DeleteRefreshTokensByUserID :exec
+DELETE FROM refresh_tokens
+WHERE user_id = $1
+`
+
+func (q *Queries) DeleteRefreshTokensByUserID(ctx context.Context, userID pgtype.UUID) error {
+	_, err := q.db.Exec(ctx, deleteRefreshTokensByUserID, userID)
+	return err
+}
+
 const findRefreshTokenByToken = `-- name: FindRefreshTokenByToken :one
 SELECT id, user_id, token, expires_at, created_at FROM refresh_tokens
 WHERE token = $1 LIMIT 1

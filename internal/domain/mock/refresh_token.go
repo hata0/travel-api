@@ -69,6 +69,20 @@ func (mr *MockRefreshTokenRepositoryMockRecorder) Delete(ctx, token any) *gomock
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Delete", reflect.TypeOf((*MockRefreshTokenRepository)(nil).Delete), ctx, token)
 }
 
+// DeleteByUserID mocks base method.
+func (m *MockRefreshTokenRepository) DeleteByUserID(ctx context.Context, userID domain.UserID) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteByUserID", ctx, userID)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteByUserID indicates an expected call of DeleteByUserID.
+func (mr *MockRefreshTokenRepositoryMockRecorder) DeleteByUserID(ctx, userID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteByUserID", reflect.TypeOf((*MockRefreshTokenRepository)(nil).DeleteByUserID), ctx, userID)
+}
+
 // FindByToken mocks base method.
 func (m *MockRefreshTokenRepository) FindByToken(ctx context.Context, token string) (domain.RefreshToken, error) {
 	m.ctrl.T.Helper()

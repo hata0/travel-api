@@ -80,6 +80,18 @@ func (r *RefreshTokenPostgresRepository) Delete(ctx context.Context, token domai
 	return nil
 }
 
+func (r *RefreshTokenPostgresRepository) DeleteByUserID(ctx context.Context, userID domain.UserID) error {
+	queries := r.getQueries(ctx)
+
+	var validatedUserID pgtype.UUID
+	_ = validatedUserID.Scan(userID.String())
+
+	if err := queries.DeleteRefreshTokensByUserID(ctx, validatedUserID); err != nil {
+		return domain.NewInternalServerError(err)
+	}
+	return nil
+}
+
 func (r *RefreshTokenPostgresRepository) mapToRefreshToken(record RefreshToken) domain.RefreshToken {
 	var id domain.RefreshTokenID
 	if record.ID.Valid {

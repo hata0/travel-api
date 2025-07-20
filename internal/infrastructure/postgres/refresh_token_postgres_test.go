@@ -149,3 +149,40 @@ func TestRefreshTokenPostgresRepository_Delete(t *testing.T) {
 		assert.ErrorIs(t, err, pgx.ErrNoRows)
 	})
 }
+
+func TestRefreshTokenPostgresRepository_DeleteByUserID(t *testing.T) {
+	ctx := context.Background()
+	dbConn := setupDB(t, ctx)
+	repo := NewRefreshTokenPostgresRepository(dbConn)
+
+	// テスト用のユーザーを作成し、DBに挿入
+	user1 := createTestUser(t, "testuser4", "test4@example.com", "hashedpass4", time.Now(), time.Now())
+	insertTestUser(t, ctx, dbConn, user1)
+	user2 := createTestUser(t, "testuser5", "test5@example.com", "hashedpass5", time.Now(), time.Now())
+	insertTestUser(t, ctx, dbConn, user2)
+
+	// ユーザー1のトークンを2つ作成
+	token1 := createTestRefreshToken(t, user1.ID, "user1-token1", time.Now().Add(time.Hour), time.Now())
+	token2 := createTestRefreshToken(t, user1.ID, "user1-token2", time.Now().Add(time.Hour), time.Now())
+	insertTestRefreshToken(t, ctx, dbConn, token1)
+	insertTestRefreshToken(t, ctx, dbConn, token2)
+
+	// ユーザー2のトークンを1つ作成
+	token3 := createTestRefreshToken(t, user2.ID, "user2-token1", time.Now().Add(time.Hour), time.Now())
+	insertTestRefreshToken(t, ctx, dbConn, token3)
+
+	t.Run("正常系: 指定したユーザーIDのトークンのみが削除される", func(t *testing.T) {
+		err := repo.DeleteByUserID(ctx, user1.ID)
+		assert.NoError(t, err)
+
+		// user1のトークンが削除されたことを確認
+		_, err = getRefreshTokenFromDB(t, ctx, dbConn, "user1-token1")
+		assert.ErrorIs(t, err, pgx.ErrNoRows)
+		_, err = getRefreshTokenFromDB(t, ctx, dbConn, "user1-token2")
+		assert.ErrorIs(t, err, pgx.ErrNoRows)
+
+		// user2のトークンが削除されていないことを確認
+		_, err = getRefreshTokenFromDB(t, ctx, dbConn, "user2-token1")
+		assert.NoError(t, err)
+	})
+}

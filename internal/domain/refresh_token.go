@@ -10,6 +10,7 @@ type RefreshTokenRepository interface {
 	Create(ctx context.Context, token RefreshToken) error
 	FindByToken(ctx context.Context, token string) (RefreshToken, error)
 	Delete(ctx context.Context, token RefreshToken) error
+	DeleteByUserID(ctx context.Context, userID UserID) error
 }
 
 type RefreshTokenID struct {

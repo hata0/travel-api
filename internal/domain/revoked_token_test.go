@@ -6,6 +6,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNewRevokedTokenID(t *testing.T) {
@@ -33,14 +34,17 @@ func TestNewRevokedTokenID(t *testing.T) {
 
 func TestNewRevokedToken(t *testing.T) {
 	id, err := NewRevokedTokenID(uuid.New().String())
+	require.NoError(t, err)
+	userID, err := NewUserID(uuid.New().String())
 	assert.NoError(t, err)
 	tokenJTI := "some-jti"
 	expiresAt := time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)
 	revokedAt := time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)
 
-	revokedToken := NewRevokedToken(id, tokenJTI, expiresAt, revokedAt)
+	revokedToken := NewRevokedToken(id, userID, tokenJTI, expiresAt, revokedAt)
 
 	assert.Equal(t, id, revokedToken.ID)
+	assert.Equal(t, userID, revokedToken.UserID)
 	assert.Equal(t, tokenJTI, revokedToken.TokenJTI)
 	assert.True(t, revokedToken.ExpiresAt.Equal(expiresAt))
 	assert.True(t, revokedToken.RevokedAt.Equal(revokedAt))

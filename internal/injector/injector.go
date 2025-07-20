@@ -23,6 +23,7 @@ func NewAuthHandler(db *pgxpool.Pool) *handler.AuthHandler {
 	clock := &domain.SystemClock{}
 	uuidGenerator := &domain.DefaultUUIDGenerator{}
 	transactionManager := postgres.NewTransactionManager(db)
-	authUsecase := usecase.NewAuthInteractor(userRepository, refreshTokenRepository, clock, uuidGenerator, transactionManager)
+	revokedTokenRepository := postgres.NewRevokedTokenPostgresRepository(db)
+	authUsecase := usecase.NewAuthInteractor(userRepository, refreshTokenRepository, revokedTokenRepository, clock, uuidGenerator, transactionManager)
 	return handler.NewAuthHandler(authUsecase)
 }
