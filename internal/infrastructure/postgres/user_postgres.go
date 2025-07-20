@@ -12,16 +12,18 @@ import (
 )
 
 type UserPostgresRepository struct {
-	queries *Queries
+	*BaseRepository
 }
 
 func NewUserPostgresRepository(db DBTX) domain.UserRepository {
 	return &UserPostgresRepository{
-		queries: New(db),
+		BaseRepository: NewBaseRepository(db),
 	}
 }
 
 func (r *UserPostgresRepository) Create(ctx context.Context, user domain.User) error {
+	queries := r.getQueries(ctx) // ここで適切なQueriesインスタンスを取得
+
 	var validatedId pgtype.UUID
 	_ = validatedId.Scan(user.ID.String())
 
@@ -31,7 +33,7 @@ func (r *UserPostgresRepository) Create(ctx context.Context, user domain.User) e
 	var validatedUpdatedAt pgtype.Timestamptz
 	_ = validatedUpdatedAt.Scan(user.UpdatedAt)
 
-	if err := r.queries.CreateUser(ctx, CreateUserParams{
+	if err := queries.CreateUser(ctx, CreateUserParams{
 		ID:           validatedId,
 		Username:     user.Username,
 		Email:        user.Email,
@@ -50,7 +52,9 @@ func (r *UserPostgresRepository) Create(ctx context.Context, user domain.User) e
 }
 
 func (r *UserPostgresRepository) FindByEmail(ctx context.Context, email string) (domain.User, error) {
-	record, err := r.queries.GetUserByEmail(ctx, email)
+	queries := r.getQueries(ctx) // ここで適切なQueriesインスタンスを取得
+
+	record, err := queries.GetUserByEmail(ctx, email) // 取得したqueriesを使用
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			return domain.User{}, domain.ErrUserNotFound
@@ -63,7 +67,9 @@ func (r *UserPostgresRepository) FindByEmail(ctx context.Context, email string) 
 }
 
 func (r *UserPostgresRepository) FindByUsername(ctx context.Context, username string) (domain.User, error) {
-	record, err := r.queries.GetUserByUsername(ctx, username)
+	queries := r.getQueries(ctx) // ここで適切なQueriesインスタンスを取得
+
+	record, err := queries.GetUserByUsername(ctx, username) // 取得したqueriesを使用
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			return domain.User{}, domain.ErrUserNotFound
@@ -76,10 +82,12 @@ func (r *UserPostgresRepository) FindByUsername(ctx context.Context, username st
 }
 
 func (r *UserPostgresRepository) FindByID(ctx context.Context, id domain.UserID) (domain.User, error) {
+	queries := r.getQueries(ctx) // ここで適切なQueriesインスタンスを取得
+
 	var validatedId pgtype.UUID
 	_ = validatedId.Scan(id.String())
 
-	record, err := r.queries.GetUser(ctx, validatedId)
+	record, err := queries.GetUser(ctx, validatedId) // 取得したqueriesを使用
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			return domain.User{}, domain.ErrUserNotFound

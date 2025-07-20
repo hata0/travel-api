@@ -12,16 +12,18 @@ import (
 )
 
 type RefreshTokenPostgresRepository struct {
-	queries *Queries
+	*BaseRepository
 }
 
 func NewRefreshTokenPostgresRepository(db DBTX) domain.RefreshTokenRepository {
 	return &RefreshTokenPostgresRepository{
-		queries: New(db),
+		BaseRepository: NewBaseRepository(db),
 	}
 }
 
 func (r *RefreshTokenPostgresRepository) Create(ctx context.Context, token domain.RefreshToken) error {
+	queries := r.getQueries(ctx) // ここで適切なQueriesインスタンスを取得
+
 	var validatedId pgtype.UUID
 	_ = validatedId.Scan(token.ID.String())
 
@@ -34,7 +36,7 @@ func (r *RefreshTokenPostgresRepository) Create(ctx context.Context, token domai
 	var validatedCreatedAt pgtype.Timestamptz
 	_ = validatedCreatedAt.Scan(token.CreatedAt)
 
-	if err := r.queries.CreateRefreshToken(ctx, CreateRefreshTokenParams{
+	if err := queries.CreateRefreshToken(ctx, CreateRefreshTokenParams{ // 取得したqueriesを使用
 		ID:        validatedId,
 		UserID:    validatedUserID,
 		Token:     token.Token,
@@ -52,7 +54,9 @@ func (r *RefreshTokenPostgresRepository) Create(ctx context.Context, token domai
 }
 
 func (r *RefreshTokenPostgresRepository) FindByToken(ctx context.Context, token string) (domain.RefreshToken, error) {
-	record, err := r.queries.FindRefreshTokenByToken(ctx, token)
+	queries := r.getQueries(ctx) // ここで適切なQueriesインスタンスを取得
+
+	record, err := queries.FindRefreshTokenByToken(ctx, token) // 取得したqueriesを使用
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			return domain.RefreshToken{}, domain.ErrTokenNotFound
@@ -65,10 +69,12 @@ func (r *RefreshTokenPostgresRepository) FindByToken(ctx context.Context, token 
 }
 
 func (r *RefreshTokenPostgresRepository) Delete(ctx context.Context, token domain.RefreshToken) error {
+	queries := r.getQueries(ctx) // ここで適切なQueriesインスタンスを取得
+
 	var validatedId pgtype.UUID
 	_ = validatedId.Scan(token.ID.String())
 
-	if err := r.queries.DeleteRefreshToken(ctx, validatedId); err != nil {
+	if err := queries.DeleteRefreshToken(ctx, validatedId); err != nil {
 		return domain.NewInternalServerError(err)
 	}
 	return nil

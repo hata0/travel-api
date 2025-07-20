@@ -32,6 +32,7 @@ type TripUsecase interface {
 -   **内容**:
     -   ユースケースインターフェースを実装する構造体（例: `TripInteractor`）を定義します。
     -   ドメイン層のリポジトリインターフェースや、時刻、UUID生成などの外部依存をコンストラクタを通じて注入します。
+    -   **トランザクションを必要とするユースケース（例: 認証関連）では、`domain.TransactionManager`も注入されます。** これにより、複数のデータベース操作をアトミックに実行できます。
     -   各メソッドは、入力値の検証（必要であれば）、ドメインオブジェクトの操作、リポジトリを通じた永続化、そして出力値の生成を行います。
     -   ビジネスロジックの調整役として機能し、ドメイン層のエンティティやリポジトリを直接操作します。
 
@@ -51,6 +52,25 @@ func NewTripInteractor(repository domain.TripRepository, clock domain.Clock, uui
 	}
 }
 
+// internal/usecase/auth.go の例 (TransactionManager の注入)
+type AuthInteractor struct {
+	userRepository         domain.UserRepository
+	refreshTokenRepository domain.RefreshTokenRepository
+	clock                  domain.Clock
+	uuidGenerator          domain.UUIDGenerator
+	transactionManager     domain.TransactionManager // TransactionManager を注入
+}
+
+func NewAuthInteractor(userRepository domain.UserRepository, refreshTokenRepository domain.RefreshTokenRepository, clock domain.Clock, uuidGenerator domain.UUIDGenerator, transactionManager domain.TransactionManager) *AuthInteractor {
+	return &AuthInteractor{
+		userRepository:         userRepository,
+		refreshTokenRepository: refreshTokenRepository,
+		clock:                  clock,
+		uuidGenerator:          uuidGenerator,
+		transactionManager:     transactionManager,
+	}
+}
+
 func (i *TripInteractor) Get(ctx context.Context, id string) (output.GetTripOutput, error) {
 	tripID, err := domain.NewTripID(id)
 	if err != nil {
@@ -65,29 +85,23 @@ func (i *TripInteractor) Get(ctx context.Context, id string) (output.GetTripOutp
 	return output.NewGetTripOutput(trip), nil
 }
 
-func (i *TripInteractor) Create(ctx context.Context, name string) (string, error) {
-	newUUID := i.uuidGenerator.NewUUID()
-	tripID, err := domain.NewTripID(newUUID)
-	if err != nil {
-		return "", err
-	}
+func (i *AuthInteractor) Login(ctx context.Context, email, password string) (output.TokenPairOutput, error) {
+	var tokenPair output.TokenPairOutput
+	// transactionManager.RunInTx を使用して、複数のDB操作をアトミックに実行
+	err := i.transactionManager.RunInTx(ctx, func(txCtx context.Context) error {
+		// ... ログインロジック ...
+		// リポジトリメソッドには txCtx を渡すことで、トランザクション内で動作する
+		user, err := i.userRepository.FindByEmail(txCtx, email)
+		// ...
+		err = i.refreshTokenRepository.Create(txCtx, newRefreshToken)
+		// ...
+		return nil
+	})
 
-	trip := domain.NewTrip(
-		tripID,
-		name,
-		i.clock.Now(),
-		i.clock.Now(),
-	)
-
-	err = i.repository.Create(ctx, trip)
-	if err != nil {
-		return "", err
-	}
-
-	return tripID.String(), nil
+	return tokenPair, err
 }
 
-// ... 他のメソッド (List, Update, Delete) の実装 ...
+// ... 他のメソッド (Create, Update, Delete, VerifyRefreshToken, RevokeRefreshToken) の実装 ...
 ```
 
 ## 3. 入出力の定義
@@ -157,6 +171,7 @@ func mapToTrip(trip domain.Trip) Trip {
 -   **ファイルパス**: `internal/usecase/<entity_name>_test.go` (例: `internal/usecase/trip_test.go`)
 -   **内容**:
     -   `go.uber.org/mock/gomock` を使用して、`domain.TripRepository`、`domain.Clock`、`domain.UUIDGenerator` などの依存をモック化します。
+    -   **トランザクションを伴うユースケースのテストでは、`domain.TransactionManager`もモック化し、`RunInTx`メソッドが渡された関数を実行するように設定します。**
     -   各ユースケースメソッドの正常系と異常系（例: 無効な入力、リポジトリからのエラー）を網羅的にテストします。
     -   `github.com/stretchr/testify/assert` などのアサーションライブラリを使用すると、テストコードを簡潔に記述できます。
 
@@ -190,6 +205,42 @@ func TestTripInteractor_Create(t *testing.T) {
 	assert.Equal(t, generatedUUID, createdID)
 }
 
+// internal/usecase/auth_test.go の例 (TransactionManager のモック化)
+func TestAuthInteractor_Login(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockUserRepo := mock_domain.NewMockUserRepository(ctrl)
+	mockRefreshTokenRepo := mock_domain.NewMockRefreshTokenRepository(ctrl)
+	mockClock := mock_domain.NewMockClock(ctrl)
+	mockUUIDGenerator := mock_domain.NewMockUUIDGenerator(ctrl)
+	mockTransactionManager := mock_domain.NewMockTransactionManager(ctrl)
+	interactor := NewAuthInteractor(mockUserRepo, mockRefreshTokenRepo, mockClock, mockUUIDGenerator, mockTransactionManager)
+
+	// RunInTx メソッドが渡された関数をそのまま実行するように設定
+	mockTransactionManager.EXPECT().RunInTx(gomock.Any(), gomock.Any()).DoAndReturn(
+		func(ctx context.Context, fn func(ctx context.Context) error) error {
+			return fn(ctx)
+		},
+	).AnyTimes() // 複数回呼び出される可能性があるため AnyTimes() を使用
+
+	// ... その他のモック設定とテストロジック ...
+
+	// 正常系: ユーザーが正常にログインできる
+	t.Run("正常系: ユーザーが正常にログインできる", func(t *testing.T) {
+		// ... FindByEmail, NewUUID, Now, Create などのモック設定 ...
+		// リポジトリメソッドの EXPECT には gomock.Any() を使用し、txCtx を考慮しない
+		mockUserRepo.EXPECT().FindByEmail(gomock.Any(), gomock.Any()).Return(domain.User{}, nil).AnyTimes()
+		mockRefreshTokenRepo.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+
+		output, err := interactor.Login(context.Background(), "test@example.com", "password123")
+		assert.NoError(t, err)
+		assert.NotEmpty(t, output.Token)
+	})
+
+	// ... その他のテストケース ...
+}
+
 func TestTripInteractor_Get(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -213,10 +264,6 @@ func TestTripInteractor_Get(t *testing.T) {
 		assert.Equal(t, output.NewGetTripOutput(expectedTrip), tripOutput)
 	})
 
-	t.Run("異常系: 無効なUUIDの場合", func(t *testing.T) {
-		invalidUUID := "invalid-uuid"
-		_, err := interactor.Get(context.Background(), invalidUUID)
-		assert.ErrorIs(t, err, domain.ErrInvalidUUID)
-	})
+	// ... その他のテストケース ...
 }
 ```

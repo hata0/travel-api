@@ -12,20 +12,22 @@ import (
 )
 
 type TripPostgresRepository struct {
-	queries *Queries
+	*BaseRepository
 }
 
 func NewTripPostgresRepository(db DBTX) domain.TripRepository {
 	return &TripPostgresRepository{
-		queries: New(db),
+		BaseRepository: NewBaseRepository(db),
 	}
 }
 
 func (r *TripPostgresRepository) FindByID(ctx context.Context, id domain.TripID) (domain.Trip, error) {
+	queries := r.getQueries(ctx)
+
 	var validatedId pgtype.UUID
 	_ = validatedId.Scan(id.String())
 
-	record, err := r.queries.GetTrip(ctx, validatedId)
+	record, err := queries.GetTrip(ctx, validatedId)
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			return domain.Trip{}, domain.ErrTripNotFound
@@ -38,7 +40,8 @@ func (r *TripPostgresRepository) FindByID(ctx context.Context, id domain.TripID)
 }
 
 func (r *TripPostgresRepository) FindMany(ctx context.Context) ([]domain.Trip, error) {
-	records, err := r.queries.ListTrips(ctx)
+	queries := r.getQueries(ctx)
+	records, err := queries.ListTrips(ctx)
 	if err != nil {
 		return nil, domain.NewInternalServerError(err)
 	}
@@ -76,6 +79,8 @@ func (r *TripPostgresRepository) mapToTrip(record Trip) domain.Trip {
 }
 
 func (r *TripPostgresRepository) Create(ctx context.Context, trip domain.Trip) error {
+	queries := r.getQueries(ctx)
+
 	var validatedId pgtype.UUID
 	_ = validatedId.Scan(trip.ID.String())
 
@@ -85,7 +90,7 @@ func (r *TripPostgresRepository) Create(ctx context.Context, trip domain.Trip) e
 	var validatedUpdatedAt pgtype.Timestamptz
 	_ = validatedUpdatedAt.Scan(trip.UpdatedAt)
 
-	if err := r.queries.CreateTrip(ctx, CreateTripParams{
+	if err := queries.CreateTrip(ctx, CreateTripParams{
 		ID:        validatedId,
 		Name:      trip.Name,
 		CreatedAt: validatedCreatedAt,
@@ -102,13 +107,15 @@ func (r *TripPostgresRepository) Create(ctx context.Context, trip domain.Trip) e
 }
 
 func (r *TripPostgresRepository) Update(ctx context.Context, trip domain.Trip) error {
+	queries := r.getQueries(ctx)
+
 	var validatedId pgtype.UUID
 	_ = validatedId.Scan(trip.ID.String())
 
 	var validatedUpdatedAt pgtype.Timestamptz
 	_ = validatedUpdatedAt.Scan(trip.UpdatedAt)
 
-	if err := r.queries.UpdateTrip(ctx, UpdateTripParams{
+	if err := queries.UpdateTrip(ctx, UpdateTripParams{
 		ID:        validatedId,
 		Name:      trip.Name,
 		UpdatedAt: validatedUpdatedAt,
@@ -120,10 +127,12 @@ func (r *TripPostgresRepository) Update(ctx context.Context, trip domain.Trip) e
 }
 
 func (r *TripPostgresRepository) Delete(ctx context.Context, trip domain.Trip) error {
+	queries := r.getQueries(ctx)
+
 	var validatedId pgtype.UUID
 	_ = validatedId.Scan(trip.ID.String())
 
-	if err := r.queries.DeleteTrip(ctx, validatedId); err != nil {
+	if err := queries.DeleteTrip(ctx, validatedId); err != nil {
 		return domain.NewInternalServerError(err)
 	}
 

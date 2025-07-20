@@ -5,9 +5,11 @@ import (
 	"travel-api/internal/infrastructure/postgres"
 	"travel-api/internal/interface/handler"
 	"travel-api/internal/usecase"
+
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-func NewTripHandler(db postgres.DBTX) *handler.TripHandler {
+func NewTripHandler(db *pgxpool.Pool) *handler.TripHandler {
 	tripRepository := postgres.NewTripPostgresRepository(db)
 	clock := &domain.SystemClock{}
 	uuidGenerator := &domain.DefaultUUIDGenerator{}
@@ -15,11 +17,12 @@ func NewTripHandler(db postgres.DBTX) *handler.TripHandler {
 	return handler.NewTripHandler(tripUsecase)
 }
 
-func NewAuthHandler(db postgres.DBTX) *handler.AuthHandler {
+func NewAuthHandler(db *pgxpool.Pool) *handler.AuthHandler {
 	userRepository := postgres.NewUserPostgresRepository(db)
 	refreshTokenRepository := postgres.NewRefreshTokenPostgresRepository(db)
 	clock := &domain.SystemClock{}
 	uuidGenerator := &domain.DefaultUUIDGenerator{}
-	authUsecase := usecase.NewAuthInteractor(userRepository, refreshTokenRepository, clock, uuidGenerator)
+	transactionManager := postgres.NewTransactionManager(db)
+	authUsecase := usecase.NewAuthInteractor(userRepository, refreshTokenRepository, clock, uuidGenerator, transactionManager)
 	return handler.NewAuthHandler(authUsecase)
 }

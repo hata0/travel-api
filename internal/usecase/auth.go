@@ -25,14 +25,16 @@ type AuthInteractor struct {
 	refreshTokenRepository domain.RefreshTokenRepository
 	clock                  domain.Clock
 	uuidGenerator          domain.UUIDGenerator
+	transactionManager     domain.TransactionManager
 }
 
-func NewAuthInteractor(userRepository domain.UserRepository, refreshTokenRepository domain.RefreshTokenRepository, clock domain.Clock, uuidGenerator domain.UUIDGenerator) *AuthInteractor {
+func NewAuthInteractor(userRepository domain.UserRepository, refreshTokenRepository domain.RefreshTokenRepository, clock domain.Clock, uuidGenerator domain.UUIDGenerator, transactionManager domain.TransactionManager) *AuthInteractor {
 	return &AuthInteractor{
 		userRepository:         userRepository,
 		refreshTokenRepository: refreshTokenRepository,
 		clock:                  clock,
 		uuidGenerator:          uuidGenerator,
+		transactionManager:     transactionManager,
 	}
 }
 
@@ -97,126 +99,138 @@ func (i *AuthInteractor) checkUserExistence(ctx context.Context, username, email
 }
 
 func (i *AuthInteractor) Login(ctx context.Context, email, password string) (output.TokenPairOutput, error) {
-	// ユーザーをメールアドレスで検索
-	user, err := i.userRepository.FindByEmail(ctx, email)
-	if err != nil {
-		// ユーザーが見つからない場合、認証情報が無効であると返す（セキュリティのため、ユーザーが存在しないことを直接伝えない）
-		var appErr *domain.Error
-		if errors.As(err, &appErr) && appErr.Code == domain.UserNotFound {
-			return output.TokenPairOutput{}, domain.ErrInvalidCredentials
+	var tokenPair output.TokenPairOutput
+	err := i.transactionManager.RunInTx(ctx, func(txCtx context.Context) error {
+		// ユーザーをメールアドレスで検索
+		user, err := i.userRepository.FindByEmail(txCtx, email)
+		if err != nil {
+			// ユーザーが見つからない場合、認証情報が無効であると返す（セキュリティのため、ユーザーが存在しないことを直接伝えない）
+			var appErr *domain.Error
+			if errors.As(err, &appErr) && appErr.Code == domain.UserNotFound {
+				return domain.ErrInvalidCredentials
+			}
+			return err
 		}
-		return output.TokenPairOutput{}, err
-	}
 
-	// パスワードの検証
-	err = bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(password))
-	if err != nil {
-		if errors.Is(err, bcrypt.ErrMismatchedHashAndPassword) {
-			return output.TokenPairOutput{}, domain.ErrInvalidCredentials
+		// パスワードの検証
+		err = bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(password))
+		if err != nil {
+			if errors.Is(err, bcrypt.ErrMismatchedHashAndPassword) {
+				return domain.ErrInvalidCredentials
+			}
+			return domain.NewInternalServerError(err)
 		}
-		return output.TokenPairOutput{}, domain.NewInternalServerError(err)
-	}
 
-	// JWTトークンの生成
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"user_id": user.ID.String(),
-		"exp":     i.clock.Now().Add(time.Hour * 24).Unix(), // 24時間有効
+		// JWTトークンの生成
+		token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+			"user_id": user.ID.String(),
+			"exp":     i.clock.Now().Add(time.Hour * 24).Unix(), // 24時間有効
+		})
+
+		jwtSecret, err := config.JWTSecret()
+		if err != nil {
+			return domain.NewInternalServerError(err)
+		}
+
+		tokenString, err := token.SignedString([]byte(jwtSecret))
+		if err != nil {
+			return domain.NewInternalServerError(err)
+		}
+
+		// リフレッシュトークンの生成
+		refreshTokenString := i.uuidGenerator.NewUUID()
+		refreshTokenID, err := domain.NewRefreshTokenID(refreshTokenString)
+		if err != nil {
+			return domain.NewInternalServerError(err)
+		}
+
+		// リフレッシュトークンをデータベースに保存
+		newRefreshToken := domain.NewRefreshToken(
+			refreshTokenID,
+			user.ID,
+			refreshTokenString,
+			i.clock.Now().Add(time.Hour*24*7), // 7日間有効
+			i.clock.Now(),
+		)
+		err = i.refreshTokenRepository.Create(txCtx, newRefreshToken)
+		if err != nil {
+			return domain.NewInternalServerError(err)
+		}
+
+		tokenPair = output.TokenPairOutput{Token: tokenString, RefreshToken: refreshTokenString}
+		return nil
 	})
 
-	jwtSecret, err := config.JWTSecret()
-	if err != nil {
-		return output.TokenPairOutput{}, domain.NewInternalServerError(err)
-	}
-
-	tokenString, err := token.SignedString([]byte(jwtSecret))
-	if err != nil {
-		return output.TokenPairOutput{}, domain.NewInternalServerError(err)
-	}
-
-	// リフレッシュトークンの生成
-	refreshTokenString := i.uuidGenerator.NewUUID()
-	refreshTokenID, err := domain.NewRefreshTokenID(refreshTokenString)
-	if err != nil {
-		return output.TokenPairOutput{}, domain.NewInternalServerError(err)
-	}
-
-	// リフレッシュトークンをデータベースに保存
-	newRefreshToken := domain.NewRefreshToken(
-		refreshTokenID,
-		user.ID,
-		refreshTokenString,
-		i.clock.Now().Add(time.Hour*24*7), // 7日間有効
-		i.clock.Now(),
-	)
-	err = i.refreshTokenRepository.Create(ctx, newRefreshToken)
-	if err != nil {
-		return output.TokenPairOutput{}, domain.NewInternalServerError(err)
-	}
-
-	return output.TokenPairOutput{Token: tokenString, RefreshToken: refreshTokenString}, nil
+	return tokenPair, err
 }
 
 func (i *AuthInteractor) VerifyRefreshToken(ctx context.Context, refreshToken string) (output.TokenPairOutput, error) {
-	// リフレッシュトークンをデータベースから検索
-	foundToken, err := i.refreshTokenRepository.FindByToken(ctx, refreshToken)
-	if err != nil {
-		var appErr *domain.Error
-		if errors.As(err, &appErr) && appErr.Code == domain.TokenNotFound {
-			return output.TokenPairOutput{}, domain.ErrInvalidCredentials
+	var tokenPair output.TokenPairOutput
+	err := i.transactionManager.RunInTx(ctx, func(txCtx context.Context) error {
+		// リフレッシュトークンをデータベースから検索
+		foundToken, err := i.refreshTokenRepository.FindByToken(txCtx, refreshToken)
+		if err != nil {
+			var appErr *domain.Error
+			if errors.As(err, &appErr) && appErr.Code == domain.TokenNotFound {
+				return domain.ErrInvalidCredentials
+			}
+			return domain.NewInternalServerError(err)
 		}
-		return output.TokenPairOutput{}, domain.NewInternalServerError(err)
-	}
 
-	// リフレッシュトークンの有効期限をチェック
-	if i.clock.Now().After(foundToken.ExpiresAt) {
-		// 期限切れの場合は削除
-		_ = i.refreshTokenRepository.Delete(ctx, foundToken)
-		return output.TokenPairOutput{}, domain.ErrInvalidCredentials
-	}
+		// リフレッシュトークンの有効期限をチェック
+		if i.clock.Now().After(foundToken.ExpiresAt) {
+			// 期限切れの場合は削除
+			_ = i.refreshTokenRepository.Delete(txCtx, foundToken)
+			return domain.ErrInvalidCredentials
+		}
 
-	// 古いリフレッシュトークンを削除
-	_ = i.refreshTokenRepository.Delete(ctx, foundToken)
+		// 古いリフレッシュトークンを削除
+		_ = i.refreshTokenRepository.Delete(txCtx, foundToken)
 
-	// 新しいアクセストークンとリフレッシュトークンを生成
-	user, err := i.userRepository.FindByID(ctx, foundToken.UserID)
-	if err != nil {
-		return output.TokenPairOutput{}, err
-	}
+		// 新しいアクセストークンとリフレッシュトークンを生成
+		user, err := i.userRepository.FindByID(txCtx, foundToken.UserID)
+		if err != nil {
+			return err
+		}
 
-	accessToken := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"user_id": user.ID.String(),
-		"exp":     i.clock.Now().Add(time.Hour * 24).Unix(), // 24時間有効
+		accessToken := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+			"user_id": user.ID.String(),
+			"exp":     i.clock.Now().Add(time.Hour * 24).Unix(), // 24時間有効
+		})
+
+		jwtSecret, err := config.JWTSecret()
+		if err != nil {
+			return domain.NewInternalServerError(err)
+		}
+
+		accessTokenString, err := accessToken.SignedString([]byte(jwtSecret))
+		if err != nil {
+			return domain.NewInternalServerError(err)
+		}
+
+		newRefreshTokenString := i.uuidGenerator.NewUUID()
+		newRefreshTokenID, err := domain.NewRefreshTokenID(newRefreshTokenString)
+		if err != nil {
+			return domain.NewInternalServerError(err)
+		}
+
+		newRefreshToken := domain.NewRefreshToken(
+			newRefreshTokenID,
+			user.ID,
+			newRefreshTokenString,
+			i.clock.Now().Add(time.Hour*24*7), // 7日間有効
+			i.clock.Now(),
+		)
+		err = i.refreshTokenRepository.Create(txCtx, newRefreshToken)
+		if err != nil {
+			return domain.NewInternalServerError(err)
+		}
+
+		tokenPair = output.TokenPairOutput{Token: accessTokenString, RefreshToken: newRefreshTokenString}
+		return nil
 	})
 
-	jwtSecret, err := config.JWTSecret()
-	if err != nil {
-		return output.TokenPairOutput{}, domain.NewInternalServerError(err)
-	}
-
-	accessTokenString, err := accessToken.SignedString([]byte(jwtSecret))
-	if err != nil {
-		return output.TokenPairOutput{}, domain.NewInternalServerError(err)
-	}
-
-	newRefreshTokenString := i.uuidGenerator.NewUUID()
-	newRefreshTokenID, err := domain.NewRefreshTokenID(newRefreshTokenString)
-	if err != nil {
-		return output.TokenPairOutput{}, domain.NewInternalServerError(err)
-	}
-
-	newRefreshToken := domain.NewRefreshToken(
-		newRefreshTokenID,
-		user.ID,
-		newRefreshTokenString,
-		i.clock.Now().Add(time.Hour*24*7), // 7日間有効
-		i.clock.Now(),
-	)
-	err = i.refreshTokenRepository.Create(ctx, newRefreshToken)
-	if err != nil {
-		return output.TokenPairOutput{}, domain.NewInternalServerError(err)
-	}
-
-	return output.TokenPairOutput{Token: accessTokenString, RefreshToken: newRefreshTokenString}, nil
+	return tokenPair, err
 }
 
 func (i *AuthInteractor) RevokeRefreshToken(ctx context.Context, refreshToken string) error {

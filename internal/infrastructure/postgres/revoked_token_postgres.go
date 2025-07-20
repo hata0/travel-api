@@ -12,16 +12,18 @@ import (
 )
 
 type RevokedTokenPostgresRepository struct {
-	queries *Queries
+	*BaseRepository
 }
 
 func NewRevokedTokenPostgresRepository(db DBTX) domain.RevokedTokenRepository {
 	return &RevokedTokenPostgresRepository{
-		queries: New(db),
+		BaseRepository: NewBaseRepository(db),
 	}
 }
 
 func (r *RevokedTokenPostgresRepository) Create(ctx context.Context, token domain.RevokedToken) error {
+	queries := r.getQueries(ctx)
+
 	var validatedId pgtype.UUID
 	_ = validatedId.Scan(token.ID.String())
 
@@ -31,29 +33,31 @@ func (r *RevokedTokenPostgresRepository) Create(ctx context.Context, token domai
 	var validatedRevokedAt pgtype.Timestamptz
 	_ = validatedRevokedAt.Scan(token.RevokedAt)
 
-	if err := r.queries.CreateRevokedToken(ctx, CreateRevokedTokenParams{
+	if err := queries.CreateRevokedToken(ctx, CreateRevokedTokenParams{
 		ID:        validatedId,
 		TokenJti:  token.TokenJTI,
 		ExpiresAt: validatedExpiresAt,
 		RevokedAt: validatedRevokedAt,
 	}); err != nil {
-		var pgErr *pgconn.PgError                            // pgconn.PgError を使用
+		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) && pgErr.Code == "23505" { // 23505 is unique_violation
-			return domain.ErrTokenAlreadyExists // 重複エラーを返す
+			return domain.ErrTokenAlreadyExists
 		}
-		return domain.NewInternalServerError(err) // その他のエラーをラップ
+		return domain.NewInternalServerError(err)
 	}
 
 	return nil
 }
 
 func (r *RevokedTokenPostgresRepository) FindByJTI(ctx context.Context, jti string) (domain.RevokedToken, error) {
-	record, err := r.queries.GetRevokedTokenByJTI(ctx, jti)
+	queries := r.getQueries(ctx)
+
+	record, err := queries.GetRevokedTokenByJTI(ctx, jti)
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			return domain.RevokedToken{}, domain.ErrTokenNotFound
 		} else {
-			return domain.RevokedToken{}, domain.NewInternalServerError(err) // その他のエラーをラップ
+			return domain.RevokedToken{}, domain.NewInternalServerError(err)
 		}
 	}
 

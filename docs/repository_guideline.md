@@ -3,11 +3,40 @@
 リポジトリ層は、ドメイン層と永続化層（データベースなど）の間の抽象化を提供し、ドメイン層が特定のデータベース実装に依存しないようにします。
 ここでは、`internal/infrastructure/postgres/trip_postgres.go`と`internal/infrastructure/postgres/trip_postgres_test.go`を参考に、リポジトリの実装方針について具体的に説明します。
 
-### 1. ドメイン層との分離
+### 1. ドメイン層との分離とトランザクションの透過的利用
 
 リポジトリは、`internal/domain`で定義されたインターフェース（例: `domain.TripRepository`）を実装します。これにより、ドメイン層はデータベースの具体的な実装詳細を知る必要がなく、ビジネスロジックに集中できます。
 
-コンストラクタでは、`sqlc`が利用する`DBTX`インターフェース（`pgx.Tx`または`*pgxpool.Pool`のどちらも満たす）を受け取ります。これにより、通常のDBプールだけでなく、トランザクション内でもリポジトリの操作を実行できるようになり、柔軟性が向上します。
+トランザクションの透過的な利用を可能にするため、すべてのPostgresリポジトリは共通の`BaseRepository`を埋め込みます。`BaseRepository`は、`sqlc`が利用する`DBTX`インターフェース（`pgx.Tx`または`*pgxpool.Pool`のどちらも満たす）を受け取り、コンテキストからトランザクションの有無を判断して適切な`Queries`インスタンスを提供する`getQueries`メソッドを提供します。
+
+これにより、リポジトリのコンストラクタはDBプールまたはトランザクションを受け入れ、リポジトリ内の各メソッドはトランザクションの有無を意識することなくデータベース操作を実行できます。
+
+**例 (`internal/infrastructure/postgres/base_repository.go`):**
+```go
+package postgres
+
+import "context"
+
+// BaseRepository はすべてのPostgresリポジトリに共通の機能を提供します。
+type BaseRepository struct {
+	db DBTX
+}
+
+// NewBaseRepository は新しいBaseRepositoryのインスタンスを作成します。
+func NewBaseRepository(db DBTX) *BaseRepository {
+	return &BaseRepository{db: db}
+}
+
+// getQueries はコンテキストからトランザクションを取得し、それに応じたQueriesインスタンスを返します。
+// ユースケース層でトランザクションが開始されている場合、そのトランザクションを使用します。
+// そうでない場合は、通常のDBプールを使用します。
+func (r *BaseRepository) getQueries(ctx context.Context) *Queries {
+	if tx, ok := GetTxFromContext(ctx); ok {
+		return New(tx) // トランザクションがあればトランザクション対応のQueriesを返す
+	}
+	return New(r.db) // なければ通常のDBプール対応のQueriesを返す
+}
+```
 
 **例 (`trip_postgres.go`):**
 ```go
@@ -20,14 +49,15 @@ import (
 )
 
 // TripPostgresRepository は domain.TripRepository インターフェースを実装します。
+// BaseRepository を埋め込むことで、共通のgetQueriesメソッドを利用できます。
 type TripPostgresRepository struct {
-	queries *Queries // sqlcが生成したクエリ
+	*BaseRepository
 }
 
 // NewTripPostgresRepository は新しいリポジトリインスタンスを生成します。
 func NewTripPostgresRepository(db DBTX) domain.TripRepository {
 	return &TripPostgresRepository{
-		queries: New(db),
+		BaseRepository: NewBaseRepository(db),
 	}
 }
 ```
@@ -37,6 +67,8 @@ func NewTripPostgresRepository(db DBTX) domain.TripRepository {
 データベース操作には、`sqlc`によってSQLから自動生成されたGoコードを使用します。これにより、手書きの定型的なコードを減らし、型安全なデータベースアクセスを実現します。
 
 リポジトリの重要な責務の一つが、ドメイン層で定義された型（例: `domain.TripID`, `time.Time`）と、`sqlc`が生成する`pgtype`パッケージの型（例: `pgtype.UUID`, `pgtype.Timestamptz`）との間のマッピングです。
+
+各リポジトリメソッド内では、`r.getQueries(ctx)`を呼び出すことで、現在のコンテキストにトランザクションが存在するかどうかに応じて、適切な`Queries`インスタンス（トランザクション対応または非トランザクション対応）が自動的に取得されます。これにより、リポジトリのメソッドはトランザクションの有無を意識することなく、常に正しい`Queries`インスタンスを使用してデータベース操作を実行できます。
 
 -   **DBからの読み取り時**: `pgtype` からドメインの型へ変換します。このロジックは `mapToTrip` のようなプライベートなヘルパー関数にカプセル化します。
 -   **DBへの書き込み時**: ドメインの型から `pgtype` へ変換します。
@@ -70,6 +102,8 @@ func (r *TripPostgresRepository) mapToTrip(record Trip) domain.Trip {
 
 // Create はドメインオブジェクト(domain.Trip)を受け取り、DBにレコードを作成します。
 func (r *TripPostgresRepository) Create(ctx context.Context, trip domain.Trip) error {
+	queries := r.getQueries(ctx) // getQueries を使用して適切な Queries インスタンスを取得
+
 	var validatedId pgtype.UUID
 	_ = validatedId.Scan(trip.ID.String())
 
@@ -80,7 +114,7 @@ func (r *TripPostgresRepository) Create(ctx context.Context, trip domain.Trip) e
 	_ = validatedUpdatedAt.Scan(trip.UpdatedAt)
 
 	// sqlcが生成したCreateTrip関数を呼び出す
-	if err := r.queries.CreateTrip(ctx, CreateTripParams{
+	if err := queries.CreateTrip(ctx, CreateTripParams{ // 取得したqueriesを使用
 		ID:        validatedId,
 		Name:      trip.Name,
 		CreatedAt: validatedCreatedAt,
@@ -105,8 +139,11 @@ func (r *TripPostgresRepository) Create(ctx context.Context, trip domain.Trip) e
 ```go
 // FindByIDでのエラーハンドリング
 func (r *TripPostgresRepository) FindByID(ctx context.Context, id domain.TripID) (domain.Trip, error) {
-	// ...
-	record, err := r.queries.GetTrip(ctx, validatedId)
+	queries := r.getQueries(ctx) // getQueries を使用して適切な Queries インスタンスを取得
+	var validatedId pgtype.UUID
+	_ = validatedId.Scan(id.String())
+
+	record, err := queries.GetTrip(ctx, validatedId) // 取得したqueriesを使用
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			return domain.Trip{}, domain.ErrTripNotFound // Not Foundエラーに変換
@@ -119,8 +156,9 @@ func (r *TripPostgresRepository) FindByID(ctx context.Context, id domain.TripID)
 
 // Createでのエラーハンドリング
 func (r *TripPostgresRepository) Create(ctx context.Context, trip domain.Trip) error {
+    queries := r.getQueries(ctx) // getQueries を使用して適切な Queries インスタンスを取得
     // ...
-	if err := r.queries.CreateTrip(ctx, params); err != nil {
+	if err := queries.CreateTrip(ctx, params); err != nil { // 取得したqueriesを使用
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) && pgErr.Code == "23505" { // 23505 is unique_violation
 			return domain.ErrTripAlreadyExists // Already Existsエラーに変換
@@ -248,4 +286,3 @@ func TestTripPostgresRepository_Create(t *testing.T) {
 		assert.ErrorIs(t, err, domain.ErrTripAlreadyExists)
 	})
 }
-```

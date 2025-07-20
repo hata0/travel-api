@@ -24,7 +24,7 @@ func TestAuthInteractor_Register(t *testing.T) {
 	mockRepo := mock_domain.NewMockUserRepository(ctrl)
 	mockClock := mock_domain.NewMockClock(ctrl)
 	mockUUIDGenerator := mock_domain.NewMockUUIDGenerator(ctrl)
-	interactor := NewAuthInteractor(mockRepo, mock_domain.NewMockRefreshTokenRepository(ctrl), mockClock, mockUUIDGenerator)
+	interactor := NewAuthInteractor(mockRepo, mock_domain.NewMockRefreshTokenRepository(ctrl), mockClock, mockUUIDGenerator, mock_domain.NewMockTransactionManager(ctrl))
 
 	username := "testuser"
 	email := "test@example.com"
@@ -92,7 +92,9 @@ func TestAuthInteractor_Login(t *testing.T) {
 	mockRefreshTokenRepo := mock_domain.NewMockRefreshTokenRepository(ctrl)
 	mockClock := mock_domain.NewMockClock(ctrl)
 	mockUUIDGenerator := mock_domain.NewMockUUIDGenerator(ctrl)
-	interactor := NewAuthInteractor(mockUserRepo, mockRefreshTokenRepo, mockClock, mockUUIDGenerator)
+	mockUUIDGenerator = mock_domain.NewMockUUIDGenerator(ctrl)
+	mockTransactionManager := mock_domain.NewMockTransactionManager(ctrl)
+	interactor := NewAuthInteractor(mockUserRepo, mockRefreshTokenRepo, mockClock, mockUUIDGenerator, mockTransactionManager)
 
 	email := "test@example.com"
 	password := "password123"
@@ -103,6 +105,11 @@ func TestAuthInteractor_Login(t *testing.T) {
 	expectedUser := domain.NewUser(userDomainID, "testuser", email, string(hashedPassword), now, now)
 
 	t.Run("正常系: ユーザーが正常にログインできる", func(t *testing.T) {
+		mockTransactionManager.EXPECT().RunInTx(gomock.Any(), gomock.Any()).DoAndReturn(
+			func(ctx context.Context, fn func(ctx context.Context) error) error {
+				return fn(ctx)
+			},
+		).Times(1)
 		// FindByEmailがユーザーを返すことを期待
 		mockUserRepo.EXPECT().FindByEmail(gomock.Any(), email).Return(expectedUser, nil).Times(1)
 
@@ -145,6 +152,11 @@ func TestAuthInteractor_Login(t *testing.T) {
 	})
 
 	t.Run("異常系: ユーザーが見つからない", func(t *testing.T) {
+		mockTransactionManager.EXPECT().RunInTx(gomock.Any(), gomock.Any()).DoAndReturn(
+			func(ctx context.Context, fn func(ctx context.Context) error) error {
+				return fn(ctx)
+			},
+		).Times(1)
 		// FindByEmailがUserNotFoundを返すことを期待
 		mockUserRepo.EXPECT().FindByEmail(gomock.Any(), email).Return(domain.User{}, domain.ErrUserNotFound).Times(1)
 
@@ -154,6 +166,11 @@ func TestAuthInteractor_Login(t *testing.T) {
 	})
 
 	t.Run("異常系: パスワードが間違っている", func(t *testing.T) {
+		mockTransactionManager.EXPECT().RunInTx(gomock.Any(), gomock.Any()).DoAndReturn(
+			func(ctx context.Context, fn func(ctx context.Context) error) error {
+				return fn(ctx)
+			},
+		).Times(1)
 		// FindByEmailがユーザーを返すことを期待
 		mockUserRepo.EXPECT().FindByEmail(gomock.Any(), email).Return(expectedUser, nil).Times(1)
 
@@ -163,6 +180,11 @@ func TestAuthInteractor_Login(t *testing.T) {
 	})
 
 	t.Run("異常系: JWT秘密鍵が未設定", func(t *testing.T) {
+		mockTransactionManager.EXPECT().RunInTx(gomock.Any(), gomock.Any()).DoAndReturn(
+			func(ctx context.Context, fn func(ctx context.Context) error) error {
+				return fn(ctx)
+			},
+		).Times(1)
 		mockUserRepo.EXPECT().FindByEmail(gomock.Any(), email).Return(expectedUser, nil).Times(1)
 		mockClock.EXPECT().Now().Return(now).Times(1)
 
@@ -184,7 +206,7 @@ func TestAuthInteractor_VerifyRefreshToken(t *testing.T) {
 	mockRefreshTokenRepo := mock_domain.NewMockRefreshTokenRepository(ctrl)
 	mockClock := mock_domain.NewMockClock(ctrl)
 	mockUUIDGenerator := mock_domain.NewMockUUIDGenerator(ctrl)
-	interactor := NewAuthInteractor(mockUserRepo, mockRefreshTokenRepo, mockClock, mockUUIDGenerator)
+	NewAuthInteractor(mockUserRepo, mockRefreshTokenRepo, mockClock, mockUUIDGenerator, mock_domain.NewMockTransactionManager(ctrl))
 
 	refreshTokenString := "valid-refresh-token"
 	userID := "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d"
@@ -199,6 +221,13 @@ func TestAuthInteractor_VerifyRefreshToken(t *testing.T) {
 	refreshToken := domain.NewRefreshToken(refreshTokenID, userDomainID, refreshTokenString, expiresAt, now)
 
 	t.Run("正常系: リフレッシュトークンが検証され、新しいアクセストークンとリフレッシュトークンが発行される", func(t *testing.T) {
+		mockTransactionManager := mock_domain.NewMockTransactionManager(ctrl)
+		interactor := NewAuthInteractor(mockUserRepo, mockRefreshTokenRepo, mockClock, mockUUIDGenerator, mockTransactionManager)
+		mockTransactionManager.EXPECT().RunInTx(gomock.Any(), gomock.Any()).DoAndReturn(
+			func(ctx context.Context, fn func(ctx context.Context) error) error {
+				return fn(ctx)
+			},
+		).Times(1)
 		// FindByTokenがリフレッシュトークンを返すことを期待
 		mockRefreshTokenRepo.EXPECT().FindByToken(gomock.Any(), refreshTokenString).Return(refreshToken, nil).Times(1)
 
@@ -239,6 +268,13 @@ func TestAuthInteractor_VerifyRefreshToken(t *testing.T) {
 	})
 
 	t.Run("異常系: リフレッシュトークンが見つからない", func(t *testing.T) {
+		mockTransactionManager := mock_domain.NewMockTransactionManager(ctrl)
+		interactor := NewAuthInteractor(mockUserRepo, mockRefreshTokenRepo, mockClock, mockUUIDGenerator, mockTransactionManager)
+		mockTransactionManager.EXPECT().RunInTx(gomock.Any(), gomock.Any()).DoAndReturn(
+			func(ctx context.Context, fn func(ctx context.Context) error) error {
+				return fn(ctx)
+			},
+		).Times(1)
 		// FindByTokenがTokenNotFoundを返すことを期待
 		mockRefreshTokenRepo.EXPECT().FindByToken(gomock.Any(), refreshTokenString).Return(domain.RefreshToken{}, domain.ErrTokenNotFound).Times(1)
 
@@ -248,6 +284,13 @@ func TestAuthInteractor_VerifyRefreshToken(t *testing.T) {
 	})
 
 	t.Run("異常系: リフレッシュトークンの有効期限が切れている", func(t *testing.T) {
+		mockTransactionManager := mock_domain.NewMockTransactionManager(ctrl)
+		interactor := NewAuthInteractor(mockUserRepo, mockRefreshTokenRepo, mockClock, mockUUIDGenerator, mockTransactionManager)
+		mockTransactionManager.EXPECT().RunInTx(gomock.Any(), gomock.Any()).DoAndReturn(
+			func(ctx context.Context, fn func(ctx context.Context) error) error {
+				return fn(ctx)
+			},
+		).Times(1)
 		// 期限切れのリフレッシュトークン
 		expiredRefreshTokenID, err := domain.NewRefreshTokenID(uuid.New().String())
 		assert.NoError(t, err)
@@ -268,6 +311,13 @@ func TestAuthInteractor_VerifyRefreshToken(t *testing.T) {
 	})
 
 	t.Run("異常系: FindByIDでエラー", func(t *testing.T) {
+		mockTransactionManager := mock_domain.NewMockTransactionManager(ctrl)
+		interactor := NewAuthInteractor(mockUserRepo, mockRefreshTokenRepo, mockClock, mockUUIDGenerator, mockTransactionManager)
+		mockTransactionManager.EXPECT().RunInTx(gomock.Any(), gomock.Any()).DoAndReturn(
+			func(ctx context.Context, fn func(ctx context.Context) error) error {
+				return fn(ctx)
+			},
+		).Times(1)
 		mockRefreshTokenRepo.EXPECT().FindByToken(gomock.Any(), refreshTokenString).Return(refreshToken, nil).Times(1)
 		mockClock.EXPECT().Now().Return(now).Times(1)
 		mockRefreshTokenRepo.EXPECT().Delete(gomock.Any(), refreshToken).Return(nil).Times(1)
@@ -278,6 +328,13 @@ func TestAuthInteractor_VerifyRefreshToken(t *testing.T) {
 	})
 
 	t.Run("異常系: リフレッシュトークン保存でエラー", func(t *testing.T) {
+		mockTransactionManager := mock_domain.NewMockTransactionManager(ctrl)
+		interactor := NewAuthInteractor(mockUserRepo, mockRefreshTokenRepo, mockClock, mockUUIDGenerator, mockTransactionManager)
+		mockTransactionManager.EXPECT().RunInTx(gomock.Any(), gomock.Any()).DoAndReturn(
+			func(ctx context.Context, fn func(ctx context.Context) error) error {
+				return fn(ctx)
+			},
+		).Times(1)
 		mockRefreshTokenRepo.EXPECT().FindByToken(gomock.Any(), refreshTokenString).Return(refreshToken, nil).Times(1)
 		mockClock.EXPECT().Now().Return(now).Times(4)
 		mockRefreshTokenRepo.EXPECT().Delete(gomock.Any(), refreshToken).Return(nil).Times(1)
@@ -302,7 +359,7 @@ func TestAuthInteractor_RevokeRefreshToken(t *testing.T) {
 	mockRefreshTokenRepo := mock_domain.NewMockRefreshTokenRepository(ctrl)
 	mockClock := mock_domain.NewMockClock(ctrl)
 	mockUUIDGenerator := mock_domain.NewMockUUIDGenerator(ctrl)
-	interactor := NewAuthInteractor(mockUserRepo, mockRefreshTokenRepo, mockClock, mockUUIDGenerator)
+	interactor := NewAuthInteractor(mockUserRepo, mockRefreshTokenRepo, mockClock, mockUUIDGenerator, mock_domain.NewMockTransactionManager(ctrl))
 
 	refreshTokenString := "token-to-revoke"
 	userID := "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d"
