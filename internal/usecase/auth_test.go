@@ -6,6 +6,7 @@ import (
 	"os"
 	"testing"
 	"time"
+	"travel-api/internal/config"
 	"travel-api/internal/domain"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -127,7 +128,7 @@ func TestAuthInteractor_Login(t *testing.T) {
 			refreshTokenID,
 			expectedUser.ID,
 			refreshTokenString,
-			now.Add(time.Hour*24*7),
+			now.Add(config.RefreshTokenExpiration()),
 			now,
 		)
 		mockRefreshTokenRepo.EXPECT().Create(gomock.Any(), expectedRefreshToken).Return(nil).Times(1)
@@ -214,7 +215,7 @@ func TestAuthInteractor_VerifyRefreshToken(t *testing.T) {
 	userIDString := "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d"
 	userID, _ := domain.NewUserID(userIDString)
 	now := time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC)
-	expiresAt := now.Add(time.Hour * 24 * 7)
+	expiresAt := now.Add(config.RefreshTokenExpiration())
 
 	// テスト用のユーザーとリフレッシュトークン
 	user := domain.NewUser(userID, "testuser", "test@example.com", "hashedpass", now, now)
@@ -233,7 +234,7 @@ func TestAuthInteractor_VerifyRefreshToken(t *testing.T) {
 		newRefreshTokenID,
 		user.ID,
 		newRefreshTokenIDString,
-		now.Add(time.Hour*24*7),
+		now.Add(config.RefreshTokenExpiration()),
 		now,
 	)
 

@@ -2,7 +2,10 @@ package config
 
 import (
 	"fmt"
+	"log/slog"
 	"os"
+	"strconv"
+	"time"
 	"travel-api/internal/domain"
 
 	"github.com/joho/godotenv"
@@ -40,4 +43,36 @@ func JWTSecret() (string, error) {
 		return "", domain.ErrConfiguration
 	}
 	return jwtSecret, nil
+}
+
+// AccessTokenExpiration は、アクセストークンの有効期限を環境変数から取得します。
+// 環境変数が設定されていない場合は、デフォルトの24時間を返します。
+func AccessTokenExpiration() time.Duration {
+	_ = godotenv.Load()
+	expStr := os.Getenv("ACCESS_TOKEN_EXPIRATION_HOURS")
+	if expStr == "" {
+		return 24 * time.Hour // デフォルト値
+	}
+	hours, err := strconv.Atoi(expStr)
+	if err != nil {
+		slog.Warn("Invalid ACCESS_TOKEN_EXPIRATION_HOURS, using default", "value", expStr)
+		return 24 * time.Hour
+	}
+	return time.Duration(hours) * time.Hour
+}
+
+// RefreshTokenExpiration は、リフレッシュトークンの有効期限を環境変数から取得します。
+// 環境変数が設定されていない場合は、デフォルトの7日間を返します。
+func RefreshTokenExpiration() time.Duration {
+	_ = godotenv.Load()
+	expStr := os.Getenv("REFRESH_TOKEN_EXPIRATION_DAYS")
+	if expStr == "" {
+		return 7 * 24 * time.Hour // デフォルト値
+	}
+	days, err := strconv.Atoi(expStr)
+	if err != nil {
+		slog.Warn("Invalid REFRESH_TOKEN_EXPIRATION_DAYS, using default", "value", expStr)
+		return 7 * 24 * time.Hour
+	}
+	return time.Duration(days) * 24 * time.Hour
 }

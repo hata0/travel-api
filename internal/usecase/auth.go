@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"log/slog"
-	"time"
 	"travel-api/internal/config"
 	"travel-api/internal/domain"
 	"travel-api/internal/usecase/output"
@@ -127,7 +126,7 @@ func (i *AuthInteractor) Login(ctx context.Context, email, password string) (out
 		// JWTトークンの生成
 		token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 			"user_id": user.ID.String(),
-			"exp":     i.clock.Now().Add(time.Hour * 24).Unix(), // 24時間有効
+			"exp":     i.clock.Now().Add(config.AccessTokenExpiration()).Unix(),
 		})
 
 		jwtSecret, err := config.JWTSecret()
@@ -152,7 +151,7 @@ func (i *AuthInteractor) Login(ctx context.Context, email, password string) (out
 			refreshTokenID,
 			user.ID,
 			refreshTokenString,
-			i.clock.Now().Add(time.Hour*24*7), // 7日間有効
+			i.clock.Now().Add(config.RefreshTokenExpiration()),
 			i.clock.Now(),
 		)
 		err = i.refreshTokenRepository.Create(txCtx, newRefreshToken)
@@ -230,7 +229,7 @@ func (i *AuthInteractor) VerifyRefreshToken(ctx context.Context, refreshToken st
 
 		accessToken := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 			"user_id": user.ID.String(),
-			"exp":     i.clock.Now().Add(time.Hour * 24).Unix(), // 24時間有効
+			"exp":     i.clock.Now().Add(config.AccessTokenExpiration()).Unix(),
 		})
 
 		jwtSecret, err := config.JWTSecret()
@@ -253,7 +252,7 @@ func (i *AuthInteractor) VerifyRefreshToken(ctx context.Context, refreshToken st
 			newRefreshTokenID,
 			user.ID,
 			newRefreshTokenString,
-			i.clock.Now().Add(time.Hour*24*7), // 7日間有効
+			i.clock.Now().Add(config.RefreshTokenExpiration()),
 			i.clock.Now(),
 		)
 		if err := i.refreshTokenRepository.Create(txCtx, newRefreshToken); err != nil {
