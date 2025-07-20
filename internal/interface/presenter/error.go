@@ -63,6 +63,8 @@ func mapErrorCodeToHTTPStatus(code domain.ErrorCode) int {
 		return http.StatusNotFound
 	case domain.TokenAlreadyExists:
 		return http.StatusConflict
+	case domain.ConfigurationError:
+		return http.StatusInternalServerError
 	default:
 		// 未知のErrorCodeが渡された場合は、ログに記録し、500エラーを返す
 		slog.Error("unknown error code", "code", code)

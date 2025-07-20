@@ -16,4 +16,5 @@ const (
 	InvalidCredentials  ErrorCode = "INVALID_CREDENTIALS"
 	TokenNotFound       ErrorCode = "TOKEN_NOT_FOUND"
 	TokenAlreadyExists  ErrorCode = "TOKEN_ALREADY_EXISTS"
+	ConfigurationError  ErrorCode = "CONFIGURATION_ERROR"
 )

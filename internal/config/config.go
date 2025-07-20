@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"os"
+	"travel-api/internal/domain"
 
 	"github.com/joho/godotenv"
 )
@@ -36,7 +37,7 @@ func JWTSecret() (string, error) {
 	_ = godotenv.Load()
 	jwtSecret := os.Getenv("JWT_SECRET")
 	if jwtSecret == "" {
-		return "", fmt.Errorf("JWT_SECRET environment variable not set")
+		return "", domain.ErrConfiguration
 	}
 	return jwtSecret, nil
 }

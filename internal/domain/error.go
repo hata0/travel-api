@@ -46,6 +46,8 @@ var (
 	ErrTokenNotFound = &Error{Code: TokenNotFound, Message: "token not found"}
 	// ErrTokenAlreadyExists は、トークンが既に存在する場合に返されます。
 	ErrTokenAlreadyExists = &Error{Code: TokenAlreadyExists, Message: "token already exists"}
+	// ErrConfiguration は、設定エラーが発生した場合に返されます。
+	ErrConfiguration = &Error{Code: ConfigurationError, Message: "configuration error"}
 )
 
 // NewInternalServerError は、具体的なエラー原因を含む内部サーバーエラーを生成します。
