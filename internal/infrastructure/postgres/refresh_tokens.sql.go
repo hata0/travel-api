@@ -37,11 +37,11 @@ func (q *Queries) CreateRefreshToken(ctx context.Context, arg CreateRefreshToken
 
 const deleteRefreshToken = `-- name: DeleteRefreshToken :exec
 DELETE FROM refresh_tokens
-WHERE token = $1
+WHERE id = $1
 `
 
-func (q *Queries) DeleteRefreshToken(ctx context.Context, token string) error {
-	_, err := q.db.Exec(ctx, deleteRefreshToken, token)
+func (q *Queries) DeleteRefreshToken(ctx context.Context, id pgtype.UUID) error {
+	_, err := q.db.Exec(ctx, deleteRefreshToken, id)
 	return err
 }
 

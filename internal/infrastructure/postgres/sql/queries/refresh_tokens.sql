@@ -8,4 +8,4 @@ WHERE token = $1 LIMIT 1;
 
 -- name: DeleteRefreshToken :exec
 DELETE FROM refresh_tokens
-WHERE token = $1;
+WHERE id = $1;

@@ -65,7 +65,10 @@ func (r *RefreshTokenPostgresRepository) FindByToken(ctx context.Context, token 
 }
 
 func (r *RefreshTokenPostgresRepository) Delete(ctx context.Context, token domain.RefreshToken) error {
-	if err := r.queries.DeleteRefreshToken(ctx, token.Token); err != nil {
+	var validatedId pgtype.UUID
+	_ = validatedId.Scan(token.ID.String())
+
+	if err := r.queries.DeleteRefreshToken(ctx, validatedId); err != nil {
 		return domain.NewInternalServerError(err)
 	}
 	return nil
