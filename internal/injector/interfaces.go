@@ -3,9 +3,9 @@ package injector
 import (
 	"travel-api/internal/domain"
 	"travel-api/internal/domain/shared/clock"
+	"travel-api/internal/domain/shared/transaction_manager"
 	"travel-api/internal/domain/shared/uuid"
 	"travel-api/internal/interface/handler"
-	"travel-api/internal/usecase"
 )
 
 // HandlerProvider はハンドラー生成のインターフェース
@@ -18,7 +18,7 @@ type HandlerProvider interface {
 type ServiceProvider interface {
 	Clock() clock.Clock
 	UUIDGenerator() uuid.UUIDGenerator
-	TransactionManager() usecase.TransactionManager
+	TransactionManager() transaction_manager.TransactionManager
 }
 
 // RepositoryProvider はリポジトリのインターフェース

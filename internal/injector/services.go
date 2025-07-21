@@ -2,9 +2,9 @@ package injector
 
 import (
 	"travel-api/internal/domain/shared/clock"
+	"travel-api/internal/domain/shared/transaction_manager"
 	"travel-api/internal/domain/shared/uuid"
 	"travel-api/internal/infrastructure/postgres"
-	"travel-api/internal/usecase"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -13,7 +13,7 @@ import (
 type Services struct {
 	clock              clock.Clock
 	uuidGenerator      uuid.UUIDGenerator
-	transactionManager usecase.TransactionManager
+	transactionManager transaction_manager.TransactionManager
 }
 
 // NewServices はサービスを初期化する
@@ -33,6 +33,6 @@ func (s *Services) UUIDGenerator() uuid.UUIDGenerator {
 	return s.uuidGenerator
 }
 
-func (s *Services) TransactionManager() usecase.TransactionManager {
+func (s *Services) TransactionManager() transaction_manager.TransactionManager {
 	return s.transactionManager
 }

@@ -3,9 +3,9 @@ package injector
 import (
 	"travel-api/internal/config"
 	"travel-api/internal/domain/shared/clock"
+	"travel-api/internal/domain/shared/transaction_manager"
 	"travel-api/internal/domain/shared/uuid"
 	"travel-api/internal/interface/handler"
-	"travel-api/internal/usecase"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -83,6 +83,6 @@ func (c *Container) UUIDGenerator() uuid.UUIDGenerator {
 	return c.services.UUIDGenerator()
 }
 
-func (c *Container) TransactionManager() usecase.TransactionManager {
+func (c *Container) TransactionManager() transaction_manager.TransactionManager {
 	return c.services.TransactionManager()
 }

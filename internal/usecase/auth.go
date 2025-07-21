@@ -9,6 +9,7 @@ import (
 	"travel-api/internal/domain"
 	"travel-api/internal/domain/shared/app_error"
 	"travel-api/internal/domain/shared/clock"
+	"travel-api/internal/domain/shared/transaction_manager"
 	"travel-api/internal/domain/shared/uuid"
 	"travel-api/internal/usecase/output"
 
@@ -30,11 +31,11 @@ type AuthInteractor struct {
 	revokedTokenRepository domain.RevokedTokenRepository
 	clock                  clock.Clock
 	uuidGenerator          uuid.UUIDGenerator
-	transactionManager     TransactionManager
+	transactionManager     transaction_manager.TransactionManager
 	jwtSecret              string
 }
 
-func NewAuthInteractor(userRepository domain.UserRepository, refreshTokenRepository domain.RefreshTokenRepository, revokedTokenRepository domain.RevokedTokenRepository, clock clock.Clock, uuidGenerator uuid.UUIDGenerator, transactionManager TransactionManager, jwtSecret string) *AuthInteractor {
+func NewAuthInteractor(userRepository domain.UserRepository, refreshTokenRepository domain.RefreshTokenRepository, revokedTokenRepository domain.RevokedTokenRepository, clock clock.Clock, uuidGenerator uuid.UUIDGenerator, transactionManager transaction_manager.TransactionManager, jwtSecret string) *AuthInteractor {
 	return &AuthInteractor{
 		userRepository:         userRepository,
 		refreshTokenRepository: refreshTokenRepository,
