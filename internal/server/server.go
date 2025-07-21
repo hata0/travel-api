@@ -14,14 +14,14 @@ import (
 	"travel-api/internal/router"
 )
 
-type Application struct {
+type Server struct {
 	config    config.Config
 	server    *http.Server
 	container *injector.Container
 	logger    *slog.Logger
 }
 
-func NewApplication() (*Application, error) {
+func NewServer() (*Server, error) {
 	cfg, err := config.Load()
 	if err != nil {
 		return nil, err
@@ -30,7 +30,8 @@ func NewApplication() (*Application, error) {
 	logger := SetupLogger(cfg.Log())
 	slog.SetDefault(logger)
 
-	container, err := CreateContainer(cfg)
+	factory := injector.NewFactory()
+	container, err := factory.CreateProductionContainer(cfg)
 	if err != nil {
 		logger.Error("Failed to create DI container", "error", err)
 		return nil, err
@@ -46,7 +47,7 @@ func NewApplication() (*Application, error) {
 		IdleTimeout:  cfg.Server().IdleTimeout(),
 	}
 
-	return &Application{
+	return &Server{
 		config:    cfg,
 		server:    server,
 		container: container,
@@ -54,15 +55,15 @@ func NewApplication() (*Application, error) {
 	}, nil
 }
 
-func (a *Application) Run(ctx context.Context) error {
-	a.logStartupInfo()
+func (s *Server) Run(ctx context.Context) error {
+	s.logStartupInfo()
 
 	serverErrors := make(chan error, 1)
 	go func() {
-		a.logger.Info("Starting HTTP server",
-			"address", a.server.Addr,
-			"env", a.config.Environment())
-		serverErrors <- a.server.ListenAndServe()
+		s.logger.Info("Starting HTTP server",
+			"address", s.server.Addr,
+			"env", s.config.Environment())
+		serverErrors <- s.server.ListenAndServe()
 	}()
 
 	shutdown := make(chan os.Signal, 1)
@@ -74,40 +75,40 @@ func (a *Application) Run(ctx context.Context) error {
 			return err
 		}
 	case sig := <-shutdown:
-		a.logger.Info("Received shutdown signal", "signal", sig)
-		return a.shutdown(ctx)
+		s.logger.Info("Received shutdown signal", "signal", sig)
+		return s.shutdown(ctx)
 	case <-ctx.Done():
-		a.logger.Info("Context cancelled, shutting down")
-		return a.shutdown(ctx)
+		s.logger.Info("Context cancelled, shutting down")
+		return s.shutdown(ctx)
 	}
 
 	return nil
 }
 
-func (a *Application) shutdown(ctx context.Context) error {
-	shutdownCtx, cancel := context.WithTimeout(ctx, a.config.Server().ShutdownTimeout())
+func (s *Server) shutdown(ctx context.Context) error {
+	shutdownCtx, cancel := context.WithTimeout(ctx, s.config.Server().ShutdownTimeout())
 	defer cancel()
 
-	a.logger.Info("Shutting down server", "timeout", a.config.Server().ShutdownTimeout())
+	s.logger.Info("Shutting down server", "timeout", s.config.Server().ShutdownTimeout())
 
-	if a.container != nil {
-		if err := a.container.Close(); err != nil {
-			a.logger.Error("Failed to close container", "error", err)
+	if s.container != nil {
+		if err := s.container.Close(); err != nil {
+			s.logger.Error("Failed to close container", "error", err)
 		}
 	}
 
-	if err := a.server.Shutdown(shutdownCtx); err != nil {
-		a.logger.Error("Server shutdown failed", "error", err)
+	if err := s.server.Shutdown(shutdownCtx); err != nil {
+		s.logger.Error("Server shutdown failed", "error", err)
 		return err
 	}
 
-	a.logger.Info("Server shutdown completed")
+	s.logger.Info("Server shutdown completed")
 	return nil
 }
 
-func (a *Application) logStartupInfo() {
-	a.logger.Info("Application starting",
-		"env", a.config.Environment(),
-		"version", a.config.Version(),
+func (s *Server) logStartupInfo() {
+	s.logger.Info("Application starting",
+		"env", s.config.Environment(),
+		"version", s.config.Version(),
 	)
 }
