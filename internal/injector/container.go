@@ -4,6 +4,7 @@ import (
 	"travel-api/internal/config"
 	"travel-api/internal/domain"
 	"travel-api/internal/interface/handler"
+	"travel-api/internal/usecase"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -81,6 +82,6 @@ func (c *Container) UUIDGenerator() domain.UUIDGenerator {
 	return c.services.UUIDGenerator()
 }
 
-func (c *Container) TransactionManager() domain.TransactionManager {
+func (c *Container) TransactionManager() usecase.TransactionManager {
 	return c.services.TransactionManager()
 }

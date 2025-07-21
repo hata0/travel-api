@@ -27,11 +27,11 @@ type AuthInteractor struct {
 	revokedTokenRepository domain.RevokedTokenRepository
 	clock                  domain.Clock
 	uuidGenerator          domain.UUIDGenerator
-	transactionManager     domain.TransactionManager
+	transactionManager     TransactionManager
 	jwtSecret              string
 }
 
-func NewAuthInteractor(userRepository domain.UserRepository, refreshTokenRepository domain.RefreshTokenRepository, revokedTokenRepository domain.RevokedTokenRepository, clock domain.Clock, uuidGenerator domain.UUIDGenerator, transactionManager domain.TransactionManager, jwtSecret string) *AuthInteractor {
+func NewAuthInteractor(userRepository domain.UserRepository, refreshTokenRepository domain.RefreshTokenRepository, revokedTokenRepository domain.RevokedTokenRepository, clock domain.Clock, uuidGenerator domain.UUIDGenerator, transactionManager TransactionManager, jwtSecret string) *AuthInteractor {
 	return &AuthInteractor{
 		userRepository:         userRepository,
 		refreshTokenRepository: refreshTokenRepository,

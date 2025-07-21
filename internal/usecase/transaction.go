@@ -1,9 +1,10 @@
-package domain
+package usecase
 
 import "context"
 
 // TransactionManager はトランザクションを管理するためのインターフェースです。
-//go:generate mockgen -destination mock/transaction.go travel-api/internal/domain TransactionManager
+//
+//go:generate mockgen -destination mock/transaction.go travel-api/internal/usecase TransactionManager
 type TransactionManager interface {
 	// RunInTx は指定された関数をデータベーストランザクション内で実行します。
 	// 関数がエラーを返した場合、トランザクションはロールバックされます。
