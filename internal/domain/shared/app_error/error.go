@@ -27,6 +27,16 @@ func (e *Error) Unwrap() error {
 	return e.cause
 }
 
+var (
+	// ErrInternalServerError は、予期せぬ内部エラーが発生した場合に返されます。
+	// このエラーは通常、具体的なエラー情報でラップして使用します。
+	ErrInternalServerError = &Error{Code: InternalServerError, Message: "internal server error"}
+	// ErrInvalidCredentials は、認証情報が無効な場合に返されます。
+	ErrInvalidCredentials = &Error{Code: InvalidCredentials, Message: "invalid credentials"}
+	// ErrConfiguration は、設定エラーが発生した場合に返されます。
+	ErrConfiguration = &Error{Code: ConfigurationError, Message: "configuration error"}
+)
+
 // エラー変数の定義
 var (
 	// ErrInvalidUUID は、UUIDの形式が無効な場合に返されます。
@@ -47,16 +57,6 @@ var (
 	ErrTokenNotFound = &Error{Code: TokenNotFound, Message: "token not found"}
 	// ErrTokenAlreadyExists は、トークンが既に存在する場合に返されます。
 	ErrTokenAlreadyExists = &Error{Code: TokenAlreadyExists, Message: "token already exists"}
-)
-
-var (
-	// ErrInternalServerError は、予期せぬ内部エラーが発生した場合に返されます。
-	// このエラーは通常、具体的なエラー情報でラップして使用します。
-	ErrInternalServerError = &Error{Code: InternalServerError, Message: "internal server error"}
-	// ErrInvalidCredentials は、認証情報が無効な場合に返されます。
-	ErrInvalidCredentials = &Error{Code: InvalidCredentials, Message: "invalid credentials"}
-	// ErrConfiguration は、設定エラーが発生した場合に返されます。
-	ErrConfiguration = &Error{Code: ConfigurationError, Message: "configuration error"}
 )
 
 // NewInternalServerError は、具体的なエラー原因を含む内部サーバーエラーを生成します。
