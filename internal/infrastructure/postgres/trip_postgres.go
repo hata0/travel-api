@@ -5,6 +5,7 @@ import (
 	"errors"
 	"time"
 	"travel-api/internal/domain"
+	"travel-api/internal/domain/shared/app_error"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -30,9 +31,9 @@ func (r *TripPostgresRepository) FindByID(ctx context.Context, id domain.TripID)
 	record, err := queries.GetTrip(ctx, validatedId)
 	if err != nil {
 		if err == pgx.ErrNoRows {
-			return domain.Trip{}, domain.ErrTripNotFound
+			return domain.Trip{}, app_error.ErrTripNotFound
 		} else {
-			return domain.Trip{}, domain.NewInternalServerError(err)
+			return domain.Trip{}, app_error.NewInternalServerError(err)
 		}
 	}
 
@@ -43,7 +44,7 @@ func (r *TripPostgresRepository) FindMany(ctx context.Context) ([]domain.Trip, e
 	queries := r.getQueries(ctx)
 	records, err := queries.ListTrips(ctx)
 	if err != nil {
-		return nil, domain.NewInternalServerError(err)
+		return nil, app_error.NewInternalServerError(err)
 	}
 
 	trips := make([]domain.Trip, len(records))
@@ -98,9 +99,9 @@ func (r *TripPostgresRepository) Create(ctx context.Context, trip domain.Trip) e
 	}); err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) && pgErr.Code == "23505" { // 23505 is unique_violation
-			return domain.ErrTripAlreadyExists
+			return app_error.ErrTripAlreadyExists
 		}
-		return domain.NewInternalServerError(err)
+		return app_error.NewInternalServerError(err)
 	}
 
 	return nil
@@ -120,7 +121,7 @@ func (r *TripPostgresRepository) Update(ctx context.Context, trip domain.Trip) e
 		Name:      trip.Name,
 		UpdatedAt: validatedUpdatedAt,
 	}); err != nil {
-		return domain.NewInternalServerError(err)
+		return app_error.NewInternalServerError(err)
 	}
 
 	return nil
@@ -133,7 +134,7 @@ func (r *TripPostgresRepository) Delete(ctx context.Context, trip domain.Trip) e
 	_ = validatedId.Scan(trip.ID.String())
 
 	if err := queries.DeleteTrip(ctx, validatedId); err != nil {
-		return domain.NewInternalServerError(err)
+		return app_error.NewInternalServerError(err)
 	}
 
 	return nil

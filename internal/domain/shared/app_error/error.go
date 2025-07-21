@@ -1,4 +1,4 @@
-package domain
+package app_error
 
 import (
 	"fmt"

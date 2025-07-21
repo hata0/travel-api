@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 	"travel-api/internal/domain"
+	"travel-api/internal/domain/shared/app_error"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -93,7 +94,7 @@ func TestRefreshTokenPostgresRepository_Create(t *testing.T) {
 		token2 := createTestRefreshToken(t, user.ID, tokenStr, expiresAt, createdAt)
 
 		err := repo.Create(ctx, token2)
-		assert.ErrorIs(t, err, domain.ErrTokenAlreadyExists)
+		assert.ErrorIs(t, err, app_error.ErrTokenAlreadyExists)
 	})
 }
 
@@ -121,7 +122,7 @@ func TestRefreshTokenPostgresRepository_FindByToken(t *testing.T) {
 
 	t.Run("異常系: トークンでリフレッシュトークンが見つからない", func(t *testing.T) {
 		_, err := repo.FindByToken(ctx, "nonexistent-token")
-		assert.ErrorIs(t, err, domain.ErrTokenNotFound)
+		assert.ErrorIs(t, err, app_error.ErrTokenNotFound)
 	})
 }
 

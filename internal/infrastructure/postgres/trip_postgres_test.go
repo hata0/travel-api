@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 	"travel-api/internal/domain"
+	"travel-api/internal/domain/shared/app_error"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -82,7 +83,7 @@ func TestTripPostgresRepository_FindByID(t *testing.T) {
 
 		_, err = repo.FindByID(ctx, id)
 
-		assert.ErrorIs(t, err, domain.ErrTripNotFound)
+		assert.ErrorIs(t, err, app_error.ErrTripNotFound)
 	})
 }
 
@@ -160,7 +161,7 @@ func TestTripPostgresRepository_Create(t *testing.T) {
 		insertTestTrip(t, ctx, dbConn, trip) // 最初に挿入
 
 		err := repo.Create(ctx, trip) // 同じIDで再度挿入
-		assert.ErrorIs(t, err, domain.ErrTripAlreadyExists)
+		assert.ErrorIs(t, err, app_error.ErrTripAlreadyExists)
 	})
 }
 

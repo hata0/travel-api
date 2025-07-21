@@ -5,6 +5,7 @@ import (
 	"errors"
 	"time"
 	"travel-api/internal/domain"
+	"travel-api/internal/domain/shared/app_error"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -43,9 +44,9 @@ func (r *UserPostgresRepository) Create(ctx context.Context, user domain.User) e
 	}); err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) && pgErr.Code == "23505" { // 23505 is unique_violation
-			return domain.ErrUserAlreadyExists
+			return app_error.ErrUserAlreadyExists
 		}
-		return domain.NewInternalServerError(err)
+		return app_error.NewInternalServerError(err)
 	}
 
 	return nil
@@ -57,9 +58,9 @@ func (r *UserPostgresRepository) FindByEmail(ctx context.Context, email string) 
 	record, err := queries.GetUserByEmail(ctx, email) // 取得したqueriesを使用
 	if err != nil {
 		if err == pgx.ErrNoRows {
-			return domain.User{}, domain.ErrUserNotFound
+			return domain.User{}, app_error.ErrUserNotFound
 		} else {
-			return domain.User{}, domain.NewInternalServerError(err)
+			return domain.User{}, app_error.NewInternalServerError(err)
 		}
 	}
 
@@ -72,9 +73,9 @@ func (r *UserPostgresRepository) FindByUsername(ctx context.Context, username st
 	record, err := queries.GetUserByUsername(ctx, username) // 取得したqueriesを使用
 	if err != nil {
 		if err == pgx.ErrNoRows {
-			return domain.User{}, domain.ErrUserNotFound
+			return domain.User{}, app_error.ErrUserNotFound
 		} else {
-			return domain.User{}, domain.NewInternalServerError(err)
+			return domain.User{}, app_error.NewInternalServerError(err)
 		}
 	}
 
@@ -90,9 +91,9 @@ func (r *UserPostgresRepository) FindByID(ctx context.Context, id domain.UserID)
 	record, err := queries.GetUser(ctx, validatedId) // 取得したqueriesを使用
 	if err != nil {
 		if err == pgx.ErrNoRows {
-			return domain.User{}, domain.ErrUserNotFound
+			return domain.User{}, app_error.ErrUserNotFound
 		} else {
-			return domain.User{}, domain.NewInternalServerError(err)
+			return domain.User{}, app_error.NewInternalServerError(err)
 		}
 	}
 

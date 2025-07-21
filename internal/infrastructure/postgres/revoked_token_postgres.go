@@ -5,6 +5,7 @@ import (
 	"errors" // errorsパッケージのインポートを追加
 	"time"
 	"travel-api/internal/domain"
+	"travel-api/internal/domain/shared/app_error"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn" // pgconnパッケージのインポートを追加
@@ -45,9 +46,9 @@ func (r *RevokedTokenPostgresRepository) Create(ctx context.Context, token domai
 	}); err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) && pgErr.Code == "23505" { // 23505 is unique_violation
-			return domain.ErrTokenAlreadyExists
+			return app_error.ErrTokenAlreadyExists
 		}
-		return domain.NewInternalServerError(err)
+		return app_error.NewInternalServerError(err)
 	}
 
 	return nil
@@ -59,9 +60,9 @@ func (r *RevokedTokenPostgresRepository) FindByJTI(ctx context.Context, jti stri
 	record, err := queries.GetRevokedTokenByJTI(ctx, jti)
 	if err != nil {
 		if err == pgx.ErrNoRows {
-			return domain.RevokedToken{}, domain.ErrTokenNotFound
+			return domain.RevokedToken{}, app_error.ErrTokenNotFound
 		} else {
-			return domain.RevokedToken{}, domain.NewInternalServerError(err)
+			return domain.RevokedToken{}, app_error.NewInternalServerError(err)
 		}
 	}
 

@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
-	"travel-api/internal/domain"
+	"travel-api/internal/domain/shared/app_error"
 	"travel-api/internal/interface/presenter"
 	mock_handler "travel-api/internal/usecase/mock"
 	"travel-api/internal/usecase/output"
@@ -70,7 +70,7 @@ func TestAuthHandler_Register(t *testing.T) {
 	})
 
 	t.Run("異常系: ユースケースエラー (ユーザーが既に存在する)", func(t *testing.T) {
-		mockUsecase.EXPECT().Register(gomock.Any(), username, email, password).Return(output.RegisterOutput{}, domain.ErrUserAlreadyExists).Times(1)
+		mockUsecase.EXPECT().Register(gomock.Any(), username, email, password).Return(output.RegisterOutput{}, app_error.ErrUserAlreadyExists).Times(1)
 
 		body, _ := json.Marshal(gin.H{
 			"username": username,
@@ -142,7 +142,7 @@ func TestAuthHandler_Login(t *testing.T) {
 	})
 
 	t.Run("異常系: ユースケースエラー (認証情報が無効)", func(t *testing.T) {
-		mockUsecase.EXPECT().Login(gomock.Any(), email, password).Return(output.TokenPairOutput{}, domain.ErrInvalidCredentials).Times(1)
+		mockUsecase.EXPECT().Login(gomock.Any(), email, password).Return(output.TokenPairOutput{}, app_error.ErrInvalidCredentials).Times(1)
 
 		body, _ := json.Marshal(gin.H{
 			"email":    email,
@@ -227,7 +227,7 @@ func TestAuthHandler_Refresh(t *testing.T) {
 	})
 
 	t.Run("異常系: ユースケースエラー (リフレッシュトークンが無効または期限切れの場合)", func(t *testing.T) {
-		mockUsecase.EXPECT().VerifyRefreshToken(gomock.Any(), refreshToken).Return(output.TokenPairOutput{}, domain.ErrInvalidCredentials).Times(1)
+		mockUsecase.EXPECT().VerifyRefreshToken(gomock.Any(), refreshToken).Return(output.TokenPairOutput{}, app_error.ErrInvalidCredentials).Times(1)
 
 		body, _ := json.Marshal(gin.H{
 			"refresh_token": refreshToken,

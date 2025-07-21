@@ -7,6 +7,7 @@ import (
 	"time"
 	"travel-api/internal/domain"
 	mock_domain "travel-api/internal/domain/mock"
+	_error "travel-api/internal/domain/shared/app_error"
 	mock_clock "travel-api/internal/domain/shared/clock/mock"
 	mock_uuid "travel-api/internal/domain/shared/uuid/mock"
 	"travel-api/internal/usecase/output"
@@ -41,7 +42,7 @@ func TestTripInteractor_Get(t *testing.T) {
 	t.Run("異常系: 無効なUUIDの場合", func(t *testing.T) {
 		invalidUUID := "invalid-uuid"
 		_, err := interactor.Get(context.Background(), invalidUUID)
-		assert.ErrorIs(t, err, domain.ErrInvalidUUID)
+		assert.ErrorIs(t, err, _error.ErrInvalidUUID)
 	})
 
 	t.Run("異常系: リポジトリからエラーが返された場合", func(t *testing.T) {
@@ -159,7 +160,7 @@ func TestTripInteractor_Update(t *testing.T) {
 	t.Run("異常系: 無効なUUIDの場合", func(t *testing.T) {
 		invalidUUID := "invalid-uuid"
 		err := interactor.Update(context.Background(), invalidUUID, "any name")
-		assert.ErrorIs(t, err, domain.ErrInvalidUUID)
+		assert.ErrorIs(t, err, _error.ErrInvalidUUID)
 	})
 
 	t.Run("異常系: FindByIDでエラーが返された場合", func(t *testing.T) {
@@ -226,7 +227,7 @@ func TestTripInteractor_Delete(t *testing.T) {
 	t.Run("異常系: 無効なUUIDの場合", func(t *testing.T) {
 		invalidUUID := "invalid-uuid"
 		err := interactor.Delete(context.Background(), invalidUUID)
-		assert.ErrorIs(t, err, domain.ErrInvalidUUID)
+		assert.ErrorIs(t, err, _error.ErrInvalidUUID)
 	})
 
 	t.Run("異常系: FindByIDでエラーが返された場合", func(t *testing.T) {

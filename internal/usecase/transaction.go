@@ -1,6 +1,8 @@
 package usecase
 
-import "context"
+import (
+	"context"
+)
 
 // TransactionManager はトランザクションを管理するためのインターフェースです。
 //

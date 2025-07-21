@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 	"travel-api/internal/domain"
+	"travel-api/internal/domain/shared/app_error"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -98,7 +99,7 @@ func TestUserPostgresRepository_Create(t *testing.T) {
 		user2 := createTestUser(t, username2, email, passwordHash, now, now)
 
 		err := repo.Create(ctx, user2)
-		assert.ErrorIs(t, err, domain.ErrUserAlreadyExists)
+		assert.ErrorIs(t, err, app_error.ErrUserAlreadyExists)
 	})
 
 	t.Run("異常系: 重複するユーザー名で作成", func(t *testing.T) {
@@ -113,7 +114,7 @@ func TestUserPostgresRepository_Create(t *testing.T) {
 		user2 := createTestUser(t, username, email2, passwordHash, now, now)
 
 		err := repo.Create(ctx, user2)
-		assert.ErrorIs(t, err, domain.ErrUserAlreadyExists)
+		assert.ErrorIs(t, err, app_error.ErrUserAlreadyExists)
 	})
 }
 
@@ -138,7 +139,7 @@ func TestUserPostgresRepository_FindByEmail(t *testing.T) {
 
 	t.Run("異常系: メールアドレスでユーザーが見つからない", func(t *testing.T) {
 		_, err := repo.FindByEmail(ctx, "nonexistent@example.com")
-		assert.ErrorIs(t, err, domain.ErrUserNotFound)
+		assert.ErrorIs(t, err, app_error.ErrUserNotFound)
 	})
 }
 
@@ -163,7 +164,7 @@ func TestUserPostgresRepository_FindByUsername(t *testing.T) {
 
 	t.Run("異常系: ユーザー名でユーザーが見つからない", func(t *testing.T) {
 		_, err := repo.FindByUsername(ctx, "nonexistentuser")
-		assert.ErrorIs(t, err, domain.ErrUserNotFound)
+		assert.ErrorIs(t, err, app_error.ErrUserNotFound)
 	})
 }
 
@@ -191,6 +192,6 @@ func TestUserPostgresRepository_FindByID(t *testing.T) {
 		require.NoError(t, err)
 
 		_, err = repo.FindByID(ctx, id)
-		assert.ErrorIs(t, err, domain.ErrUserNotFound)
+		assert.ErrorIs(t, err, app_error.ErrUserNotFound)
 	})
 }

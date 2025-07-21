@@ -7,6 +7,7 @@ import (
 	"time"
 	"travel-api/internal/config"
 	"travel-api/internal/domain"
+	"travel-api/internal/domain/shared/app_error"
 	"travel-api/internal/domain/shared/clock"
 	"travel-api/internal/domain/shared/uuid"
 	"travel-api/internal/usecase/output"
@@ -53,14 +54,14 @@ func (i *AuthInteractor) Register(ctx context.Context, username, email, password
 	// パスワードのハッシュ化
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
-		return output.RegisterOutput{}, domain.NewInternalServerError(err)
+		return output.RegisterOutput{}, app_error.NewInternalServerError(err)
 	}
 
 	// 新しいユーザーIDを生成
 	newUUID := i.uuidGenerator.NewUUID()
 	userID, err := domain.NewUserID(newUUID)
 	if err != nil {
-		return output.RegisterOutput{}, domain.NewInternalServerError(err)
+		return output.RegisterOutput{}, app_error.NewInternalServerError(err)
 	}
 
 	// ユーザーエンティティを作成
@@ -87,21 +88,21 @@ func (i *AuthInteractor) checkUserExistence(ctx context.Context, username, email
 	// ユーザー名が既に存在するか確認
 	_, err := i.userRepository.FindByUsername(ctx, username)
 	if err == nil {
-		return domain.ErrUsernameAlreadyExists
+		return app_error.ErrUsernameAlreadyExists
 	}
 
 	// ユーザー名が見つからない場合は、メールアドレスの存在チェックに進む
-	if !errors.Is(err, domain.ErrUserNotFound) {
+	if !errors.Is(err, app_error.ErrUserNotFound) {
 		return err
 	}
 
 	// メールアドレスが既に存在するか確認
 	_, err = i.userRepository.FindByEmail(ctx, email)
 	if err == nil {
-		return domain.ErrEmailAlreadyExists
+		return app_error.ErrEmailAlreadyExists
 	}
 
-	if !errors.Is(err, domain.ErrUserNotFound) {
+	if !errors.Is(err, app_error.ErrUserNotFound) {
 		return err
 	}
 
@@ -116,9 +117,9 @@ func (i *AuthInteractor) Login(ctx context.Context, email, password string) (out
 		user, err := i.userRepository.FindByEmail(txCtx, email)
 		if err != nil {
 			// ユーザーが見つからない場合、認証情報が無効であると返す（セキュリティのため、ユーザーが存在しないことを直接伝えない）
-			var appErr *domain.Error
-			if errors.As(err, &appErr) && appErr.Code == domain.UserNotFound {
-				return domain.ErrInvalidCredentials
+			var appErr *app_error.Error
+			if errors.As(err, &appErr) && appErr.Code == app_error.UserNotFound {
+				return app_error.ErrInvalidCredentials
 			}
 			return err
 		}
@@ -127,9 +128,9 @@ func (i *AuthInteractor) Login(ctx context.Context, email, password string) (out
 		err = bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(password))
 		if err != nil {
 			if errors.Is(err, bcrypt.ErrMismatchedHashAndPassword) {
-				return domain.ErrInvalidCredentials
+				return app_error.ErrInvalidCredentials
 			}
-			return domain.NewInternalServerError(err)
+			return app_error.NewInternalServerError(err)
 		}
 
 		accessTokenString, refreshTokenString, err := i.generateTokenPair(user.ID, i.clock.Now())
@@ -140,7 +141,7 @@ func (i *AuthInteractor) Login(ctx context.Context, email, password string) (out
 		// リフレッシュトークンをデータベースに保存
 		refreshTokenID, err := domain.NewRefreshTokenID(refreshTokenString)
 		if err != nil {
-			return domain.NewInternalServerError(err)
+			return app_error.NewInternalServerError(err)
 		}
 		newRefreshToken := domain.NewRefreshToken(
 			refreshTokenID,
@@ -150,7 +151,7 @@ func (i *AuthInteractor) Login(ctx context.Context, email, password string) (out
 			i.clock.Now(),
 		)
 		if err := i.refreshTokenRepository.Create(txCtx, newRefreshToken); err != nil {
-			return domain.NewInternalServerError(err)
+			return app_error.NewInternalServerError(err)
 		}
 
 		tokenPair = output.TokenPairOutput{Token: accessTokenString, RefreshToken: refreshTokenString}
@@ -175,31 +176,31 @@ func (i *AuthInteractor) VerifyRefreshToken(ctx context.Context, refreshToken st
 				slog.Error("Failed to delete all refresh tokens for user after reuse detection", "error", delErr, "userID", foundToken.UserID.String())
 			}
 		}
-		return output.TokenPairOutput{}, domain.ErrInvalidCredentials
+		return output.TokenPairOutput{}, app_error.ErrInvalidCredentials
 	}
 
 	err = i.transactionManager.RunInTx(ctx, func(txCtx context.Context) error {
 		// リフレッシュトークンをデータベースから検索
 		foundToken, err := i.refreshTokenRepository.FindByToken(txCtx, refreshToken)
 		if err != nil {
-			var appErr *domain.Error
-			if errors.As(err, &appErr) && appErr.Code == domain.TokenNotFound {
-				return domain.ErrInvalidCredentials
+			var appErr *app_error.Error
+			if errors.As(err, &appErr) && appErr.Code == app_error.TokenNotFound {
+				return app_error.ErrInvalidCredentials
 			}
-			return domain.NewInternalServerError(err)
+			return app_error.NewInternalServerError(err)
 		}
 
 		// リフレッシュトークンの有効期限をチェック
 		if i.clock.Now().After(foundToken.ExpiresAt) {
 			// 期限切れの場合は削除
 			_ = i.refreshTokenRepository.Delete(txCtx, foundToken)
-			return domain.ErrInvalidCredentials
+			return app_error.ErrInvalidCredentials
 		}
 
 		// 古いリフレッシュトークンを失効済みとして記録し、削除する
 		revokedTokenID, uuidErr := domain.NewRevokedTokenID(i.uuidGenerator.NewUUID())
 		if uuidErr != nil {
-			return domain.NewInternalServerError(uuidErr)
+			return app_error.NewInternalServerError(uuidErr)
 		}
 		revokedToken := domain.NewRevokedToken(
 			revokedTokenID,
@@ -209,10 +210,10 @@ func (i *AuthInteractor) VerifyRefreshToken(ctx context.Context, refreshToken st
 			i.clock.Now(),
 		)
 		if err := i.revokedTokenRepository.Create(txCtx, revokedToken); err != nil {
-			return domain.NewInternalServerError(err)
+			return app_error.NewInternalServerError(err)
 		}
 		if err := i.refreshTokenRepository.Delete(txCtx, foundToken); err != nil {
-			return domain.NewInternalServerError(err)
+			return app_error.NewInternalServerError(err)
 		}
 
 		accessTokenString, newRefreshTokenString, err := i.generateTokenPair(foundToken.UserID, i.clock.Now())
@@ -222,7 +223,7 @@ func (i *AuthInteractor) VerifyRefreshToken(ctx context.Context, refreshToken st
 
 		newRefreshTokenID, err := domain.NewRefreshTokenID(newRefreshTokenString)
 		if err != nil {
-			return domain.NewInternalServerError(err)
+			return app_error.NewInternalServerError(err)
 		}
 
 		newRefreshToken := domain.NewRefreshToken(
@@ -233,7 +234,7 @@ func (i *AuthInteractor) VerifyRefreshToken(ctx context.Context, refreshToken st
 			i.clock.Now(),
 		)
 		if err := i.refreshTokenRepository.Create(txCtx, newRefreshToken); err != nil {
-			return domain.NewInternalServerError(err)
+			return app_error.NewInternalServerError(err)
 		}
 
 		tokenPair = output.TokenPairOutput{Token: accessTokenString, RefreshToken: newRefreshTokenString}
@@ -262,7 +263,7 @@ func (i *AuthInteractor) generateTokenPair(userID domain.UserID, now time.Time) 
 
 	accessTokenString, err := accessToken.SignedString([]byte(i.jwtSecret))
 	if err != nil {
-		return "", "", domain.NewInternalServerError(err)
+		return "", "", app_error.NewInternalServerError(err)
 	}
 
 	// リフレッシュトークンの生成

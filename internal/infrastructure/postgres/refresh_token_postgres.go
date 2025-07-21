@@ -5,6 +5,7 @@ import (
 	"errors"
 	"time"
 	"travel-api/internal/domain"
+	"travel-api/internal/domain/shared/app_error"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -45,9 +46,9 @@ func (r *RefreshTokenPostgresRepository) Create(ctx context.Context, token domai
 	}); err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) && pgErr.Code == "23505" { // 23505 is unique_violation
-			return domain.ErrTokenAlreadyExists
+			return app_error.ErrTokenAlreadyExists
 		}
-		return domain.NewInternalServerError(err)
+		return app_error.NewInternalServerError(err)
 	}
 
 	return nil
@@ -59,9 +60,9 @@ func (r *RefreshTokenPostgresRepository) FindByToken(ctx context.Context, token 
 	record, err := queries.FindRefreshTokenByToken(ctx, token) // 取得したqueriesを使用
 	if err != nil {
 		if err == pgx.ErrNoRows {
-			return domain.RefreshToken{}, domain.ErrTokenNotFound
+			return domain.RefreshToken{}, app_error.ErrTokenNotFound
 		} else {
-			return domain.RefreshToken{}, domain.NewInternalServerError(err)
+			return domain.RefreshToken{}, app_error.NewInternalServerError(err)
 		}
 	}
 
@@ -75,7 +76,7 @@ func (r *RefreshTokenPostgresRepository) Delete(ctx context.Context, token domai
 	_ = validatedId.Scan(token.ID.String())
 
 	if err := queries.DeleteRefreshToken(ctx, validatedId); err != nil {
-		return domain.NewInternalServerError(err)
+		return app_error.NewInternalServerError(err)
 	}
 	return nil
 }
@@ -87,7 +88,7 @@ func (r *RefreshTokenPostgresRepository) DeleteByUserID(ctx context.Context, use
 	_ = validatedUserID.Scan(userID.String())
 
 	if err := queries.DeleteRefreshTokensByUserID(ctx, validatedUserID); err != nil {
-		return domain.NewInternalServerError(err)
+		return app_error.NewInternalServerError(err)
 	}
 	return nil
 }

@@ -4,6 +4,8 @@ import (
 	"testing"
 	"time"
 
+	"travel-api/internal/domain/shared/app_error"
+
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 )
@@ -19,14 +21,14 @@ func TestNewRefreshTokenID(t *testing.T) {
 	t.Run("異常系: 無効なUUID", func(t *testing.T) {
 		invalidUUID := "invalid-uuid"
 		refreshTokenID, err := NewRefreshTokenID(invalidUUID)
-		assert.ErrorIs(t, err, ErrInvalidUUID)
+		assert.ErrorIs(t, err, app_error.ErrInvalidUUID)
 		assert.Equal(t, RefreshTokenID{}, refreshTokenID)
 	})
 
 	t.Run("異常系: 空文字列", func(t *testing.T) {
 		emptyUUID := ""
 		refreshTokenID, err := NewRefreshTokenID(emptyUUID)
-		assert.ErrorIs(t, err, ErrInvalidUUID)
+		assert.ErrorIs(t, err, app_error.ErrInvalidUUID)
 		assert.Equal(t, RefreshTokenID{}, refreshTokenID)
 	})
 }
