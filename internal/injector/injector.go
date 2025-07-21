@@ -17,13 +17,13 @@ func NewTripHandler(db *pgxpool.Pool) *handler.TripHandler {
 	return handler.NewTripHandler(tripUsecase)
 }
 
-func NewAuthHandler(db *pgxpool.Pool) *handler.AuthHandler {
+func NewAuthHandler(db *pgxpool.Pool, jwtSecret string) *handler.AuthHandler {
 	userRepository := postgres.NewUserPostgresRepository(db)
 	refreshTokenRepository := postgres.NewRefreshTokenPostgresRepository(db)
 	clock := &domain.SystemClock{}
 	uuidGenerator := &domain.DefaultUUIDGenerator{}
 	transactionManager := postgres.NewTransactionManager(db)
 	revokedTokenRepository := postgres.NewRevokedTokenPostgresRepository(db)
-	authUsecase := usecase.NewAuthInteractor(userRepository, refreshTokenRepository, revokedTokenRepository, clock, uuidGenerator, transactionManager)
+	authUsecase := usecase.NewAuthInteractor(userRepository, refreshTokenRepository, revokedTokenRepository, clock, uuidGenerator, transactionManager, jwtSecret)
 	return handler.NewAuthHandler(authUsecase)
 }

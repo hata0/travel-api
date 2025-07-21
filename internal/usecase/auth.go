@@ -28,9 +28,10 @@ type AuthInteractor struct {
 	clock                  domain.Clock
 	uuidGenerator          domain.UUIDGenerator
 	transactionManager     domain.TransactionManager
+	jwtSecret              string
 }
 
-func NewAuthInteractor(userRepository domain.UserRepository, refreshTokenRepository domain.RefreshTokenRepository, revokedTokenRepository domain.RevokedTokenRepository, clock domain.Clock, uuidGenerator domain.UUIDGenerator, transactionManager domain.TransactionManager) *AuthInteractor {
+func NewAuthInteractor(userRepository domain.UserRepository, refreshTokenRepository domain.RefreshTokenRepository, revokedTokenRepository domain.RevokedTokenRepository, clock domain.Clock, uuidGenerator domain.UUIDGenerator, transactionManager domain.TransactionManager, jwtSecret string) *AuthInteractor {
 	return &AuthInteractor{
 		userRepository:         userRepository,
 		refreshTokenRepository: refreshTokenRepository,
@@ -38,6 +39,7 @@ func NewAuthInteractor(userRepository domain.UserRepository, refreshTokenReposit
 		clock:                  clock,
 		uuidGenerator:          uuidGenerator,
 		transactionManager:     transactionManager,
+		jwtSecret:              jwtSecret,
 	}
 }
 
@@ -85,8 +87,9 @@ func (i *AuthInteractor) checkUserExistence(ctx context.Context, username, email
 	if err == nil {
 		return domain.ErrUsernameAlreadyExists
 	}
-	var appErr *domain.Error
-	if !errors.As(err, &appErr) || appErr.Code != domain.UserNotFound {
+
+	// ユーザー名が見つからない場合は、メールアドレスの存在チェックに進む
+	if !errors.Is(err, domain.ErrUserNotFound) {
 		return err
 	}
 
@@ -95,9 +98,12 @@ func (i *AuthInteractor) checkUserExistence(ctx context.Context, username, email
 	if err == nil {
 		return domain.ErrEmailAlreadyExists
 	}
-	if !errors.As(err, &appErr) || appErr.Code != domain.UserNotFound {
+
+	if !errors.Is(err, domain.ErrUserNotFound) {
 		return err
 	}
+
+	// メールアドレスも見つからない場合は、ユーザーは存在しない
 	return nil
 }
 
@@ -252,12 +258,7 @@ func (i *AuthInteractor) generateTokenPair(userID domain.UserID, now time.Time) 
 		"exp":     now.Add(config.AccessTokenExpiration()).Unix(),
 	})
 
-	jwtSecret, err := config.JWTSecret()
-	if err != nil {
-		return "", "", domain.NewInternalServerError(err)
-	}
-
-	accessTokenString, err := accessToken.SignedString([]byte(jwtSecret))
+	accessTokenString, err := accessToken.SignedString([]byte(i.jwtSecret))
 	if err != nil {
 		return "", "", domain.NewInternalServerError(err)
 	}

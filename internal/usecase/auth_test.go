@@ -3,7 +3,6 @@ package usecase
 import (
 	"context"
 	"errors"
-	"os"
 	"testing"
 	"time"
 	"travel-api/internal/config"
@@ -26,7 +25,7 @@ func TestAuthInteractor_Register(t *testing.T) {
 	mockRepo := mock_domain.NewMockUserRepository(ctrl)
 	mockClock := mock_domain.NewMockClock(ctrl)
 	mockUUIDGenerator := mock_domain.NewMockUUIDGenerator(ctrl)
-	interactor := NewAuthInteractor(mockRepo, mock_domain.NewMockRefreshTokenRepository(ctrl), mock_domain.NewMockRevokedTokenRepository(ctrl), mockClock, mockUUIDGenerator, mock_domain.NewMockTransactionManager(ctrl))
+	interactor := NewAuthInteractor(mockRepo, mock_domain.NewMockRefreshTokenRepository(ctrl), mock_domain.NewMockRevokedTokenRepository(ctrl), mockClock, mockUUIDGenerator, mock_domain.NewMockTransactionManager(ctrl), "test-jwt-secret-key")
 
 	username := "testuser"
 	email := "test@example.com"
@@ -95,7 +94,8 @@ func TestAuthInteractor_Login(t *testing.T) {
 	mockClock := mock_domain.NewMockClock(ctrl)
 	mockUUIDGenerator := mock_domain.NewMockUUIDGenerator(ctrl)
 	mockTransactionManager := mock_domain.NewMockTransactionManager(ctrl)
-	interactor := NewAuthInteractor(mockUserRepo, mockRefreshTokenRepo, mock_domain.NewMockRevokedTokenRepository(ctrl), mockClock, mockUUIDGenerator, mockTransactionManager)
+	jwtSecret := "test_jwt-secret_key"
+	interactor := NewAuthInteractor(mockUserRepo, mockRefreshTokenRepo, mock_domain.NewMockRevokedTokenRepository(ctrl), mockClock, mockUUIDGenerator, mockTransactionManager, jwtSecret)
 
 	email := "test@example.com"
 	password := "password123"
@@ -104,6 +104,8 @@ func TestAuthInteractor_Login(t *testing.T) {
 	now := time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC)
 	userDomainID, _ := domain.NewUserID(userID)
 	expectedUser := domain.NewUser(userDomainID, "testuser", email, string(hashedPassword), now, now)
+
+	refreshTokenString := "6afcbe27-c792-485c-969f-4313db93e4a3"
 
 	t.Run("正常系: ユーザーが正常にログインできる", func(t *testing.T) {
 		mockTransactionManager.EXPECT().RunInTx(gomock.Any(), gomock.Any()).DoAndReturn(
@@ -115,7 +117,6 @@ func TestAuthInteractor_Login(t *testing.T) {
 		mockUserRepo.EXPECT().FindByEmail(gomock.Any(), email).Return(expectedUser, nil).Times(1)
 
 		// UUIDGeneratorがリフレッシュトークンを生成することを期待
-		refreshTokenString := "6afcbe27-c792-485c-969f-4313db93e4a3"
 		mockUUIDGenerator.EXPECT().NewUUID().Return(refreshTokenString).Times(1)
 
 		// Clockが現在時刻を返すことを期待
@@ -133,10 +134,6 @@ func TestAuthInteractor_Login(t *testing.T) {
 		)
 		mockRefreshTokenRepo.EXPECT().Create(gomock.Any(), expectedRefreshToken).Return(nil).Times(1)
 
-		// JWTSecretが秘密鍵を返すことを期待
-		os.Setenv("JWT_SECRET", "your_jwt_secret_key")
-		defer os.Unsetenv("JWT_SECRET")
-
 		output, err := interactor.Login(context.Background(), email, password)
 
 		assert.NoError(t, err)
@@ -145,7 +142,7 @@ func TestAuthInteractor_Login(t *testing.T) {
 
 		// 生成されたトークンの検証（オプション）
 		token, _ := jwt.Parse(output.Token, func(token *jwt.Token) (interface{}, error) {
-			return []byte("your_jwt_secret_key"), nil
+			return []byte(jwtSecret), nil
 		})
 		claims, ok := token.Claims.(jwt.MapClaims)
 		assert.True(t, ok)
@@ -179,24 +176,6 @@ func TestAuthInteractor_Login(t *testing.T) {
 
 		assert.ErrorIs(t, err, domain.ErrInvalidCredentials)
 	})
-
-	t.Run("異常系: JWT秘密鍵が未設定", func(t *testing.T) {
-		mockTransactionManager.EXPECT().RunInTx(gomock.Any(), gomock.Any()).DoAndReturn(
-			func(ctx context.Context, fn func(ctx context.Context) error) error {
-				return fn(ctx)
-			},
-		).Times(1)
-		mockUserRepo.EXPECT().FindByEmail(gomock.Any(), email).Return(expectedUser, nil).Times(1)
-		mockClock.EXPECT().Now().Return(now).Times(1)
-
-		// JWT_SECRETが設定されていない状態にする
-		os.Unsetenv("JWT_SECRET")
-
-		_, err := interactor.Login(context.Background(), email, password)
-		assert.Error(t, err)
-		var appErr *domain.Error
-		assert.True(t, errors.As(err, &appErr) && appErr.Code == domain.InternalServerError, "expected internal server error")
-	})
 }
 
 func TestAuthInteractor_VerifyRefreshToken(t *testing.T) {
@@ -209,7 +188,7 @@ func TestAuthInteractor_VerifyRefreshToken(t *testing.T) {
 	mockClock := mock_domain.NewMockClock(ctrl)
 	mockUUIDGenerator := mock_domain.NewMockUUIDGenerator(ctrl)
 	mockTransactionManager := mock_domain.NewMockTransactionManager(ctrl)
-	interactor := NewAuthInteractor(mockUserRepo, mockRefreshTokenRepo, mockRevokedTokenRepo, mockClock, mockUUIDGenerator, mockTransactionManager)
+	interactor := NewAuthInteractor(mockUserRepo, mockRefreshTokenRepo, mockRevokedTokenRepo, mockClock, mockUUIDGenerator, mockTransactionManager, "test-jwt-secret-key")
 
 	refreshTokenString := "valid-refresh-token"
 	userIDString := "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d"
@@ -264,14 +243,8 @@ func TestAuthInteractor_VerifyRefreshToken(t *testing.T) {
 		mockRevokedTokenRepo.EXPECT().Create(gomock.Any(), revokedToken).Return(nil).Times(1)
 		mockRefreshTokenRepo.EXPECT().Delete(gomock.Any(), refreshToken).Return(nil).Times(1)
 
-		
-
 		// 新しいリフレッシュトークンが保存されることを期待
 		mockRefreshTokenRepo.EXPECT().Create(gomock.Any(), newRefreshToken).Return(nil).Times(1)
-
-		// JWTSecretが秘密鍵を返すことを期待
-		os.Setenv("JWT_SECRET", "your_jwt_secret_key")
-		defer os.Unsetenv("JWT_SECRET")
 
 		output, err := interactor.VerifyRefreshToken(context.Background(), refreshTokenString)
 
@@ -359,8 +332,6 @@ func TestAuthInteractor_VerifyRefreshToken(t *testing.T) {
 		assert.ErrorIs(t, err, domain.ErrInvalidCredentials)
 	})
 
-	
-
 	t.Run("異常系: リフレッシュトークン保存でエラー", func(t *testing.T) {
 		mockRevokedTokenRepo.EXPECT().FindByJTI(gomock.Any(), refreshTokenString).Return(domain.RevokedToken{}, domain.ErrTokenNotFound).Times(1)
 		mockTransactionManager.EXPECT().RunInTx(gomock.Any(), gomock.Any()).DoAndReturn(
@@ -382,10 +353,8 @@ func TestAuthInteractor_VerifyRefreshToken(t *testing.T) {
 
 		mockRevokedTokenRepo.EXPECT().Create(gomock.Any(), revokedToken).Return(nil).Times(1)
 		mockRefreshTokenRepo.EXPECT().Delete(gomock.Any(), refreshToken).Return(nil).Times(1)
-		
+
 		mockRefreshTokenRepo.EXPECT().Create(gomock.Any(), newRefreshToken).Return(errors.New("db error")).Times(1)
-		os.Setenv("JWT_SECRET", "your_jwt_secret_key")
-		defer os.Unsetenv("JWT_SECRET")
 
 		_, err := interactor.VerifyRefreshToken(context.Background(), refreshTokenString)
 		assert.Error(t, err)
@@ -399,7 +368,7 @@ func TestAuthInteractor_RevokeRefreshToken(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockRefreshTokenRepo := mock_domain.NewMockRefreshTokenRepository(ctrl)
-	interactor := NewAuthInteractor(mock_domain.NewMockUserRepository(ctrl), mockRefreshTokenRepo, mock_domain.NewMockRevokedTokenRepository(ctrl), mock_domain.NewMockClock(ctrl), mock_domain.NewMockUUIDGenerator(ctrl), mock_domain.NewMockTransactionManager(ctrl))
+	interactor := NewAuthInteractor(mock_domain.NewMockUserRepository(ctrl), mockRefreshTokenRepo, mock_domain.NewMockRevokedTokenRepository(ctrl), mock_domain.NewMockClock(ctrl), mock_domain.NewMockUUIDGenerator(ctrl), mock_domain.NewMockTransactionManager(ctrl), "test-jwt-secret-key")
 
 	refreshTokenString := "token-to-revoke"
 	userID := "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d"

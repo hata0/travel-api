@@ -31,17 +31,19 @@ func main() {
 	}
 	defer db.Close()
 
-	router := gin.Default()
-
-	injector.NewAuthHandler(db).RegisterAPI(router)
-	injector.NewTripHandler(db).RegisterAPI(router)
-
 	// 認証が必要なAPIグループ
 	jwtSecret, err := config.JWTSecret()
 	if err != nil {
 		slog.Error("Failed to get JWT secret", "error", err)
 		os.Exit(1)
 	}
+
+	router := gin.Default()
+
+	injector.NewAuthHandler(db, jwtSecret).RegisterAPI(router)
+	injector.NewTripHandler(db).RegisterAPI(router)
+
+	// 認証が必要なAPIグループ
 	authRequired := router.Group("/")
 	authRequired.Use(middleware.RateLimitMiddleware(100, time.Minute))
 	authRequired.Use(middleware.AuthMiddleware(jwtSecret))
