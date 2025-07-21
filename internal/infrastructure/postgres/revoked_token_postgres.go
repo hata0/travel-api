@@ -6,6 +6,7 @@ import (
 	"time"
 	"travel-api/internal/domain"
 	"travel-api/internal/domain/shared/app_error"
+	postgres "travel-api/internal/infrastructure/postgres/generated"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn" // pgconnパッケージのインポートを追加
@@ -16,7 +17,7 @@ type RevokedTokenPostgresRepository struct {
 	*BaseRepository
 }
 
-func NewRevokedTokenPostgresRepository(db DBTX) domain.RevokedTokenRepository {
+func NewRevokedTokenPostgresRepository(db postgres.DBTX) domain.RevokedTokenRepository {
 	return &RevokedTokenPostgresRepository{
 		BaseRepository: NewBaseRepository(db),
 	}
@@ -37,7 +38,7 @@ func (r *RevokedTokenPostgresRepository) Create(ctx context.Context, token domai
 	var validatedRevokedAt pgtype.Timestamptz
 	_ = validatedRevokedAt.Scan(token.RevokedAt)
 
-	if err := queries.CreateRevokedToken(ctx, CreateRevokedTokenParams{
+	if err := queries.CreateRevokedToken(ctx, postgres.CreateRevokedTokenParams{
 		ID:        validatedId,
 		UserID:    validatedUserID,
 		TokenJti:  token.TokenJTI,
@@ -69,7 +70,7 @@ func (r *RevokedTokenPostgresRepository) FindByJTI(ctx context.Context, jti stri
 	return r.mapToRevokedToken(record), nil
 }
 
-func (r *RevokedTokenPostgresRepository) mapToRevokedToken(record RevokedToken) domain.RevokedToken {
+func (r *RevokedTokenPostgresRepository) mapToRevokedToken(record postgres.RevokedToken) domain.RevokedToken {
 	var id domain.RevokedTokenID
 	if record.ID.Valid {
 		id, _ = domain.NewRevokedTokenID(record.ID.String())

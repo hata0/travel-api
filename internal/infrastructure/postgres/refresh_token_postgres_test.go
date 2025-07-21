@@ -6,6 +6,7 @@ import (
 	"time"
 	"travel-api/internal/domain"
 	"travel-api/internal/domain/shared/app_error"
+	postgres "travel-api/internal/infrastructure/postgres/generated"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -23,9 +24,9 @@ func createTestRefreshToken(t *testing.T, userID domain.UserID, token string, ex
 }
 
 // insertTestRefreshToken はテスト用のRefreshTokenドメインオブジェクトをデータベースに挿入するヘルパー関数
-func insertTestRefreshToken(t *testing.T, ctx context.Context, db DBTX, token domain.RefreshToken) {
+func insertTestRefreshToken(t *testing.T, ctx context.Context, db postgres.DBTX, token domain.RefreshToken) {
 	t.Helper()
-	queries := New(db)
+	queries := postgres.New(db)
 
 	var validatedId pgtype.UUID
 	_ = validatedId.Scan(token.ID.String())
@@ -39,7 +40,7 @@ func insertTestRefreshToken(t *testing.T, ctx context.Context, db DBTX, token do
 	var validatedCreatedAt pgtype.Timestamptz
 	_ = validatedCreatedAt.Scan(token.CreatedAt)
 
-	err := queries.CreateRefreshToken(ctx, CreateRefreshTokenParams{
+	err := queries.CreateRefreshToken(ctx, postgres.CreateRefreshTokenParams{
 		ID:        validatedId,
 		UserID:    validatedUserID,
 		Token:     token.Token,
@@ -50,9 +51,9 @@ func insertTestRefreshToken(t *testing.T, ctx context.Context, db DBTX, token do
 }
 
 // getRefreshTokenFromDB はデータベースから直接RefreshTokenレコードを取得するヘルパー関数
-func getRefreshTokenFromDB(t *testing.T, ctx context.Context, db DBTX, token string) (RefreshToken, error) {
+func getRefreshTokenFromDB(t *testing.T, ctx context.Context, db postgres.DBTX, token string) (postgres.RefreshToken, error) {
 	t.Helper()
-	queries := New(db)
+	queries := postgres.New(db)
 	return queries.FindRefreshTokenByToken(ctx, token)
 }
 

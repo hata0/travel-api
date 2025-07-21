@@ -6,6 +6,7 @@ import (
 	"time"
 	"travel-api/internal/domain"
 	"travel-api/internal/domain/shared/app_error"
+	postgres "travel-api/internal/infrastructure/postgres/generated"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -16,7 +17,7 @@ type TripPostgresRepository struct {
 	*BaseRepository
 }
 
-func NewTripPostgresRepository(db DBTX) domain.TripRepository {
+func NewTripPostgresRepository(db postgres.DBTX) domain.TripRepository {
 	return &TripPostgresRepository{
 		BaseRepository: NewBaseRepository(db),
 	}
@@ -55,7 +56,7 @@ func (r *TripPostgresRepository) FindMany(ctx context.Context) ([]domain.Trip, e
 	return trips, nil
 }
 
-func (r *TripPostgresRepository) mapToTrip(record Trip) domain.Trip {
+func (r *TripPostgresRepository) mapToTrip(record postgres.Trip) domain.Trip {
 	var id domain.TripID
 	if record.ID.Valid {
 		id, _ = domain.NewTripID(record.ID.String())
@@ -91,7 +92,7 @@ func (r *TripPostgresRepository) Create(ctx context.Context, trip domain.Trip) e
 	var validatedUpdatedAt pgtype.Timestamptz
 	_ = validatedUpdatedAt.Scan(trip.UpdatedAt)
 
-	if err := queries.CreateTrip(ctx, CreateTripParams{
+	if err := queries.CreateTrip(ctx, postgres.CreateTripParams{
 		ID:        validatedId,
 		Name:      trip.Name,
 		CreatedAt: validatedCreatedAt,
@@ -116,7 +117,7 @@ func (r *TripPostgresRepository) Update(ctx context.Context, trip domain.Trip) e
 	var validatedUpdatedAt pgtype.Timestamptz
 	_ = validatedUpdatedAt.Scan(trip.UpdatedAt)
 
-	if err := queries.UpdateTrip(ctx, UpdateTripParams{
+	if err := queries.UpdateTrip(ctx, postgres.UpdateTripParams{
 		ID:        validatedId,
 		Name:      trip.Name,
 		UpdatedAt: validatedUpdatedAt,

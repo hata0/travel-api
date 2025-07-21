@@ -1,6 +1,6 @@
 export $(shell cat .env | xargs)
 
-MIGRATIONS_DIR = internal/infrastructure/postgres/sql/migrations
+MIGRATIONS_DIR = internal/infrastructure/postgres/migrations
 
 migrate-up:
 	migrate -database ${DATABASE_URL} -path ${MIGRATIONS_DIR} up

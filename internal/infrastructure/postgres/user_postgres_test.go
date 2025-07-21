@@ -6,6 +6,7 @@ import (
 	"time"
 	"travel-api/internal/domain"
 	"travel-api/internal/domain/shared/app_error"
+	postgres "travel-api/internal/infrastructure/postgres/generated"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -22,9 +23,9 @@ func createTestUser(t *testing.T, username, email, passwordHash string, createdA
 }
 
 // insertTestUser はテスト用のUserドメインオブジェクトをデータベースに挿入するヘルパー関数
-func insertTestUser(t *testing.T, ctx context.Context, db DBTX, user domain.User) {
+func insertTestUser(t *testing.T, ctx context.Context, db postgres.DBTX, user domain.User) {
 	t.Helper()
-	queries := New(db)
+	queries := postgres.New(db)
 
 	var validatedId pgtype.UUID
 	_ = validatedId.Scan(user.ID.String())
@@ -35,7 +36,7 @@ func insertTestUser(t *testing.T, ctx context.Context, db DBTX, user domain.User
 	var validatedUpdatedAt pgtype.Timestamptz
 	_ = validatedUpdatedAt.Scan(user.UpdatedAt)
 
-	err := queries.CreateUser(ctx, CreateUserParams{
+	err := queries.CreateUser(ctx, postgres.CreateUserParams{
 		ID:           validatedId,
 		Username:     user.Username,
 		Email:        user.Email,
@@ -47,9 +48,9 @@ func insertTestUser(t *testing.T, ctx context.Context, db DBTX, user domain.User
 }
 
 // getUserFromDB はデータベースから直接Userレコードを取得するヘルパー関数
-func getUserFromDB(t *testing.T, ctx context.Context, db DBTX, idStr string) (User, error) {
+func getUserFromDB(t *testing.T, ctx context.Context, db postgres.DBTX, idStr string) (postgres.User, error) {
 	t.Helper()
-	queries := New(db)
+	queries := postgres.New(db)
 
 	var validatedId pgtype.UUID
 	_ = validatedId.Scan(idStr)

@@ -6,6 +6,7 @@ import (
 	"time"
 	"travel-api/internal/domain"
 	"travel-api/internal/domain/shared/app_error"
+	postgres "travel-api/internal/infrastructure/postgres/generated"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -22,9 +23,9 @@ func createTestRevokedToken(t *testing.T, userID domain.UserID, jti string, expi
 }
 
 // insertTestRevokedToken はテスト用のRevokedTokenドメインオブジェクトをデータベースに挿入するヘルパー関数
-func insertTestRevokedToken(t *testing.T, ctx context.Context, db DBTX, token domain.RevokedToken) {
+func insertTestRevokedToken(t *testing.T, ctx context.Context, db postgres.DBTX, token domain.RevokedToken) {
 	t.Helper()
-	queries := New(db)
+	queries := postgres.New(db)
 
 	var validatedId pgtype.UUID
 	_ = validatedId.Scan(token.ID.String())
@@ -38,7 +39,7 @@ func insertTestRevokedToken(t *testing.T, ctx context.Context, db DBTX, token do
 	var validatedRevokedAt pgtype.Timestamptz
 	_ = validatedRevokedAt.Scan(token.RevokedAt)
 
-	err := queries.CreateRevokedToken(ctx, CreateRevokedTokenParams{
+	err := queries.CreateRevokedToken(ctx, postgres.CreateRevokedTokenParams{
 		ID:        validatedId,
 		UserID:    validatedUserID,
 		TokenJti:  token.TokenJTI,
@@ -49,9 +50,9 @@ func insertTestRevokedToken(t *testing.T, ctx context.Context, db DBTX, token do
 }
 
 // getRevokedTokenFromDB はデータベースから直接RevokedTokenレコードを取得するヘルパー関数
-func getRevokedTokenFromDB(t *testing.T, ctx context.Context, db DBTX, jti string) (RevokedToken, error) {
+func getRevokedTokenFromDB(t *testing.T, ctx context.Context, db postgres.DBTX, jti string) (postgres.RevokedToken, error) {
 	t.Helper()
-	queries := New(db)
+	queries := postgres.New(db)
 	return queries.GetRevokedTokenByJTI(ctx, jti)
 }
 

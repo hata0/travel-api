@@ -6,6 +6,7 @@ import (
 	"time"
 	"travel-api/internal/domain"
 	"travel-api/internal/domain/shared/app_error"
+	postgres "travel-api/internal/infrastructure/postgres/generated"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -16,7 +17,7 @@ type UserPostgresRepository struct {
 	*BaseRepository
 }
 
-func NewUserPostgresRepository(db DBTX) domain.UserRepository {
+func NewUserPostgresRepository(db postgres.DBTX) domain.UserRepository {
 	return &UserPostgresRepository{
 		BaseRepository: NewBaseRepository(db),
 	}
@@ -34,7 +35,7 @@ func (r *UserPostgresRepository) Create(ctx context.Context, user domain.User) e
 	var validatedUpdatedAt pgtype.Timestamptz
 	_ = validatedUpdatedAt.Scan(user.UpdatedAt)
 
-	if err := queries.CreateUser(ctx, CreateUserParams{
+	if err := queries.CreateUser(ctx, postgres.CreateUserParams{
 		ID:           validatedId,
 		Username:     user.Username,
 		Email:        user.Email,
@@ -100,7 +101,7 @@ func (r *UserPostgresRepository) FindByID(ctx context.Context, id domain.UserID)
 	return r.mapToUser(record), nil
 }
 
-func (r *UserPostgresRepository) mapToUser(record User) domain.User {
+func (r *UserPostgresRepository) mapToUser(record postgres.User) domain.User {
 	var id domain.UserID
 	if record.ID.Valid {
 		id, _ = domain.NewUserID(record.ID.String())

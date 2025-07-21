@@ -6,6 +6,7 @@ import (
 	"time"
 	"travel-api/internal/domain"
 	"travel-api/internal/domain/shared/app_error"
+	postgres "travel-api/internal/infrastructure/postgres/generated"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -23,9 +24,9 @@ func createTestTrip(t *testing.T, name string, createdAt, updatedAt time.Time) d
 }
 
 // insertTestTrip はテスト用のTripドメインオブジェクトをデータベースに挿入するヘルパー関数
-func insertTestTrip(t *testing.T, ctx context.Context, db DBTX, trip domain.Trip) {
+func insertTestTrip(t *testing.T, ctx context.Context, db postgres.DBTX, trip domain.Trip) {
 	t.Helper()
-	queries := New(db)
+	queries := postgres.New(db)
 
 	var validatedId pgtype.UUID
 	_ = validatedId.Scan(trip.ID.String())
@@ -36,7 +37,7 @@ func insertTestTrip(t *testing.T, ctx context.Context, db DBTX, trip domain.Trip
 	var validatedUpdatedAt pgtype.Timestamptz
 	_ = validatedUpdatedAt.Scan(trip.UpdatedAt)
 
-	err := queries.CreateTrip(ctx, CreateTripParams{
+	err := queries.CreateTrip(ctx, postgres.CreateTripParams{
 		ID:        validatedId,
 		Name:      trip.Name,
 		CreatedAt: validatedCreatedAt,
@@ -46,9 +47,9 @@ func insertTestTrip(t *testing.T, ctx context.Context, db DBTX, trip domain.Trip
 }
 
 // getTripFromDB はデータベースから直接Tripレコードを取得するヘルパー関数
-func getTripFromDB(t *testing.T, ctx context.Context, db DBTX, idStr string) (Trip, error) {
+func getTripFromDB(t *testing.T, ctx context.Context, db postgres.DBTX, idStr string) (postgres.Trip, error) {
 	t.Helper()
-	queries := New(db)
+	queries := postgres.New(db)
 
 	var validatedId pgtype.UUID
 	_ = validatedId.Scan(idStr)

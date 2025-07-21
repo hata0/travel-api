@@ -6,6 +6,7 @@ import (
 	"time"
 	"travel-api/internal/domain"
 	"travel-api/internal/domain/shared/app_error"
+	postgres "travel-api/internal/infrastructure/postgres/generated"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -16,7 +17,7 @@ type RefreshTokenPostgresRepository struct {
 	*BaseRepository
 }
 
-func NewRefreshTokenPostgresRepository(db DBTX) domain.RefreshTokenRepository {
+func NewRefreshTokenPostgresRepository(db postgres.DBTX) domain.RefreshTokenRepository {
 	return &RefreshTokenPostgresRepository{
 		BaseRepository: NewBaseRepository(db),
 	}
@@ -37,7 +38,7 @@ func (r *RefreshTokenPostgresRepository) Create(ctx context.Context, token domai
 	var validatedCreatedAt pgtype.Timestamptz
 	_ = validatedCreatedAt.Scan(token.CreatedAt)
 
-	if err := queries.CreateRefreshToken(ctx, CreateRefreshTokenParams{ // 取得したqueriesを使用
+	if err := queries.CreateRefreshToken(ctx, postgres.CreateRefreshTokenParams{ // 取得したqueriesを使用
 		ID:        validatedId,
 		UserID:    validatedUserID,
 		Token:     token.Token,
@@ -93,7 +94,7 @@ func (r *RefreshTokenPostgresRepository) DeleteByUserID(ctx context.Context, use
 	return nil
 }
 
-func (r *RefreshTokenPostgresRepository) mapToRefreshToken(record RefreshToken) domain.RefreshToken {
+func (r *RefreshTokenPostgresRepository) mapToRefreshToken(record postgres.RefreshToken) domain.RefreshToken {
 	var id domain.RefreshTokenID
 	if record.ID.Valid {
 		id, _ = domain.NewRefreshTokenID(record.ID.String())

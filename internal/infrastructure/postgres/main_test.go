@@ -69,7 +69,7 @@ func setupTestContainer(ctx context.Context) (*postgres.PostgresContainer, strin
 
 	// マイグレーションを実行
 	mig, err := migrate.New(
-		"file://sql/migrations",
+		"file://migrations",
 		dbUrl,
 	)
 	if err != nil {
