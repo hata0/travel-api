@@ -25,6 +25,10 @@ internal/          # 内部的なアプリケーションロジック
   infrastructure/  # データベースなどの外部依存の実装
   interface/       # リクエストとレスポンスのハンドラ
   usecase/         # アプリケーション固有のビジネスルール
+  config/          # アプリケーション設定
+  injector/        # 依存性注入
+  router/          # ルーティング
+  server/          # サーバー起動ロジック
 ```
 
 ## 開発環境の構築
