@@ -19,7 +19,7 @@ func NewAuthHandler(usecase usecase.AuthUsecase) *AuthHandler {
 	}
 }
 
-func (handler *AuthHandler) RegisterAPI(router *gin.Engine) {
+func (handler *AuthHandler) RegisterAPI(router *gin.RouterGroup) {
 	router.POST("/register", handler.register)
 	router.POST("/login", handler.login)
 	router.POST("/refresh", handler.refresh)

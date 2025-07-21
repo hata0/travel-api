@@ -19,7 +19,7 @@ func NewTripHandler(usecase usecase.TripUsecase) *TripHandler {
 	}
 }
 
-func (handler *TripHandler) RegisterAPI(router *gin.Engine) {
+func (handler *TripHandler) RegisterAPI(router *gin.RouterGroup) {
 	router.GET("/trips/:trip_id", handler.get)
 	router.GET("/trips", handler.list)
 	router.POST("/trips", handler.create)

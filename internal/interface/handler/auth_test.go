@@ -25,7 +25,7 @@ func TestAuthHandler_Register(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	r := gin.Default()
 	authHandler := NewAuthHandler(mockUsecase)
-	authHandler.RegisterAPI(r)
+	authHandler.RegisterAPI(r.Group("/"))
 
 	username := "testuser"
 	email := "test@example.com"
@@ -116,7 +116,7 @@ func TestAuthHandler_Login(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	r := gin.Default()
 	authHandler := NewAuthHandler(mockUsecase)
-	authHandler.RegisterAPI(r)
+	authHandler.RegisterAPI(r.Group("/"))
 
 	email := "test@example.com"
 	password := "password123"
@@ -186,7 +186,7 @@ func TestAuthHandler_Refresh(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	r := gin.Default()
 	authHandler := NewAuthHandler(mockUsecase)
-	authHandler.RegisterAPI(r)
+	authHandler.RegisterAPI(r.Group("/"))
 
 	refreshToken := "mock_refresh_token"
 	newAccessToken := "new_mock_access_token"
