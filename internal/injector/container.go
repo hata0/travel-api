@@ -3,6 +3,7 @@ package injector
 import (
 	"travel-api/internal/config"
 	"travel-api/internal/domain"
+	"travel-api/internal/domain/shared/clock"
 	"travel-api/internal/interface/handler"
 	"travel-api/internal/usecase"
 
@@ -74,7 +75,7 @@ func (c *Container) AuthHandler() *handler.AuthHandler {
 }
 
 // ServiceProvider インターフェースの実装
-func (c *Container) Clock() domain.Clock {
+func (c *Container) Clock() clock.Clock {
 	return c.services.Clock()
 }
 

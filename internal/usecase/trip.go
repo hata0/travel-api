@@ -3,6 +3,7 @@ package usecase
 import (
 	"context"
 	"travel-api/internal/domain"
+	"travel-api/internal/domain/shared/clock"
 	"travel-api/internal/usecase/output"
 )
 
@@ -17,11 +18,11 @@ type TripUsecase interface {
 
 type TripInteractor struct {
 	repository    domain.TripRepository
-	clock         domain.Clock
+	clock         clock.Clock
 	uuidGenerator domain.UUIDGenerator
 }
 
-func NewTripInteractor(repository domain.TripRepository, clock domain.Clock, uuidGenerator domain.UUIDGenerator) *TripInteractor {
+func NewTripInteractor(repository domain.TripRepository, clock clock.Clock, uuidGenerator domain.UUIDGenerator) *TripInteractor {
 	return &TripInteractor{
 		repository:    repository,
 		clock:         clock,

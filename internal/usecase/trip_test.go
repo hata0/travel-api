@@ -7,6 +7,7 @@ import (
 	"time"
 	"travel-api/internal/domain"
 	mock_domain "travel-api/internal/domain/mock"
+	mock_clock "travel-api/internal/domain/shared/clock/mock"
 	"travel-api/internal/usecase/output"
 
 	"github.com/stretchr/testify/assert"
@@ -18,7 +19,7 @@ func TestTripInteractor_Get(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockRepo := mock_domain.NewMockTripRepository(ctrl)
-	mockClock := mock_domain.NewMockClock(ctrl)
+	mockClock := mock_clock.NewMockClock(ctrl)
 	mockUUIDGenerator := mock_domain.NewMockUUIDGenerator(ctrl)
 	interactor := NewTripInteractor(mockRepo, mockClock, mockUUIDGenerator)
 
@@ -61,7 +62,7 @@ func TestTripInteractor_List(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockRepo := mock_domain.NewMockTripRepository(ctrl)
-	mockClock := mock_domain.NewMockClock(ctrl)
+	mockClock := mock_clock.NewMockClock(ctrl)
 	mockUUIDGenerator := mock_domain.NewMockUUIDGenerator(ctrl)
 	interactor := NewTripInteractor(mockRepo, mockClock, mockUUIDGenerator)
 
@@ -101,7 +102,7 @@ func TestTripInteractor_Create(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockRepo := mock_domain.NewMockTripRepository(ctrl)
-	mockClock := mock_domain.NewMockClock(ctrl)
+	mockClock := mock_clock.NewMockClock(ctrl)
 	mockUUIDGenerator := mock_domain.NewMockUUIDGenerator(ctrl)
 	interactor := NewTripInteractor(mockRepo, mockClock, mockUUIDGenerator)
 
@@ -129,7 +130,7 @@ func TestTripInteractor_Update(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockRepo := mock_domain.NewMockTripRepository(ctrl)
-	mockClock := mock_domain.NewMockClock(ctrl)
+	mockClock := mock_clock.NewMockClock(ctrl)
 	mockUUIDGenerator := mock_domain.NewMockUUIDGenerator(ctrl)
 	interactor := NewTripInteractor(mockRepo, mockClock, mockUUIDGenerator)
 
@@ -203,7 +204,7 @@ func TestTripInteractor_Delete(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockRepo := mock_domain.NewMockTripRepository(ctrl)
-	mockClock := mock_domain.NewMockClock(ctrl)
+	mockClock := mock_clock.NewMockClock(ctrl)
 	mockUUIDGenerator := mock_domain.NewMockUUIDGenerator(ctrl)
 	interactor := NewTripInteractor(mockRepo, mockClock, mockUUIDGenerator)
 
