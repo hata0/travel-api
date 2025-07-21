@@ -35,9 +35,6 @@ var (
 	ErrTripNotFound = &Error{Code: TripNotFound, Message: "trip not found"}
 	// ErrTripAlreadyExists は、Tripが既に存在する場合に返されます。
 	ErrTripAlreadyExists = &Error{Code: TripAlreadyExists, Message: "trip already exists"}
-	// ErrInternalServerError は、予期せぬ内部エラーが発生した場合に返されます。
-	// このエラーは通常、具体的なエラー情報でラップして使用します。
-	ErrInternalServerError = &Error{Code: InternalServerError, Message: "internal server error"}
 	// ErrUserNotFound は、ユーザーが見つからない場合に返されます。
 	ErrUserNotFound = &Error{Code: UserNotFound, Message: "user not found"}
 	// ErrUserAlreadyExists は、ユーザーが既に存在する場合に返されます。
@@ -46,12 +43,18 @@ var (
 	ErrUsernameAlreadyExists = &Error{Code: UsernameAlreadyExists, Message: "username already exists"}
 	// ErrEmailAlreadyExists は、メールアドレスが既に存在する場合に返されます。
 	ErrEmailAlreadyExists = &Error{Code: EmailAlreadyExists, Message: "email already exists"}
-	// ErrInvalidCredentials は、認証情報が無効な場合に返されます。
-	ErrInvalidCredentials = &Error{Code: InvalidCredentials, Message: "invalid credentials"}
 	// ErrTokenNotFound は、トークンが見つからない場合に返されます。
 	ErrTokenNotFound = &Error{Code: TokenNotFound, Message: "token not found"}
 	// ErrTokenAlreadyExists は、トークンが既に存在する場合に返されます。
 	ErrTokenAlreadyExists = &Error{Code: TokenAlreadyExists, Message: "token already exists"}
+)
+
+var (
+	// ErrInternalServerError は、予期せぬ内部エラーが発生した場合に返されます。
+	// このエラーは通常、具体的なエラー情報でラップして使用します。
+	ErrInternalServerError = &Error{Code: InternalServerError, Message: "internal server error"}
+	// ErrInvalidCredentials は、認証情報が無効な場合に返されます。
+	ErrInvalidCredentials = &Error{Code: InvalidCredentials, Message: "invalid credentials"}
 	// ErrConfiguration は、設定エラーが発生した場合に返されます。
 	ErrConfiguration = &Error{Code: ConfigurationError, Message: "configuration error"}
 )
