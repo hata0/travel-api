@@ -1,6 +1,8 @@
 package domain
 
-import "fmt"
+import (
+	"fmt"
+)
 
 // Error はアプリケーション固有のエラーを表すカスタムエラー型です。
 type Error struct {

@@ -4,6 +4,7 @@ import (
 	"context"
 	"travel-api/internal/domain"
 	"travel-api/internal/domain/shared/clock"
+	"travel-api/internal/domain/shared/uuid"
 	"travel-api/internal/usecase/output"
 )
 
@@ -19,10 +20,10 @@ type TripUsecase interface {
 type TripInteractor struct {
 	repository    domain.TripRepository
 	clock         clock.Clock
-	uuidGenerator domain.UUIDGenerator
+	uuidGenerator uuid.UUIDGenerator
 }
 
-func NewTripInteractor(repository domain.TripRepository, clock clock.Clock, uuidGenerator domain.UUIDGenerator) *TripInteractor {
+func NewTripInteractor(repository domain.TripRepository, clock clock.Clock, uuidGenerator uuid.UUIDGenerator) *TripInteractor {
 	return &TripInteractor{
 		repository:    repository,
 		clock:         clock,

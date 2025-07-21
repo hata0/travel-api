@@ -3,6 +3,7 @@ package domain
 import (
 	"context"
 	"time"
+	"travel-api/internal/domain/shared/uuid"
 )
 
 //go:generate mockgen -destination mock/revoked_token.go travel-api/internal/domain RevokedTokenRepository
@@ -16,7 +17,7 @@ type RevokedTokenID struct {
 }
 
 func NewRevokedTokenID(id string) (RevokedTokenID, error) {
-	if !IsValidUUID(id) {
+	if !uuid.IsValidUUID(id) {
 		return RevokedTokenID{}, ErrInvalidUUID
 	}
 	return RevokedTokenID{value: id}, nil

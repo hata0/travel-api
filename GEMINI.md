@@ -37,3 +37,10 @@ internal/          # Internal application logic.
   interface/.      # Handlers for requests and responses.
   usecase/         # Application-specific business rules.
 ```
+
+# Implementation Notes
+
+## General Principles
+
+- Choose appropriate methods in practice.
+- If a fix takes more than 3 minutes, skip it. Finally, summarize and explain the failed fixes.

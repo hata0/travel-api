@@ -3,6 +3,7 @@ package injector
 import (
 	"travel-api/internal/domain"
 	"travel-api/internal/domain/shared/clock"
+	"travel-api/internal/domain/shared/uuid"
 	"travel-api/internal/interface/handler"
 	"travel-api/internal/usecase"
 )
@@ -16,7 +17,7 @@ type HandlerProvider interface {
 // ServiceProvider はドメインサービスのインターフェース
 type ServiceProvider interface {
 	Clock() clock.Clock
-	UUIDGenerator() domain.UUIDGenerator
+	UUIDGenerator() uuid.UUIDGenerator
 	TransactionManager() usecase.TransactionManager
 }
 

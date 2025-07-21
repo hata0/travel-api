@@ -1,8 +1,8 @@
 package injector
 
 import (
-	"travel-api/internal/domain"
 	"travel-api/internal/domain/shared/clock"
+	"travel-api/internal/domain/shared/uuid"
 	"travel-api/internal/infrastructure/postgres"
 	"travel-api/internal/usecase"
 
@@ -12,7 +12,7 @@ import (
 // Services はドメインサービスの実装を提供する
 type Services struct {
 	clock              clock.Clock
-	uuidGenerator      domain.UUIDGenerator
+	uuidGenerator      uuid.UUIDGenerator
 	transactionManager usecase.TransactionManager
 }
 
@@ -20,7 +20,7 @@ type Services struct {
 func NewServices(db *pgxpool.Pool) *Services {
 	return &Services{
 		clock:              &clock.SystemClock{},
-		uuidGenerator:      &domain.DefaultUUIDGenerator{},
+		uuidGenerator:      &uuid.DefaultUUIDGenerator{},
 		transactionManager: postgres.NewTransactionManager(db),
 	}
 }
@@ -29,7 +29,7 @@ func (s *Services) Clock() clock.Clock {
 	return s.clock
 }
 
-func (s *Services) UUIDGenerator() domain.UUIDGenerator {
+func (s *Services) UUIDGenerator() uuid.UUIDGenerator {
 	return s.uuidGenerator
 }
 

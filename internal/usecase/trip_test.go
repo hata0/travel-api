@@ -8,6 +8,7 @@ import (
 	"travel-api/internal/domain"
 	mock_domain "travel-api/internal/domain/mock"
 	mock_clock "travel-api/internal/domain/shared/clock/mock"
+	mock_uuid "travel-api/internal/domain/shared/uuid/mock"
 	"travel-api/internal/usecase/output"
 
 	"github.com/stretchr/testify/assert"
@@ -20,7 +21,7 @@ func TestTripInteractor_Get(t *testing.T) {
 
 	mockRepo := mock_domain.NewMockTripRepository(ctrl)
 	mockClock := mock_clock.NewMockClock(ctrl)
-	mockUUIDGenerator := mock_domain.NewMockUUIDGenerator(ctrl)
+	mockUUIDGenerator := mock_uuid.NewMockUUIDGenerator(ctrl)
 	interactor := NewTripInteractor(mockRepo, mockClock, mockUUIDGenerator)
 
 	t.Run("正常系: Tripが取得できる", func(t *testing.T) {
@@ -63,7 +64,7 @@ func TestTripInteractor_List(t *testing.T) {
 
 	mockRepo := mock_domain.NewMockTripRepository(ctrl)
 	mockClock := mock_clock.NewMockClock(ctrl)
-	mockUUIDGenerator := mock_domain.NewMockUUIDGenerator(ctrl)
+	mockUUIDGenerator := mock_uuid.NewMockUUIDGenerator(ctrl)
 	interactor := NewTripInteractor(mockRepo, mockClock, mockUUIDGenerator)
 
 	t.Run("正常系: 複数のTripが取得できる", func(t *testing.T) {
@@ -103,7 +104,7 @@ func TestTripInteractor_Create(t *testing.T) {
 
 	mockRepo := mock_domain.NewMockTripRepository(ctrl)
 	mockClock := mock_clock.NewMockClock(ctrl)
-	mockUUIDGenerator := mock_domain.NewMockUUIDGenerator(ctrl)
+	mockUUIDGenerator := mock_uuid.NewMockUUIDGenerator(ctrl)
 	interactor := NewTripInteractor(mockRepo, mockClock, mockUUIDGenerator)
 
 	tripName := "New Trip"
@@ -131,7 +132,7 @@ func TestTripInteractor_Update(t *testing.T) {
 
 	mockRepo := mock_domain.NewMockTripRepository(ctrl)
 	mockClock := mock_clock.NewMockClock(ctrl)
-	mockUUIDGenerator := mock_domain.NewMockUUIDGenerator(ctrl)
+	mockUUIDGenerator := mock_uuid.NewMockUUIDGenerator(ctrl)
 	interactor := NewTripInteractor(mockRepo, mockClock, mockUUIDGenerator)
 
 	t.Run("正常系: Tripが更新できる", func(t *testing.T) {
@@ -205,7 +206,7 @@ func TestTripInteractor_Delete(t *testing.T) {
 
 	mockRepo := mock_domain.NewMockTripRepository(ctrl)
 	mockClock := mock_clock.NewMockClock(ctrl)
-	mockUUIDGenerator := mock_domain.NewMockUUIDGenerator(ctrl)
+	mockUUIDGenerator := mock_uuid.NewMockUUIDGenerator(ctrl)
 	interactor := NewTripInteractor(mockRepo, mockClock, mockUUIDGenerator)
 
 	t.Run("正常系: Tripが削除できる", func(t *testing.T) {

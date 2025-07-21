@@ -1,4 +1,4 @@
-package domain
+package uuid
 
 import (
 	"testing"

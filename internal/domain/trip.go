@@ -3,6 +3,7 @@ package domain
 import (
 	"context"
 	"time"
+	"travel-api/internal/domain/shared/uuid"
 )
 
 //go:generate mockgen -destination mock/trip.go travel-api/internal/domain TripRepository
@@ -19,7 +20,7 @@ type TripID struct {
 }
 
 func NewTripID(id string) (TripID, error) {
-	if !IsValidUUID(id) {
+	if !uuid.IsValidUUID(id) {
 		return TripID{}, ErrInvalidUUID
 	}
 	return TripID{value: id}, nil

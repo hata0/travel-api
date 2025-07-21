@@ -18,6 +18,7 @@ import (
 
 	mock_domain "travel-api/internal/domain/mock"
 	mock_clock "travel-api/internal/domain/shared/clock/mock"
+	mock_uuid "travel-api/internal/domain/shared/uuid/mock"
 )
 
 func TestAuthInteractor_Register(t *testing.T) {
@@ -26,7 +27,7 @@ func TestAuthInteractor_Register(t *testing.T) {
 
 	mockRepo := mock_domain.NewMockUserRepository(ctrl)
 	mockClock := mock_clock.NewMockClock(ctrl)
-	mockUUIDGenerator := mock_domain.NewMockUUIDGenerator(ctrl)
+	mockUUIDGenerator := mock_uuid.NewMockUUIDGenerator(ctrl)
 	interactor := NewAuthInteractor(mockRepo, mock_domain.NewMockRefreshTokenRepository(ctrl), mock_domain.NewMockRevokedTokenRepository(ctrl), mockClock, mockUUIDGenerator, mock_usecase.NewMockTransactionManager(ctrl), "test-jwt-secret-key")
 
 	username := "testuser"
@@ -94,7 +95,7 @@ func TestAuthInteractor_Login(t *testing.T) {
 	mockUserRepo := mock_domain.NewMockUserRepository(ctrl)
 	mockRefreshTokenRepo := mock_domain.NewMockRefreshTokenRepository(ctrl)
 	mockClock := mock_clock.NewMockClock(ctrl)
-	mockUUIDGenerator := mock_domain.NewMockUUIDGenerator(ctrl)
+	mockUUIDGenerator := mock_uuid.NewMockUUIDGenerator(ctrl)
 	mockTransactionManager := mock_usecase.NewMockTransactionManager(ctrl)
 	jwtSecret := "test_jwt-secret_key"
 	interactor := NewAuthInteractor(mockUserRepo, mockRefreshTokenRepo, mock_domain.NewMockRevokedTokenRepository(ctrl), mockClock, mockUUIDGenerator, mockTransactionManager, jwtSecret)
@@ -188,7 +189,7 @@ func TestAuthInteractor_VerifyRefreshToken(t *testing.T) {
 	mockRefreshTokenRepo := mock_domain.NewMockRefreshTokenRepository(ctrl)
 	mockRevokedTokenRepo := mock_domain.NewMockRevokedTokenRepository(ctrl)
 	mockClock := mock_clock.NewMockClock(ctrl)
-	mockUUIDGenerator := mock_domain.NewMockUUIDGenerator(ctrl)
+	mockUUIDGenerator := mock_uuid.NewMockUUIDGenerator(ctrl)
 	mockTransactionManager := mock_usecase.NewMockTransactionManager(ctrl)
 	interactor := NewAuthInteractor(mockUserRepo, mockRefreshTokenRepo, mockRevokedTokenRepo, mockClock, mockUUIDGenerator, mockTransactionManager, "test-jwt-secret-key")
 
@@ -370,7 +371,7 @@ func TestAuthInteractor_RevokeRefreshToken(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockRefreshTokenRepo := mock_domain.NewMockRefreshTokenRepository(ctrl)
-	interactor := NewAuthInteractor(mock_domain.NewMockUserRepository(ctrl), mockRefreshTokenRepo, mock_domain.NewMockRevokedTokenRepository(ctrl), mock_clock.NewMockClock(ctrl), mock_domain.NewMockUUIDGenerator(ctrl), mock_usecase.NewMockTransactionManager(ctrl), "test-jwt-secret-key")
+	interactor := NewAuthInteractor(mock_domain.NewMockUserRepository(ctrl), mockRefreshTokenRepo, mock_domain.NewMockRevokedTokenRepository(ctrl), mock_clock.NewMockClock(ctrl), mock_uuid.NewMockUUIDGenerator(ctrl), mock_usecase.NewMockTransactionManager(ctrl), "test-jwt-secret-key")
 
 	refreshTokenString := "token-to-revoke"
 	userID := "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d"

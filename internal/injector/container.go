@@ -2,8 +2,8 @@ package injector
 
 import (
 	"travel-api/internal/config"
-	"travel-api/internal/domain"
 	"travel-api/internal/domain/shared/clock"
+	"travel-api/internal/domain/shared/uuid"
 	"travel-api/internal/interface/handler"
 	"travel-api/internal/usecase"
 
@@ -79,7 +79,7 @@ func (c *Container) Clock() clock.Clock {
 	return c.services.Clock()
 }
 
-func (c *Container) UUIDGenerator() domain.UUIDGenerator {
+func (c *Container) UUIDGenerator() uuid.UUIDGenerator {
 	return c.services.UUIDGenerator()
 }
 

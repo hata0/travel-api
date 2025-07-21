@@ -3,6 +3,7 @@ package domain
 import (
 	"context"
 	"time"
+	"travel-api/internal/domain/shared/uuid"
 )
 
 //go:generate mockgen -destination mock/refresh_token.go travel-api/internal/domain RefreshTokenRepository
@@ -18,7 +19,7 @@ type RefreshTokenID struct {
 }
 
 func NewRefreshTokenID(id string) (RefreshTokenID, error) {
-	if !IsValidUUID(id) {
+	if !uuid.IsValidUUID(id) {
 		return RefreshTokenID{}, ErrInvalidUUID
 	}
 	return RefreshTokenID{value: id}, nil

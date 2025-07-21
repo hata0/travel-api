@@ -8,6 +8,7 @@ import (
 	"travel-api/internal/config"
 	"travel-api/internal/domain"
 	"travel-api/internal/domain/shared/clock"
+	"travel-api/internal/domain/shared/uuid"
 	"travel-api/internal/usecase/output"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -27,12 +28,12 @@ type AuthInteractor struct {
 	refreshTokenRepository domain.RefreshTokenRepository
 	revokedTokenRepository domain.RevokedTokenRepository
 	clock                  clock.Clock
-	uuidGenerator          domain.UUIDGenerator
+	uuidGenerator          uuid.UUIDGenerator
 	transactionManager     TransactionManager
 	jwtSecret              string
 }
 
-func NewAuthInteractor(userRepository domain.UserRepository, refreshTokenRepository domain.RefreshTokenRepository, revokedTokenRepository domain.RevokedTokenRepository, clock clock.Clock, uuidGenerator domain.UUIDGenerator, transactionManager TransactionManager, jwtSecret string) *AuthInteractor {
+func NewAuthInteractor(userRepository domain.UserRepository, refreshTokenRepository domain.RefreshTokenRepository, revokedTokenRepository domain.RevokedTokenRepository, clock clock.Clock, uuidGenerator uuid.UUIDGenerator, transactionManager TransactionManager, jwtSecret string) *AuthInteractor {
 	return &AuthInteractor{
 		userRepository:         userRepository,
 		refreshTokenRepository: refreshTokenRepository,
