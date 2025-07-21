@@ -10,6 +10,7 @@ import (
 // Container は全ての依存関係を管理するメインコンテナ
 type Container struct {
 	config       *Config
+	db           *pgxpool.Pool
 	services     ServiceProvider
 	repositories RepositoryProvider
 	usecases     *Usecases
@@ -26,6 +27,7 @@ func NewContainer(db *pgxpool.Pool, jwtSecret string) *Container {
 
 	return &Container{
 		config:       config,
+		db:           db,
 		services:     services,
 		repositories: repositories,
 		usecases:     usecases,
@@ -38,17 +40,27 @@ func NewTestContainer(
 	services ServiceProvider,
 	repositories RepositoryProvider,
 	config *Config,
+	db *pgxpool.Pool,
 ) *Container {
 	usecases := NewUsecases(repositories, services, config)
 	handlers := NewHandlers(usecases)
 
 	return &Container{
 		config:       config,
+		db:           db,
 		services:     services,
 		repositories: repositories,
 		usecases:     usecases,
 		handlers:     handlers,
 	}
+}
+
+// Close はコンテナが管理するリソースをクローズします。
+func (c *Container) Close() error {
+	if c.db != nil {
+		c.db.Close()
+	}
+	return nil
 }
 
 // HandlerProvider インターフェースの実装

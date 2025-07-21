@@ -21,7 +21,6 @@ func (f *Factory) CreateProductionContainer(databaseURL, jwtSecret string) (*Con
 	if err != nil {
 		return nil, fmt.Errorf("failed to create database pool: %w", err)
 	}
-	defer db.Close()
 
 	// 接続テスト
 	if err := db.Ping(context.Background()); err != nil {
@@ -36,7 +35,8 @@ func (f *Factory) CreateTestContainer(
 	services ServiceProvider,
 	repositories RepositoryProvider,
 	jwtSecret string,
+	db *pgxpool.Pool,
 ) *Container {
 	config := NewConfig(jwtSecret)
-	return NewTestContainer(services, repositories, config)
+	return NewTestContainer(services, repositories, config, db)
 }
