@@ -7,8 +7,5 @@ import (
 
 func CreateContainer(cfg config.Config) (*injector.Container, error) {
 	factory := injector.NewFactory()
-	return factory.CreateProductionContainer(
-		cfg.Database().URL(),
-		cfg.JWT().Secret(),
-	)
+	return factory.CreateProductionContainer(cfg)
 }

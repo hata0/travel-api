@@ -1,6 +1,7 @@
 package injector
 
 import (
+	"travel-api/internal/config"
 	"travel-api/internal/domain"
 	"travel-api/internal/interface/handler"
 
@@ -9,7 +10,7 @@ import (
 
 // Container は全ての依存関係を管理するメインコンテナ
 type Container struct {
-	config       *Config
+	config       config.Config
 	db           *pgxpool.Pool
 	services     ServiceProvider
 	repositories RepositoryProvider
@@ -18,15 +19,14 @@ type Container struct {
 }
 
 // NewContainer は本番用のコンテナを作成する
-func NewContainer(db *pgxpool.Pool, jwtSecret string) *Container {
-	config := NewConfig(jwtSecret)
+func NewContainer(db *pgxpool.Pool, cfg config.Config) *Container {
 	services := NewServices(db)
 	repositories := NewRepositories(db)
-	usecases := NewUsecases(repositories, services, config)
+	usecases := NewUsecases(repositories, services, cfg)
 	handlers := NewHandlers(usecases)
 
 	return &Container{
-		config:       config,
+		config:       cfg,
 		db:           db,
 		services:     services,
 		repositories: repositories,
@@ -39,14 +39,14 @@ func NewContainer(db *pgxpool.Pool, jwtSecret string) *Container {
 func NewTestContainer(
 	services ServiceProvider,
 	repositories RepositoryProvider,
-	config *Config,
+	cfg config.Config,
 	db *pgxpool.Pool,
 ) *Container {
-	usecases := NewUsecases(repositories, services, config)
+	usecases := NewUsecases(repositories, services, cfg)
 	handlers := NewHandlers(usecases)
 
 	return &Container{
-		config:       config,
+		config:       cfg,
 		db:           db,
 		services:     services,
 		repositories: repositories,

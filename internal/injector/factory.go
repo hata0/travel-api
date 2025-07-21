@@ -3,6 +3,7 @@ package injector
 import (
 	"context"
 	"fmt"
+	"travel-api/internal/config"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -16,8 +17,8 @@ func NewFactory() *Factory {
 }
 
 // CreateProductionContainer は本番用コンテナを作成する
-func (f *Factory) CreateProductionContainer(databaseURL, jwtSecret string) (*Container, error) {
-	db, err := pgxpool.New(context.Background(), databaseURL)
+func (f *Factory) CreateProductionContainer(cfg config.Config) (*Container, error) {
+	db, err := pgxpool.New(context.Background(), cfg.Database().URL())
 	if err != nil {
 		return nil, fmt.Errorf("failed to create database pool: %w", err)
 	}
@@ -27,16 +28,15 @@ func (f *Factory) CreateProductionContainer(databaseURL, jwtSecret string) (*Con
 		return nil, fmt.Errorf("failed to ping database: %w", err)
 	}
 
-	return NewContainer(db, jwtSecret), nil
+	return NewContainer(db, cfg), nil
 }
 
 // CreateTestContainer はテスト用コンテナを作成する
 func (f *Factory) CreateTestContainer(
 	services ServiceProvider,
 	repositories RepositoryProvider,
-	jwtSecret string,
+	cfg config.Config,
 	db *pgxpool.Pool,
 ) *Container {
-	config := NewConfig(jwtSecret)
-	return NewTestContainer(services, repositories, config, db)
+	return NewTestContainer(services, repositories, cfg, db)
 }

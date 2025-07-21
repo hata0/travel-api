@@ -1,6 +1,7 @@
 package injector
 
 import (
+	"travel-api/internal/config"
 	"travel-api/internal/usecase"
 )
 
@@ -8,18 +9,18 @@ import (
 type Usecases struct {
 	repos    RepositoryProvider
 	services ServiceProvider
-	config   *Config
+	config   config.Config
 
 	tripUsecase *usecase.TripInteractor
 	authUsecase *usecase.AuthInteractor
 }
 
 // NewUsecases はユースケースを初期化する
-func NewUsecases(repos RepositoryProvider, services ServiceProvider, config *Config) *Usecases {
+func NewUsecases(repos RepositoryProvider, services ServiceProvider, cfg config.Config) *Usecases {
 	return &Usecases{
 		repos:    repos,
 		services: services,
-		config:   config,
+		config:   cfg,
 	}
 }
 
@@ -43,7 +44,7 @@ func (u *Usecases) AuthUsecase() *usecase.AuthInteractor {
 			u.services.Clock(),
 			u.services.UUIDGenerator(),
 			u.services.TransactionManager(),
-			u.config.JWTSecret,
+			u.config.JWT().Secret(),
 		)
 	}
 	return u.authUsecase
