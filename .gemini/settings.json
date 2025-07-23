@@ -1,5 +1,10 @@
 {
-    "sandbox": "docker",
     "hideBanner": true,
-    "hideTips": true
+    "hideTips": true,
+    "mcpServers": {
+        "context7": {
+            "command": "npx",
+            "args": ["-y", "@upstash/context7-mcp"]
+        }
+    }
 }

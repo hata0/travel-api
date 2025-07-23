@@ -38,9 +38,8 @@ internal/          # Internal application logic.
   usecase/         # Application-specific business rules.
 ```
 
-# Implementation Notes
+# Notes
 
-## General Principles
-
+- Please respond to users in Japanese.
 - Choose appropriate methods in practice.
 - If a fix takes more than 3 minutes, skip it. Finally, summarize and explain the failed fixes.
