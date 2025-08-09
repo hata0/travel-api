@@ -2,7 +2,7 @@ package postgres
 
 import (
 	"context"
-	"travel-api/internal/domain/shared/app_error"
+	shared_errors "travel-api/internal/shared/errors"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -24,7 +24,7 @@ func NewTransactionManager(pool *pgxpool.Pool) *TransactionManager {
 func (tm *TransactionManager) RunInTx(ctx context.Context, fn func(ctx context.Context) error) error {
 	tx, err := tm.pool.Begin(ctx)
 	if err != nil {
-		return app_error.NewInternalServerError(err)
+		return shared_errors.NewInternalError("transaction failed", err)
 	}
 	defer tx.Rollback(ctx) // 関数が終了する際に常にロールバックを試みる
 
