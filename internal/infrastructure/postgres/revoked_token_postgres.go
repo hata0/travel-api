@@ -3,10 +3,12 @@ package postgres
 import (
 	"context"
 	"errors" // errorsパッケージのインポートを追加
+	"fmt"
 	"time"
 	"travel-api/internal/domain"
-	"travel-api/internal/domain/shared/app_error"
+	domain_errors "travel-api/internal/domain/shared/errors"
 	postgres "travel-api/internal/infrastructure/postgres/generated"
+	shared_errors "travel-api/internal/shared/errors"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn" // pgconnパッケージのインポートを追加
@@ -47,9 +49,9 @@ func (r *RevokedTokenPostgresRepository) Create(ctx context.Context, token domai
 	}); err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) && pgErr.Code == "23505" { // 23505 is unique_violation
-			return app_error.ErrTokenAlreadyExists
+			return domain_errors.ErrTokenAlreadyExists
 		}
-		return app_error.NewInternalServerError(err)
+		return shared_errors.NewInternalError(fmt.Sprintf("failed to create revoked token: %s", token.ID.String()), err)
 	}
 
 	return nil
@@ -61,9 +63,9 @@ func (r *RevokedTokenPostgresRepository) FindByJTI(ctx context.Context, jti stri
 	record, err := queries.GetRevokedTokenByJTI(ctx, jti)
 	if err != nil {
 		if err == pgx.ErrNoRows {
-			return domain.RevokedToken{}, app_error.ErrTokenNotFound
+			return domain.RevokedToken{}, domain_errors.ErrTokenNotFound
 		} else {
-			return domain.RevokedToken{}, app_error.NewInternalServerError(err)
+			return domain.RevokedToken{}, shared_errors.NewInternalError(fmt.Sprintf("failed to find revoked token: %s", jti), err)
 		}
 	}
 
