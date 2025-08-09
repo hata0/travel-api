@@ -1,7 +1,7 @@
 services:
   app:
     build: .
-    user: root 
+    user: root
     volumes:
       - .:/home/developer/workspace
       - go-mod-cache:/go/pkg/mod

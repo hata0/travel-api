@@ -3,7 +3,7 @@ package domain
 import (
 	"context"
 	"time"
-	"travel-api/internal/domain/shared/app_error"
+	"travel-api/internal/domain/shared/errors"
 	"travel-api/internal/domain/shared/uuid"
 )
 
@@ -19,7 +19,7 @@ type RevokedTokenID struct {
 
 func NewRevokedTokenID(id string) (RevokedTokenID, error) {
 	if !uuid.IsValidUUID(id) {
-		return RevokedTokenID{}, app_error.ErrInvalidUUID
+		return RevokedTokenID{}, errors.ErrInvalidUUID
 	}
 	return RevokedTokenID{value: id}, nil
 }

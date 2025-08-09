@@ -3,7 +3,7 @@ package domain
 import (
 	"context"
 	"time"
-	"travel-api/internal/domain/shared/app_error"
+	"travel-api/internal/domain/shared/errors"
 	"travel-api/internal/domain/shared/uuid"
 )
 
@@ -21,7 +21,7 @@ type UserID struct {
 
 func NewUserID(id string) (UserID, error) {
 	if !uuid.IsValidUUID(id) {
-		return UserID{}, app_error.ErrInvalidUUID
+		return UserID{}, errors.ErrInvalidUUID
 	}
 	return UserID{value: id}, nil
 }
