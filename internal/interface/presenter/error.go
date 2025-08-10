@@ -8,7 +8,7 @@ import (
 	"log/slog"
 	"net/http"
 	"strings"
-	shared_errors "travel-api/internal/shared/errors"
+	apperr "travel-api/internal/domain/errors"
 
 	"github.com/go-playground/validator/v10"
 )
@@ -44,10 +44,10 @@ func formatValidationErrors(errs validator.ValidationErrors) []ValidationErrorDe
 }
 
 var httpStatusMap = map[string]int{
-	shared_errors.CodeInvalidCredentials: http.StatusUnauthorized,
-	shared_errors.CodeNotFound:           http.StatusNotFound,
-	shared_errors.CodeConflict:           http.StatusConflict,
-	shared_errors.CodeInternalError:      http.StatusInternalServerError,
+	apperr.CodeInvalidCredentials: http.StatusUnauthorized,
+	apperr.CodeNotFound:           http.StatusNotFound,
+	apperr.CodeConflict:           http.StatusConflict,
+	apperr.CodeInternalError:      http.StatusInternalServerError,
 }
 
 func getHTTPStatus(code string) int {
@@ -61,8 +61,8 @@ func getHTTPStatus(code string) int {
 }
 
 var safeMessageMap = map[string]string{
-	shared_errors.CodeInvalidCredentials: "invalid credentials",
-	shared_errors.CodeInternalError:      "an internal error occurred",
+	apperr.CodeInvalidCredentials: "invalid credentials",
+	apperr.CodeInternalError:      "an internal error occurred",
 }
 
 func ConvertToHTTPError(err error) (int, Error) {
@@ -70,7 +70,7 @@ func ConvertToHTTPError(err error) (int, Error) {
 	if errors.As(err, &validationErrs) {
 		// バリデーションエラー: クライアント開発者向けに詳細な情報を提供します。
 		return http.StatusBadRequest, Error{
-			Code:    shared_errors.CodeValidationError,
+			Code:    apperr.CodeValidationError,
 			Message: "input validation failed. please check the details field for more information.",
 			Details: formatValidationErrors(validationErrs),
 		}
@@ -81,7 +81,7 @@ func ConvertToHTTPError(err error) (int, Error) {
 		// JSONの型エラー: どのフィールドで問題があったかを具体的に伝えます。
 		message := fmt.Sprintf("invalid json type provided for field '%s'", unmarshalTypeError.Field)
 		return http.StatusBadRequest, Error{
-			Code:    shared_errors.CodeValidationError,
+			Code:    apperr.CodeValidationError,
 			Message: message,
 		}
 	}
@@ -90,16 +90,16 @@ func ConvertToHTTPError(err error) (int, Error) {
 	if errors.As(err, &syntaxError) || errors.Is(err, io.EOF) || errors.Is(err, io.ErrUnexpectedEOF) {
 		// JSON構文エラー: クライアントには一般的なメッセージを返します。
 		return http.StatusBadRequest, Error{
-			Code:    shared_errors.CodeValidationError,
+			Code:    apperr.CodeValidationError,
 			Message: "the request body contains badly-formed json",
 		}
 	}
 
-	var appErr *shared_errors.AppError
+	var appErr *apperr.AppError
 	if errors.As(err, &appErr) {
 		// アプリケーションで定義されたドメインエラー。
 		// 内部サーバーエラーの場合は、運用者が追跡できるよう詳細をログに出力します。
-		if appErr.Code == shared_errors.CodeInternalError {
+		if appErr.Code == apperr.CodeInternalError {
 			slog.Error("Internal server error occurred", "details", appErr.Error())
 		}
 
@@ -120,7 +120,7 @@ func ConvertToHTTPError(err error) (int, Error) {
 	// 詳細をログに記録し、クライアントには一般的なメッセージを返して、内部実装の詳細が漏洩しないようにします。
 	slog.Error("An unexpected error occurred", "error", err)
 	return http.StatusInternalServerError, Error{
-		Code:    shared_errors.CodeInternalError,
+		Code:    apperr.CodeInternalError,
 		Message: "an unexpected internal server error has occurred. please contact support if the problem persists.",
 	}
 }

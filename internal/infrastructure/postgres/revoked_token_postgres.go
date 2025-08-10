@@ -5,9 +5,8 @@ import (
 	"fmt"
 	"time"
 	"travel-api/internal/domain"
-	domain_errors "travel-api/internal/domain/shared/errors"
+	apperr "travel-api/internal/domain/errors"
 	postgres "travel-api/internal/infrastructure/postgres/generated"
-	shared_errors "travel-api/internal/shared/errors"
 
 	"github.com/jackc/pgx/v5" // pgconnパッケージのインポートを追加
 	"github.com/jackc/pgx/v5/pgtype"
@@ -45,7 +44,7 @@ func (r *RevokedTokenPostgresRepository) Create(ctx context.Context, token domai
 		ExpiresAt: validatedExpiresAt,
 		RevokedAt: validatedRevokedAt,
 	}); err != nil {
-		return shared_errors.NewInternalError(fmt.Sprintf("failed to create revoked token: %s", token.ID.String()), err)
+		return apperr.NewInternalError(fmt.Sprintf("failed to create revoked token: %s", token.ID.String()), err)
 	}
 
 	return nil
@@ -57,9 +56,9 @@ func (r *RevokedTokenPostgresRepository) FindByJTI(ctx context.Context, jti stri
 	record, err := queries.GetRevokedTokenByJTI(ctx, jti)
 	if err != nil {
 		if err == pgx.ErrNoRows {
-			return domain.RevokedToken{}, domain_errors.ErrTokenNotFound
+			return domain.RevokedToken{}, apperr.ErrTokenNotFound
 		} else {
-			return domain.RevokedToken{}, shared_errors.NewInternalError(fmt.Sprintf("failed to find revoked token: %s", jti), err)
+			return domain.RevokedToken{}, apperr.NewInternalError(fmt.Sprintf("failed to find revoked token: %s", jti), err)
 		}
 	}
 

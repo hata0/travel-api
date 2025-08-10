@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"log/slog"
 	"strings"
+	apperr "travel-api/internal/domain/errors"
 	"travel-api/internal/interface/presenter"
-	shared_errors "travel-api/internal/shared/errors"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
@@ -17,7 +17,7 @@ func AuthMiddleware(jwtSecret string) gin.HandlerFunc {
 		if authHeader == "" {
 			slog.Warn("Authorization header missing")
 			c.JSON(presenter.ConvertToHTTPError(
-				shared_errors.NewInvalidCredentialsError("authorization header is required"),
+				apperr.NewInvalidCredentialsError("authorization header is required"),
 			))
 			c.Abort()
 			return
@@ -27,7 +27,7 @@ func AuthMiddleware(jwtSecret string) gin.HandlerFunc {
 		if len(tokenParts) != 2 || strings.ToLower(tokenParts[0]) != "bearer" {
 			slog.Warn("Invalid Authorization header format", "header", authHeader)
 			c.JSON(presenter.ConvertToHTTPError(
-				shared_errors.NewInvalidCredentialsError("invalid authorization header format"),
+				apperr.NewInvalidCredentialsError("invalid authorization header format"),
 			))
 			c.Abort()
 			return
@@ -46,7 +46,7 @@ func AuthMiddleware(jwtSecret string) gin.HandlerFunc {
 		if err != nil {
 			slog.Warn("JWT token validation failed", "error", err)
 			c.JSON(presenter.ConvertToHTTPError(
-				shared_errors.NewInvalidCredentialsError("jwt token validation failed"),
+				apperr.NewInvalidCredentialsError("jwt token validation failed"),
 			))
 			c.Abort()
 			return
@@ -59,7 +59,7 @@ func AuthMiddleware(jwtSecret string) gin.HandlerFunc {
 		} else {
 			slog.Warn("Invalid JWT claims or token not valid", "claims", claims, "valid", token.Valid)
 			c.JSON(presenter.ConvertToHTTPError(
-				shared_errors.NewInvalidCredentialsError("invalid jwt claims or token not valid"),
+				apperr.NewInvalidCredentialsError("invalid jwt claims or token not valid"),
 			))
 			c.Abort()
 			return

@@ -7,12 +7,11 @@ import (
 	"time"
 	"travel-api/internal/config"
 	"travel-api/internal/domain"
+	apperr "travel-api/internal/domain/errors"
 	mock_domain "travel-api/internal/domain/mock"
 	mock_clock "travel-api/internal/domain/shared/clock/mock"
-	domain_errors "travel-api/internal/domain/shared/errors"
 	mock_transaction_manager "travel-api/internal/domain/shared/transaction_manager/mock"
 	mock_uuid "travel-api/internal/domain/shared/uuid/mock"
-	shared_errors "travel-api/internal/shared/errors"
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
@@ -39,8 +38,8 @@ func TestAuthInteractor_Register(t *testing.T) {
 
 	t.Run("正常系: ユーザーが正常に登録される", func(t *testing.T) {
 		// FindByUsernameとFindByEmailがUserNotFoundを返すことを期待
-		mockRepo.EXPECT().FindByUsername(gomock.Any(), username).Return(domain.User{}, domain_errors.ErrUserNotFound).Times(1)
-		mockRepo.EXPECT().FindByEmail(gomock.Any(), email).Return(domain.User{}, domain_errors.ErrUserNotFound).Times(1)
+		mockRepo.EXPECT().FindByUsername(gomock.Any(), username).Return(domain.User{}, apperr.ErrUserNotFound).Times(1)
+		mockRepo.EXPECT().FindByEmail(gomock.Any(), email).Return(domain.User{}, apperr.ErrUserNotFound).Times(1)
 
 		// UUIDと時刻の生成を期待
 		mockUUIDGenerator.EXPECT().NewUUID().Return(generatedUUID).Times(1)
@@ -61,22 +60,22 @@ func TestAuthInteractor_Register(t *testing.T) {
 
 		_, err := interactor.Register(context.Background(), username, email, password)
 
-		var appErr *shared_errors.AppError
+		var appErr *apperr.AppError
 		assert.True(t, errors.As(err, &appErr))
-		assert.Equal(t, appErr.Code, shared_errors.CodeConflict)
+		assert.Equal(t, appErr.Code, apperr.CodeConflict)
 	})
 
 	t.Run("異常系: メールアドレスが既に存在する", func(t *testing.T) {
 		// FindByUsernameがUserNotFoundを返すことを期待
-		mockRepo.EXPECT().FindByUsername(gomock.Any(), username).Return(domain.User{}, domain_errors.ErrUserNotFound).Times(1)
+		mockRepo.EXPECT().FindByUsername(gomock.Any(), username).Return(domain.User{}, apperr.ErrUserNotFound).Times(1)
 		// FindByEmailがエラーなしでユーザーを返すことを期待
 		mockRepo.EXPECT().FindByEmail(gomock.Any(), email).Return(domain.User{}, nil).Times(1)
 
 		_, err := interactor.Register(context.Background(), username, email, password)
 
-		var appErr *shared_errors.AppError
+		var appErr *apperr.AppError
 		assert.True(t, errors.As(err, &appErr))
-		assert.Equal(t, appErr.Code, shared_errors.CodeConflict)
+		assert.Equal(t, appErr.Code, apperr.CodeConflict)
 	})
 }
 
@@ -151,13 +150,13 @@ func TestAuthInteractor_Login(t *testing.T) {
 			},
 		).Times(1)
 		// FindByEmailがUserNotFoundを返すことを期待
-		mockUserRepo.EXPECT().FindByEmail(gomock.Any(), email).Return(domain.User{}, domain_errors.ErrUserNotFound).Times(1)
+		mockUserRepo.EXPECT().FindByEmail(gomock.Any(), email).Return(domain.User{}, apperr.ErrUserNotFound).Times(1)
 
 		_, err := interactor.Login(context.Background(), email, password)
 
-		var appErr *shared_errors.AppError
+		var appErr *apperr.AppError
 		assert.True(t, errors.As(err, &appErr))
-		assert.Equal(t, appErr.Code, shared_errors.CodeInvalidCredentials)
+		assert.Equal(t, appErr.Code, apperr.CodeInvalidCredentials)
 	})
 
 	t.Run("異常系: パスワードが間違っている", func(t *testing.T) {
@@ -171,9 +170,9 @@ func TestAuthInteractor_Login(t *testing.T) {
 
 		_, err := interactor.Login(context.Background(), email, "wrongpassword")
 
-		var appErr *shared_errors.AppError
+		var appErr *apperr.AppError
 		assert.True(t, errors.As(err, &appErr))
-		assert.Equal(t, appErr.Code, shared_errors.CodeInvalidCredentials)
+		assert.Equal(t, appErr.Code, apperr.CodeInvalidCredentials)
 	})
 }
 
@@ -217,7 +216,7 @@ func TestAuthInteractor_VerifyRefreshToken(t *testing.T) {
 	)
 
 	t.Run("正常系: リフレッシュトークンが検証され、新しいアクセストークンとリフレッシュトークンが発行される", func(t *testing.T) {
-		mockRevokedTokenRepo.EXPECT().FindByJTI(gomock.Any(), refreshTokenString).Return(domain.RevokedToken{}, domain_errors.ErrTokenNotFound).Times(1)
+		mockRevokedTokenRepo.EXPECT().FindByJTI(gomock.Any(), refreshTokenString).Return(domain.RevokedToken{}, apperr.ErrTokenNotFound).Times(1)
 		mockTransactionManager.EXPECT().RunInTx(gomock.Any(), gomock.Any()).DoAndReturn(
 			func(ctx context.Context, fn func(ctx context.Context) error) error {
 				return fn(ctx)
@@ -254,7 +253,7 @@ func TestAuthInteractor_VerifyRefreshToken(t *testing.T) {
 
 	t.Run("異常系: リフレッシュトークンが見つからない", func(t *testing.T) {
 		// FindByJTIがTokenNotFoundを返すことを期待
-		mockRevokedTokenRepo.EXPECT().FindByJTI(gomock.Any(), refreshTokenString).Return(domain.RevokedToken{}, domain_errors.ErrTokenNotFound).Times(1)
+		mockRevokedTokenRepo.EXPECT().FindByJTI(gomock.Any(), refreshTokenString).Return(domain.RevokedToken{}, apperr.ErrTokenNotFound).Times(1)
 
 		mockTransactionManager.EXPECT().RunInTx(gomock.Any(), gomock.Any()).DoAndReturn(
 			func(ctx context.Context, fn func(ctx context.Context) error) error {
@@ -262,18 +261,18 @@ func TestAuthInteractor_VerifyRefreshToken(t *testing.T) {
 			},
 		).Times(1)
 		// FindByTokenがTokenNotFoundを返すことを期待
-		mockRefreshTokenRepo.EXPECT().FindByToken(gomock.Any(), refreshTokenString).Return(domain.RefreshToken{}, domain_errors.ErrTokenNotFound).Times(1)
+		mockRefreshTokenRepo.EXPECT().FindByToken(gomock.Any(), refreshTokenString).Return(domain.RefreshToken{}, apperr.ErrTokenNotFound).Times(1)
 
 		_, err := interactor.VerifyRefreshToken(context.Background(), refreshTokenString)
 
-		var appErr *shared_errors.AppError
+		var appErr *apperr.AppError
 		assert.True(t, errors.As(err, &appErr))
-		assert.Equal(t, appErr.Code, shared_errors.CodeInvalidCredentials)
+		assert.Equal(t, appErr.Code, apperr.CodeInvalidCredentials)
 	})
 
 	t.Run("異常系: リフレッシュトークンの有効期限が切れている", func(t *testing.T) {
 		// FindByJTIがTokenNotFoundを返すことを期待
-		mockRevokedTokenRepo.EXPECT().FindByJTI(gomock.Any(), refreshTokenString).Return(domain.RevokedToken{}, domain_errors.ErrTokenNotFound).Times(1)
+		mockRevokedTokenRepo.EXPECT().FindByJTI(gomock.Any(), refreshTokenString).Return(domain.RevokedToken{}, apperr.ErrTokenNotFound).Times(1)
 
 		mockTransactionManager.EXPECT().RunInTx(gomock.Any(), gomock.Any()).DoAndReturn(
 			func(ctx context.Context, fn func(ctx context.Context) error) error {
@@ -296,9 +295,9 @@ func TestAuthInteractor_VerifyRefreshToken(t *testing.T) {
 
 		_, err = interactor.VerifyRefreshToken(context.Background(), refreshTokenString)
 
-		var appErr *shared_errors.AppError
+		var appErr *apperr.AppError
 		assert.True(t, errors.As(err, &appErr))
-		assert.Equal(t, appErr.Code, shared_errors.CodeInvalidCredentials)
+		assert.Equal(t, appErr.Code, apperr.CodeInvalidCredentials)
 	})
 
 	t.Run("異常系: リフレッシュトークンが再利用された場合", func(t *testing.T) {
@@ -311,13 +310,13 @@ func TestAuthInteractor_VerifyRefreshToken(t *testing.T) {
 
 		_, err := interactor.VerifyRefreshToken(context.Background(), refreshTokenString)
 
-		var appErr *shared_errors.AppError
+		var appErr *apperr.AppError
 		assert.True(t, errors.As(err, &appErr))
-		assert.Equal(t, appErr.Code, shared_errors.CodeInvalidCredentials)
+		assert.Equal(t, appErr.Code, apperr.CodeInvalidCredentials)
 	})
 
 	t.Run("異常系: リフレッシュトークン保存でエラー", func(t *testing.T) {
-		mockRevokedTokenRepo.EXPECT().FindByJTI(gomock.Any(), refreshTokenString).Return(domain.RevokedToken{}, domain_errors.ErrTokenNotFound).Times(1)
+		mockRevokedTokenRepo.EXPECT().FindByJTI(gomock.Any(), refreshTokenString).Return(domain.RevokedToken{}, apperr.ErrTokenNotFound).Times(1)
 		mockTransactionManager.EXPECT().RunInTx(gomock.Any(), gomock.Any()).DoAndReturn(
 			func(ctx context.Context, fn func(ctx context.Context) error) error {
 				return fn(ctx)
@@ -343,9 +342,9 @@ func TestAuthInteractor_VerifyRefreshToken(t *testing.T) {
 		_, err := interactor.VerifyRefreshToken(context.Background(), refreshTokenString)
 		assert.Error(t, err)
 
-		var appErr *shared_errors.AppError
+		var appErr *apperr.AppError
 		assert.True(t, errors.As(err, &appErr))
-		assert.Equal(t, appErr.Code, shared_errors.CodeInternalError)
+		assert.Equal(t, appErr.Code, apperr.CodeInternalError)
 	})
 }
 
@@ -378,7 +377,7 @@ func TestAuthInteractor_RevokeRefreshToken(t *testing.T) {
 
 	t.Run("正常系: リフレッシュトークンが見つからない", func(t *testing.T) {
 		// FindByTokenがTokenNotFoundを返すことを期待
-		mockRefreshTokenRepo.EXPECT().FindByToken(gomock.Any(), refreshTokenString).Return(domain.RefreshToken{}, domain_errors.ErrTokenNotFound).Times(1)
+		mockRefreshTokenRepo.EXPECT().FindByToken(gomock.Any(), refreshTokenString).Return(domain.RefreshToken{}, apperr.ErrTokenNotFound).Times(1)
 
 		err := interactor.RevokeRefreshToken(context.Background(), refreshTokenString)
 

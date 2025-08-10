@@ -5,9 +5,8 @@ import (
 	"fmt"
 	"time"
 	"travel-api/internal/domain"
-	domain_errors "travel-api/internal/domain/shared/errors"
+	apperr "travel-api/internal/domain/errors"
 	postgres "travel-api/internal/infrastructure/postgres/generated"
-	shared_errors "travel-api/internal/shared/errors"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -45,7 +44,7 @@ func (r *RefreshTokenPostgresRepository) Create(ctx context.Context, token domai
 		ExpiresAt: validatedExpiresAt,
 		CreatedAt: validatedCreatedAt,
 	}); err != nil {
-		return shared_errors.NewInternalError(fmt.Sprintf("failed to create refresh token: %s", token.ID.String()), err)
+		return apperr.NewInternalError(fmt.Sprintf("failed to create refresh token: %s", token.ID.String()), err)
 	}
 
 	return nil
@@ -57,9 +56,9 @@ func (r *RefreshTokenPostgresRepository) FindByToken(ctx context.Context, token 
 	record, err := queries.FindRefreshTokenByToken(ctx, token) // 取得したqueriesを使用
 	if err != nil {
 		if err == pgx.ErrNoRows {
-			return domain.RefreshToken{}, domain_errors.ErrTokenNotFound
+			return domain.RefreshToken{}, apperr.ErrTokenNotFound
 		} else {
-			return domain.RefreshToken{}, shared_errors.NewInternalError(fmt.Sprintf("failed to find refresh token: %s", token), err)
+			return domain.RefreshToken{}, apperr.NewInternalError(fmt.Sprintf("failed to find refresh token: %s", token), err)
 		}
 	}
 
@@ -73,7 +72,7 @@ func (r *RefreshTokenPostgresRepository) Delete(ctx context.Context, token domai
 	_ = validatedId.Scan(token.ID.String())
 
 	if err := queries.DeleteRefreshToken(ctx, validatedId); err != nil {
-		return shared_errors.NewInternalError(fmt.Sprintf("failed to delete refresh token: %s", token.ID.String()), err)
+		return apperr.NewInternalError(fmt.Sprintf("failed to delete refresh token: %s", token.ID.String()), err)
 	}
 	return nil
 }
@@ -85,7 +84,7 @@ func (r *RefreshTokenPostgresRepository) DeleteByUserID(ctx context.Context, use
 	_ = validatedUserID.Scan(userID.String())
 
 	if err := queries.DeleteRefreshTokensByUserID(ctx, validatedUserID); err != nil {
-		return shared_errors.NewInternalError(fmt.Sprintf("failed to delete refresh token for user: %s", userID.String()), err)
+		return apperr.NewInternalError(fmt.Sprintf("failed to delete refresh token for user: %s", userID.String()), err)
 	}
 	return nil
 }

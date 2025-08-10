@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 	"travel-api/internal/domain"
-	domain_errors "travel-api/internal/domain/shared/errors"
+	apperr "travel-api/internal/domain/errors"
 	postgres "travel-api/internal/infrastructure/postgres/generated"
 
 	"github.com/google/uuid"
@@ -110,7 +110,7 @@ func TestUserPostgresRepository_FindByEmail(t *testing.T) {
 
 	t.Run("異常系: メールアドレスでユーザーが見つからない", func(t *testing.T) {
 		_, err := repo.FindByEmail(ctx, "nonexistent@example.com")
-		assert.ErrorIs(t, err, domain_errors.ErrUserNotFound)
+		assert.ErrorIs(t, err, apperr.ErrUserNotFound)
 	})
 }
 
@@ -135,7 +135,7 @@ func TestUserPostgresRepository_FindByUsername(t *testing.T) {
 
 	t.Run("異常系: ユーザー名でユーザーが見つからない", func(t *testing.T) {
 		_, err := repo.FindByUsername(ctx, "nonexistentuser")
-		assert.ErrorIs(t, err, domain_errors.ErrUserNotFound)
+		assert.ErrorIs(t, err, apperr.ErrUserNotFound)
 	})
 }
 
@@ -163,6 +163,6 @@ func TestUserPostgresRepository_FindByID(t *testing.T) {
 		require.NoError(t, err)
 
 		_, err = repo.FindByID(ctx, id)
-		assert.ErrorIs(t, err, domain_errors.ErrUserNotFound)
+		assert.ErrorIs(t, err, apperr.ErrUserNotFound)
 	})
 }

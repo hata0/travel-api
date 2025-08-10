@@ -3,7 +3,7 @@ package domain
 import (
 	"context"
 	"time"
-	"travel-api/internal/domain/shared/errors"
+	apperr "travel-api/internal/domain/errors"
 	"travel-api/internal/domain/shared/uuid"
 )
 
@@ -21,7 +21,7 @@ type RefreshTokenID struct {
 
 func NewRefreshTokenID(id string) (RefreshTokenID, error) {
 	if !uuid.IsValidUUID(id) {
-		return RefreshTokenID{}, errors.ErrInvalidUUID
+		return RefreshTokenID{}, apperr.ErrInvalidUUID
 	}
 	return RefreshTokenID{value: id}, nil
 }

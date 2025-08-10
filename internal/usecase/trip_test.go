@@ -5,9 +5,9 @@ import (
 	"testing"
 	"time"
 	"travel-api/internal/domain"
+	apperr "travel-api/internal/domain/errors"
 	mock_domain "travel-api/internal/domain/mock"
 	mock_clock "travel-api/internal/domain/shared/clock/mock"
-	domain_errors "travel-api/internal/domain/shared/errors"
 	mock_uuid "travel-api/internal/domain/shared/uuid/mock"
 	"travel-api/internal/usecase/output"
 
@@ -41,7 +41,7 @@ func TestTripInteractor_Get(t *testing.T) {
 	t.Run("異常系: 無効なUUIDの場合", func(t *testing.T) {
 		invalidUUID := "invalid-uuid"
 		_, err := interactor.Get(context.Background(), invalidUUID)
-		assert.ErrorIs(t, err, domain_errors.ErrInvalidUUID)
+		assert.ErrorIs(t, err, apperr.ErrInvalidUUID)
 	})
 }
 
@@ -135,7 +135,7 @@ func TestTripInteractor_Update(t *testing.T) {
 	t.Run("異常系: 無効なUUIDの場合", func(t *testing.T) {
 		invalidUUID := "invalid-uuid"
 		err := interactor.Update(context.Background(), invalidUUID, "any name")
-		assert.ErrorIs(t, err, domain_errors.ErrInvalidUUID)
+		assert.ErrorIs(t, err, apperr.ErrInvalidUUID)
 	})
 }
 
@@ -165,6 +165,6 @@ func TestTripInteractor_Delete(t *testing.T) {
 	t.Run("異常系: 無効なUUIDの場合", func(t *testing.T) {
 		invalidUUID := "invalid-uuid"
 		err := interactor.Delete(context.Background(), invalidUUID)
-		assert.ErrorIs(t, err, domain_errors.ErrInvalidUUID)
+		assert.ErrorIs(t, err, apperr.ErrInvalidUUID)
 	})
 }

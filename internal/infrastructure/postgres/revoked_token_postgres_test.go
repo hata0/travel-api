@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 	"travel-api/internal/domain"
-	domain_errors "travel-api/internal/domain/shared/errors"
+	apperr "travel-api/internal/domain/errors"
 	postgres "travel-api/internal/infrastructure/postgres/generated"
 
 	"github.com/google/uuid"
@@ -110,6 +110,6 @@ func TestRevokedTokenPostgresRepository_FindByJTI(t *testing.T) {
 
 	t.Run("異常系: JTIでトークンが見つからない", func(t *testing.T) {
 		_, err := repo.FindByJTI(ctx, "nonexistent-jti")
-		assert.ErrorIs(t, err, domain_errors.ErrTokenNotFound)
+		assert.ErrorIs(t, err, apperr.ErrTokenNotFound)
 	})
 }

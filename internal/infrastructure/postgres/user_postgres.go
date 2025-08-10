@@ -5,9 +5,8 @@ import (
 	"fmt"
 	"time"
 	"travel-api/internal/domain"
-	domain_errors "travel-api/internal/domain/shared/errors"
+	apperr "travel-api/internal/domain/errors"
 	postgres "travel-api/internal/infrastructure/postgres/generated"
-	shared_errors "travel-api/internal/shared/errors"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -43,7 +42,7 @@ func (r *UserPostgresRepository) Create(ctx context.Context, user domain.User) e
 		CreatedAt:    validatedCreatedAt,
 		UpdatedAt:    validatedUpdatedAt,
 	}); err != nil {
-		return shared_errors.NewInternalError(fmt.Sprintf("failed to create user: %s", user.ID.String()), err)
+		return apperr.NewInternalError(fmt.Sprintf("failed to create user: %s", user.ID.String()), err)
 	}
 
 	return nil
@@ -55,9 +54,9 @@ func (r *UserPostgresRepository) FindByEmail(ctx context.Context, email string) 
 	record, err := queries.GetUserByEmail(ctx, email) // 取得したqueriesを使用
 	if err != nil {
 		if err == pgx.ErrNoRows {
-			return domain.User{}, domain_errors.ErrUserNotFound
+			return domain.User{}, apperr.ErrUserNotFound
 		} else {
-			return domain.User{}, shared_errors.NewInternalError(fmt.Sprintf("failed to find user: %s", email), err)
+			return domain.User{}, apperr.NewInternalError(fmt.Sprintf("failed to find user: %s", email), err)
 		}
 	}
 
@@ -70,9 +69,9 @@ func (r *UserPostgresRepository) FindByUsername(ctx context.Context, username st
 	record, err := queries.GetUserByUsername(ctx, username) // 取得したqueriesを使用
 	if err != nil {
 		if err == pgx.ErrNoRows {
-			return domain.User{}, domain_errors.ErrUserNotFound
+			return domain.User{}, apperr.ErrUserNotFound
 		} else {
-			return domain.User{}, shared_errors.NewInternalError(fmt.Sprintf("failed to find user: %s", username), err)
+			return domain.User{}, apperr.NewInternalError(fmt.Sprintf("failed to find user: %s", username), err)
 		}
 	}
 
@@ -88,9 +87,9 @@ func (r *UserPostgresRepository) FindByID(ctx context.Context, id domain.UserID)
 	record, err := queries.GetUser(ctx, validatedId) // 取得したqueriesを使用
 	if err != nil {
 		if err == pgx.ErrNoRows {
-			return domain.User{}, domain_errors.ErrUserNotFound
+			return domain.User{}, apperr.ErrUserNotFound
 		} else {
-			return domain.User{}, shared_errors.NewInternalError(fmt.Sprintf("failed to find user: %s", id.String()), err)
+			return domain.User{}, apperr.NewInternalError(fmt.Sprintf("failed to find user: %s", id.String()), err)
 		}
 	}
 

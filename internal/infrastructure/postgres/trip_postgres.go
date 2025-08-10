@@ -5,9 +5,8 @@ import (
 	"fmt"
 	"time"
 	"travel-api/internal/domain"
-	domain_errors "travel-api/internal/domain/shared/errors"
+	apperr "travel-api/internal/domain/errors"
 	postgres "travel-api/internal/infrastructure/postgres/generated"
-	shared_errors "travel-api/internal/shared/errors"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -32,9 +31,9 @@ func (r *TripPostgresRepository) FindByID(ctx context.Context, id domain.TripID)
 	record, err := queries.GetTrip(ctx, validatedId)
 	if err != nil {
 		if err == pgx.ErrNoRows {
-			return domain.Trip{}, domain_errors.ErrTripNotFound
+			return domain.Trip{}, apperr.ErrTripNotFound
 		} else {
-			return domain.Trip{}, shared_errors.NewInternalError(fmt.Sprintf("failed to find trip: %s", id.String()), err)
+			return domain.Trip{}, apperr.NewInternalError(fmt.Sprintf("failed to find trip: %s", id.String()), err)
 		}
 	}
 
@@ -45,7 +44,7 @@ func (r *TripPostgresRepository) FindMany(ctx context.Context) ([]domain.Trip, e
 	queries := r.getQueries(ctx)
 	records, err := queries.ListTrips(ctx)
 	if err != nil {
-		return nil, shared_errors.NewInternalError("failed to find trips", err)
+		return nil, apperr.NewInternalError("failed to find trips", err)
 	}
 
 	trips := make([]domain.Trip, len(records))
@@ -98,7 +97,7 @@ func (r *TripPostgresRepository) Create(ctx context.Context, trip domain.Trip) e
 		CreatedAt: validatedCreatedAt,
 		UpdatedAt: validatedUpdatedAt,
 	}); err != nil {
-		return shared_errors.NewInternalError(fmt.Sprintf("failed to create trip: %s", trip.ID.String()), err)
+		return apperr.NewInternalError(fmt.Sprintf("failed to create trip: %s", trip.ID.String()), err)
 	}
 
 	return nil
@@ -118,7 +117,7 @@ func (r *TripPostgresRepository) Update(ctx context.Context, trip domain.Trip) e
 		Name:      trip.Name,
 		UpdatedAt: validatedUpdatedAt,
 	}); err != nil {
-		return shared_errors.NewInternalError(fmt.Sprintf("failed to update trip: %s", trip.ID), err)
+		return apperr.NewInternalError(fmt.Sprintf("failed to update trip: %s", trip.ID), err)
 	}
 
 	return nil
@@ -131,7 +130,7 @@ func (r *TripPostgresRepository) Delete(ctx context.Context, trip domain.Trip) e
 	_ = validatedId.Scan(trip.ID.String())
 
 	if err := queries.DeleteTrip(ctx, validatedId); err != nil {
-		return shared_errors.NewInternalError(fmt.Sprintf("failed to delete trip: %s", trip.ID), err)
+		return apperr.NewInternalError(fmt.Sprintf("failed to delete trip: %s", trip.ID), err)
 	}
 
 	return nil

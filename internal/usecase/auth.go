@@ -7,11 +7,10 @@ import (
 	"time"
 	"travel-api/internal/config"
 	"travel-api/internal/domain"
+	apperr "travel-api/internal/domain/errors"
 	"travel-api/internal/domain/shared/clock"
-	domain_errors "travel-api/internal/domain/shared/errors"
 	"travel-api/internal/domain/shared/transaction_manager"
 	"travel-api/internal/domain/shared/uuid"
-	shared_errors "travel-api/internal/shared/errors"
 	"travel-api/internal/usecase/output"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -58,13 +57,13 @@ func (i *AuthInteractor) Register(ctx context.Context, username, email, password
 	// パスワードのハッシュ化
 	hashedPassword, err := i.hashPassword(password)
 	if err != nil {
-		return output.RegisterOutput{}, shared_errors.NewInternalError("password hashing failed", err)
+		return output.RegisterOutput{}, apperr.NewInternalError("password hashing failed", err)
 	}
 
 	// 新しいユーザーIDを生成
 	userID, err := i.generateUserID()
 	if err != nil {
-		return output.RegisterOutput{}, shared_errors.NewInternalError("user id generation failed", err)
+		return output.RegisterOutput{}, apperr.NewInternalError("user id generation failed", err)
 	}
 
 	// ユーザーエンティティを作成
@@ -74,7 +73,7 @@ func (i *AuthInteractor) Register(ctx context.Context, username, email, password
 	// ユーザーを保存
 	err = i.userRepository.Create(ctx, user)
 	if err != nil {
-		return output.RegisterOutput{}, shared_errors.NewInternalError("failed to create user", err)
+		return output.RegisterOutput{}, apperr.NewInternalError("failed to create user", err)
 	}
 
 	return output.RegisterOutput{UserID: userID.String()}, nil
@@ -88,10 +87,10 @@ func (i *AuthInteractor) Login(ctx context.Context, email, password string) (out
 		// ユーザーをメールアドレスで検索
 		user, err := i.userRepository.FindByEmail(txCtx, email)
 		if err != nil {
-			if domain_errors.IsUserNotFound(err) {
-				return shared_errors.NewInvalidCredentialsError("user not found")
+			if apperr.IsUserNotFound(err) {
+				return apperr.NewInvalidCredentialsError("user not found")
 			}
-			return shared_errors.NewInternalError("failed to find user by email", err)
+			return apperr.NewInternalError("failed to find user by email", err)
 		}
 
 		// パスワードの検証
@@ -103,7 +102,7 @@ func (i *AuthInteractor) Login(ctx context.Context, email, password string) (out
 		// トークンペアの生成
 		accessTokenString, refreshTokenString, err := i.generateTokenPair(user.ID, i.clock.Now())
 		if err != nil {
-			return shared_errors.NewInternalError("token generation failed", err)
+			return apperr.NewInternalError("token generation failed", err)
 		}
 
 		// リフレッシュトークンをデータベースに保存
@@ -146,7 +145,7 @@ func (i *AuthInteractor) VerifyRefreshToken(ctx context.Context, refreshToken st
 		// 新しいトークンペアの生成
 		accessTokenString, newRefreshTokenString, err := i.generateTokenPair(foundToken.UserID, i.clock.Now())
 		if err != nil {
-			return shared_errors.NewInternalError("token generation failed", err)
+			return apperr.NewInternalError("token generation failed", err)
 		}
 
 		if err := i.storeRefreshToken(txCtx, newRefreshTokenString, foundToken.UserID); err != nil {
@@ -168,16 +167,16 @@ func (i *AuthInteractor) VerifyRefreshToken(ctx context.Context, refreshToken st
 func (i *AuthInteractor) RevokeRefreshToken(ctx context.Context, refreshToken string) error {
 	foundToken, err := i.refreshTokenRepository.FindByToken(ctx, refreshToken)
 	if err != nil {
-		if domain_errors.IsTokenNotFound(err) {
+		if apperr.IsTokenNotFound(err) {
 			// 既に存在しないトークンの場合は成功とする（冪等性）
 			return nil
 		}
 
-		return shared_errors.NewInternalError("failed to find refresh token by token", err)
+		return apperr.NewInternalError("failed to find refresh token by token", err)
 	}
 
 	if err := i.refreshTokenRepository.Delete(ctx, foundToken); err != nil {
-		return shared_errors.NewInternalError("failed to delete refresh token", err)
+		return apperr.NewInternalError("failed to delete refresh token", err)
 	}
 
 	return nil
@@ -188,22 +187,22 @@ func (i *AuthInteractor) checkUserExistence(ctx context.Context, username, email
 	// ユーザー名が既に存在するか確認
 	_, err := i.userRepository.FindByUsername(ctx, username)
 	if err == nil {
-		return shared_errors.NewConflictError("username")
+		return apperr.NewConflictError("username")
 	}
 
 	// ユーザー名が見つからない場合は、メールアドレスの存在チェックに進む
-	if !domain_errors.IsUserNotFound(err) {
-		return shared_errors.NewInternalError("failed to check username existence", err)
+	if !apperr.IsUserNotFound(err) {
+		return apperr.NewInternalError("failed to check username existence", err)
 	}
 
 	// メールアドレスが既に存在するか確認
 	_, err = i.userRepository.FindByEmail(ctx, email)
 	if err == nil {
-		return shared_errors.NewConflictError("email")
+		return apperr.NewConflictError("email")
 	}
 
-	if !domain_errors.IsUserNotFound(err) {
-		return shared_errors.NewInternalError("failed to check email existence", err)
+	if !apperr.IsUserNotFound(err) {
+		return apperr.NewInternalError("failed to check email existence", err)
 	}
 
 	// メールアドレスも見つからない場合は、ユーザーは存在しない
@@ -225,10 +224,10 @@ func (i *AuthInteractor) verifyPassword(hashedPassword, password string) error {
 	if err != nil {
 		if errors.Is(err, bcrypt.ErrMismatchedHashAndPassword) {
 			// パスワード不一致の場合は認証エラーとして扱う
-			return shared_errors.NewInvalidCredentialsError("password mismatch")
+			return apperr.NewInvalidCredentialsError("password mismatch")
 		}
 		// bcryptライブラリの内部エラー（ハッシュ形式が不正など）
-		return shared_errors.NewInternalError("password verification failed", err)
+		return apperr.NewInternalError("password verification failed", err)
 	}
 	return nil
 }
@@ -243,7 +242,7 @@ func (i *AuthInteractor) generateUserID() (domain.UserID, error) {
 func (i *AuthInteractor) storeRefreshToken(ctx context.Context, refreshTokenString string, userID domain.UserID) error {
 	refreshTokenID, err := domain.NewRefreshTokenID(refreshTokenString)
 	if err != nil {
-		return shared_errors.NewInternalError("refresh token id creation failed", err)
+		return apperr.NewInternalError("refresh token id creation failed", err)
 	}
 
 	now := i.clock.Now()
@@ -256,7 +255,7 @@ func (i *AuthInteractor) storeRefreshToken(ctx context.Context, refreshTokenStri
 	)
 
 	if err := i.refreshTokenRepository.Create(ctx, refreshToken); err != nil {
-		return shared_errors.NewInternalError("failed to create refresh token", err)
+		return apperr.NewInternalError("failed to create refresh token", err)
 	}
 
 	return nil
@@ -272,23 +271,23 @@ func (i *AuthInteractor) checkRevokedToken(ctx context.Context, refreshToken str
 			slog.Error("Failed to handle token reuse attack", "error", err)
 		}
 
-		return shared_errors.NewInvalidCredentialsError("token has been revoked")
+		return apperr.NewInvalidCredentialsError("token has been revoked")
 	}
 
 	// 失効済みトークンが見つからない場合は正常
-	if domain_errors.IsTokenNotFound(err) {
+	if apperr.IsTokenNotFound(err) {
 		return nil
 	}
 
 	// その他のエラー
-	return shared_errors.NewInternalError("Failed to check revoked token", err)
+	return apperr.NewInternalError("Failed to check revoked token", err)
 }
 
 // handleTokenReuseAttack はトークン再利用攻撃を検出した際の処理を行います
 func (i *AuthInteractor) handleTokenReuseAttack(ctx context.Context, refreshToken string) error {
 	foundToken, err := i.refreshTokenRepository.FindByToken(ctx, refreshToken)
 	if err != nil {
-		if domain_errors.IsTokenNotFound(err) {
+		if apperr.IsTokenNotFound(err) {
 			return nil // 既に削除済み
 		}
 		return err
@@ -307,10 +306,10 @@ func (i *AuthInteractor) handleTokenReuseAttack(ctx context.Context, refreshToke
 func (i *AuthInteractor) findAndValidateRefreshToken(ctx context.Context, refreshToken string) (domain.RefreshToken, error) {
 	foundToken, err := i.refreshTokenRepository.FindByToken(ctx, refreshToken)
 	if err != nil {
-		if domain_errors.IsTokenNotFound(err) {
-			return domain.RefreshToken{}, shared_errors.NewInvalidCredentialsError("Invalid refresh token")
+		if apperr.IsTokenNotFound(err) {
+			return domain.RefreshToken{}, apperr.NewInvalidCredentialsError("Invalid refresh token")
 		}
-		return domain.RefreshToken{}, shared_errors.NewInternalError("Failed to find refresh token", err)
+		return domain.RefreshToken{}, apperr.NewInternalError("Failed to find refresh token", err)
 	}
 
 	// 有効期限のチェック
@@ -320,7 +319,7 @@ func (i *AuthInteractor) findAndValidateRefreshToken(ctx context.Context, refres
 			slog.Error("Failed to delete expired refresh token", "error", err, "tokenID", foundToken.ID.String())
 		}
 
-		return domain.RefreshToken{}, shared_errors.NewInvalidCredentialsError("Refresh token expired")
+		return domain.RefreshToken{}, apperr.NewInvalidCredentialsError("Refresh token expired")
 	}
 
 	return foundToken, nil
@@ -331,7 +330,7 @@ func (i *AuthInteractor) revokeToken(ctx context.Context, token domain.RefreshTo
 	// 失効済みトークンとして記録
 	revokedTokenID, err := domain.NewRevokedTokenID(i.uuidGenerator.NewUUID())
 	if err != nil {
-		return shared_errors.NewInternalError("Revoked token ID creation failed", err)
+		return apperr.NewInternalError("Revoked token ID creation failed", err)
 	}
 
 	revokedToken := domain.NewRevokedToken(
@@ -343,12 +342,12 @@ func (i *AuthInteractor) revokeToken(ctx context.Context, token domain.RefreshTo
 	)
 
 	if err := i.revokedTokenRepository.Create(ctx, revokedToken); err != nil {
-		return shared_errors.NewInternalError("Failed to create revoked token", err)
+		return apperr.NewInternalError("Failed to create revoked token", err)
 	}
 
 	// 元のリフレッシュトークンを削除
 	if err := i.refreshTokenRepository.Delete(ctx, token); err != nil {
-		return shared_errors.NewInternalError("Failed to delete refresh token", err)
+		return apperr.NewInternalError("Failed to delete refresh token", err)
 	}
 
 	return nil
@@ -364,7 +363,7 @@ func (i *AuthInteractor) generateTokenPair(userID domain.UserID, now time.Time) 
 
 	accessTokenString, err := accessToken.SignedString([]byte(i.jwtSecret))
 	if err != nil {
-		return "", "", shared_errors.NewInternalError("", err)
+		return "", "", apperr.NewInternalError("", err)
 	}
 
 	// リフレッシュトークンの生成
