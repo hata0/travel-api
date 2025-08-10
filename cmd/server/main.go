@@ -4,7 +4,7 @@ import (
 	"context"
 	"log/slog"
 	"os"
-	"travel-api/internal/server"
+	"travel-api/internal/infrastructure/server"
 )
 
 func main() {
