@@ -8,10 +8,10 @@ import (
 
 	"travel-api/internal/adapter/middleware"
 	"travel-api/internal/infrastructure/config"
-	"travel-api/internal/injector"
+	"travel-api/internal/infrastructure/di"
 )
 
-func SetupRouter(cfg config.Config, container *injector.Container, logger *slog.Logger) *gin.Engine {
+func SetupRouter(cfg config.Config, container *di.Container, logger *slog.Logger) *gin.Engine {
 	if cfg.IsProduction() {
 		gin.SetMode(gin.ReleaseMode)
 	}

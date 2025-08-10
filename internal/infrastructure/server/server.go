@@ -10,14 +10,14 @@ import (
 	"syscall"
 
 	"travel-api/internal/infrastructure/config"
+	"travel-api/internal/infrastructure/di"
 	"travel-api/internal/infrastructure/router"
-	"travel-api/internal/injector"
 )
 
 type Server struct {
 	config    config.Config
 	server    *http.Server
-	container *injector.Container
+	container *di.Container
 	logger    *slog.Logger
 }
 
@@ -30,7 +30,7 @@ func NewServer() (*Server, error) {
 	logger := SetupLogger(cfg.Log())
 	slog.SetDefault(logger)
 
-	factory := injector.NewFactory()
+	factory := di.NewFactory()
 	container, err := factory.CreateProductionContainer(cfg)
 	if err != nil {
 		logger.Error("Failed to create DI container", "error", err)

@@ -1,4 +1,4 @@
-package injector
+package di
 
 import (
 	"context"

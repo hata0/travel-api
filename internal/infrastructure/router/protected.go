@@ -1,12 +1,12 @@
 package router
 
 import (
-	"travel-api/internal/injector"
+	"travel-api/internal/infrastructure/di"
 
 	"github.com/gin-gonic/gin"
 )
 
-func SetupProtectedRoutes(group *gin.RouterGroup, container *injector.Container) {
+func SetupProtectedRoutes(group *gin.RouterGroup, container *di.Container) {
 	tripHandler := container.TripHandler()
 	tripHandler.RegisterAPI(group)
 }
