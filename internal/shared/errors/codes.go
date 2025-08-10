@@ -1,8 +1,9 @@
 package errors
 
 const (
-	CodeNotFound           = "NOT_FOUND"
+	CodeValidationError    = "VALIDATION_ERROR"
 	CodeInvalidCredentials = "INVALID_CREDENTIALS"
+	CodeNotFound           = "NOT_FOUND"
 	CodeConflict           = "CONFLICT"
 	CodeInternalError      = "INTERNAL_ERROR"
 )

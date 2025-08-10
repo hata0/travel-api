@@ -2,17 +2,17 @@ package errors
 
 import "fmt"
 
-func NewNotFoundError(resource string) *AppError {
-	return &AppError{
-		Code:    CodeNotFound,
-		Message: fmt.Sprintf("%s not found", resource),
-	}
-}
-
 func NewInvalidCredentialsError(message string) *AppError {
 	return &AppError{
 		Code:    CodeInvalidCredentials,
 		Message: message,
+	}
+}
+
+func NewNotFoundError(resource string) *AppError {
+	return &AppError{
+		Code:    CodeNotFound,
+		Message: fmt.Sprintf("%s not found", resource),
 	}
 }
 
