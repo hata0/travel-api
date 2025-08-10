@@ -1,8 +1,7 @@
 package postgres
 
 import (
-	"context"
-	"errors" // errorsパッケージのインポートを追加
+	"context" // errorsパッケージのインポートを追加
 	"fmt"
 	"time"
 	"travel-api/internal/domain"
@@ -10,8 +9,7 @@ import (
 	postgres "travel-api/internal/infrastructure/postgres/generated"
 	shared_errors "travel-api/internal/shared/errors"
 
-	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgconn" // pgconnパッケージのインポートを追加
+	"github.com/jackc/pgx/v5" // pgconnパッケージのインポートを追加
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
@@ -47,10 +45,6 @@ func (r *RevokedTokenPostgresRepository) Create(ctx context.Context, token domai
 		ExpiresAt: validatedExpiresAt,
 		RevokedAt: validatedRevokedAt,
 	}); err != nil {
-		var pgErr *pgconn.PgError
-		if errors.As(err, &pgErr) && pgErr.Code == "23505" { // 23505 is unique_violation
-			return domain_errors.ErrTokenAlreadyExists
-		}
 		return shared_errors.NewInternalError(fmt.Sprintf("failed to create revoked token: %s", token.ID.String()), err)
 	}
 

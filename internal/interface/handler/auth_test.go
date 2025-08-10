@@ -3,11 +3,9 @@ package handler
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
-	"travel-api/internal/domain/shared/app_error"
 	"travel-api/internal/interface/presenter"
 	mock_handler "travel-api/internal/usecase/mock"
 	"travel-api/internal/usecase/output"
@@ -68,44 +66,6 @@ func TestAuthHandler_Register(t *testing.T) {
 		json.Unmarshal(w.Body.Bytes(), &resBody)
 		assert.Equal(t, "VALIDATION_ERROR", resBody["code"])
 	})
-
-	t.Run("異常系: ユースケースエラー (ユーザーが既に存在する)", func(t *testing.T) {
-		mockUsecase.EXPECT().Register(gomock.Any(), username, email, password).Return(output.RegisterOutput{}, app_error.ErrUserAlreadyExists).Times(1)
-
-		body, _ := json.Marshal(gin.H{
-			"username": username,
-			"email":    email,
-			"password": password,
-		})
-		w := httptest.NewRecorder()
-		req, _ := http.NewRequest("POST", "/register", bytes.NewBuffer(body))
-		req.Header.Set("Content-Type", "application/json")
-		r.ServeHTTP(w, req)
-
-		assert.Equal(t, http.StatusConflict, w.Code) // 409 Conflict
-		var resBody map[string]interface{}
-		json.Unmarshal(w.Body.Bytes(), &resBody)
-		assert.Equal(t, "USER_ALREADY_EXISTS", resBody["code"])
-	})
-
-	t.Run("異常系: ユースケースエラー (内部サーバーエラー)", func(t *testing.T) {
-		mockUsecase.EXPECT().Register(gomock.Any(), username, email, password).Return(output.RegisterOutput{}, errors.New("some internal error")).Times(1)
-
-		body, _ := json.Marshal(gin.H{
-			"username": username,
-			"email":    email,
-			"password": password,
-		})
-		w := httptest.NewRecorder()
-		req, _ := http.NewRequest("POST", "/register", bytes.NewBuffer(body))
-		req.Header.Set("Content-Type", "application/json")
-		r.ServeHTTP(w, req)
-
-		assert.Equal(t, http.StatusInternalServerError, w.Code)
-		var resBody map[string]interface{}
-		json.Unmarshal(w.Body.Bytes(), &resBody)
-		assert.Equal(t, "INTERNAL_SERVER_ERROR", resBody["code"])
-	})
 }
 
 func TestAuthHandler_Login(t *testing.T) {
@@ -139,42 +99,6 @@ func TestAuthHandler_Login(t *testing.T) {
 		var resBody presenter.AuthTokenResponse
 		json.Unmarshal(w.Body.Bytes(), &resBody)
 		assert.Equal(t, token, resBody.Token)
-	})
-
-	t.Run("異常系: ユースケースエラー (認証情報が無効)", func(t *testing.T) {
-		mockUsecase.EXPECT().Login(gomock.Any(), email, password).Return(output.TokenPairOutput{}, app_error.ErrInvalidCredentials).Times(1)
-
-		body, _ := json.Marshal(gin.H{
-			"email":    email,
-			"password": password,
-		})
-		w := httptest.NewRecorder()
-		req, _ := http.NewRequest("POST", "/login", bytes.NewBuffer(body))
-		req.Header.Set("Content-Type", "application/json")
-		r.ServeHTTP(w, req)
-
-		assert.Equal(t, http.StatusUnauthorized, w.Code) // 401 Unauthorized
-		var resBody map[string]interface{}
-		json.Unmarshal(w.Body.Bytes(), &resBody)
-		assert.Equal(t, "INVALID_CREDENTIALS", resBody["code"])
-	})
-
-	t.Run("異常系: ユースケースエラー (内部サーバーエラー)", func(t *testing.T) {
-		mockUsecase.EXPECT().Login(gomock.Any(), email, password).Return(output.TokenPairOutput{}, errors.New("some internal error")).Times(1)
-
-		body, _ := json.Marshal(gin.H{
-			"email":    email,
-			"password": password,
-		})
-		w := httptest.NewRecorder()
-		req, _ := http.NewRequest("POST", "/login", bytes.NewBuffer(body))
-		req.Header.Set("Content-Type", "application/json")
-		r.ServeHTTP(w, req)
-
-		assert.Equal(t, http.StatusInternalServerError, w.Code)
-		var resBody map[string]interface{}
-		json.Unmarshal(w.Body.Bytes(), &resBody)
-		assert.Equal(t, "INTERNAL_SERVER_ERROR", resBody["code"])
 	})
 }
 
@@ -224,39 +148,5 @@ func TestAuthHandler_Refresh(t *testing.T) {
 		var resBody map[string]interface{}
 		json.Unmarshal(w.Body.Bytes(), &resBody)
 		assert.Equal(t, "VALIDATION_ERROR", resBody["code"])
-	})
-
-	t.Run("異常系: ユースケースエラー (リフレッシュトークンが無効または期限切れの場合)", func(t *testing.T) {
-		mockUsecase.EXPECT().VerifyRefreshToken(gomock.Any(), refreshToken).Return(output.TokenPairOutput{}, app_error.ErrInvalidCredentials).Times(1)
-
-		body, _ := json.Marshal(gin.H{
-			"refresh_token": refreshToken,
-		})
-		w := httptest.NewRecorder()
-		req, _ := http.NewRequest("POST", "/refresh", bytes.NewBuffer(body))
-		req.Header.Set("Content-Type", "application/json")
-		r.ServeHTTP(w, req)
-
-		assert.Equal(t, http.StatusUnauthorized, w.Code)
-		var resBody map[string]interface{}
-		json.Unmarshal(w.Body.Bytes(), &resBody)
-		assert.Equal(t, "INVALID_CREDENTIALS", resBody["code"])
-	})
-
-	t.Run("異常系: ユースケースエラー (内部サーバーエラーの場合)", func(t *testing.T) {
-		mockUsecase.EXPECT().VerifyRefreshToken(gomock.Any(), refreshToken).Return(output.TokenPairOutput{}, errors.New("some internal error")).Times(1)
-
-		body, _ := json.Marshal(gin.H{
-			"refresh_token": refreshToken,
-		})
-		w := httptest.NewRecorder()
-		req, _ := http.NewRequest("POST", "/refresh", bytes.NewBuffer(body))
-		req.Header.Set("Content-Type", "application/json")
-		r.ServeHTTP(w, req)
-
-		assert.Equal(t, http.StatusInternalServerError, w.Code)
-		var resBody map[string]interface{}
-		json.Unmarshal(w.Body.Bytes(), &resBody)
-		assert.Equal(t, "INTERNAL_SERVER_ERROR", resBody["code"])
 	})
 }

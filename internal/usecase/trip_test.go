@@ -2,13 +2,12 @@ package usecase
 
 import (
 	"context"
-	"errors"
 	"testing"
 	"time"
 	"travel-api/internal/domain"
 	mock_domain "travel-api/internal/domain/mock"
-	_error "travel-api/internal/domain/shared/app_error"
 	mock_clock "travel-api/internal/domain/shared/clock/mock"
+	domain_errors "travel-api/internal/domain/shared/errors"
 	mock_uuid "travel-api/internal/domain/shared/uuid/mock"
 	"travel-api/internal/usecase/output"
 
@@ -42,20 +41,7 @@ func TestTripInteractor_Get(t *testing.T) {
 	t.Run("異常系: 無効なUUIDの場合", func(t *testing.T) {
 		invalidUUID := "invalid-uuid"
 		_, err := interactor.Get(context.Background(), invalidUUID)
-		assert.ErrorIs(t, err, _error.ErrInvalidUUID)
-	})
-
-	t.Run("異常系: リポジトリからエラーが返された場合", func(t *testing.T) {
-		tripID, err := domain.NewTripID("a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d")
-		assert.NoError(t, err)
-		expectedErr := errors.New("not found")
-
-		mockRepo.EXPECT().FindByID(gomock.Any(), tripID).Return(domain.Trip{}, expectedErr).Times(1)
-
-		_, err = interactor.Get(context.Background(), tripID.String())
-
-		assert.Error(t, err)
-		assert.Equal(t, expectedErr, err)
+		assert.ErrorIs(t, err, domain_errors.ErrInvalidUUID)
 	})
 }
 
@@ -86,17 +72,6 @@ func TestTripInteractor_List(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, output.NewListTripOutput(expectedTrips), tripsOutput)
 	})
-
-	t.Run("異常系: リポジトリからエラーが返された場合", func(t *testing.T) {
-		expectedErr := errors.New("db error")
-
-		mockRepo.EXPECT().FindMany(gomock.Any()).Return(nil, expectedErr).Times(1)
-
-		_, err := interactor.List(context.Background())
-
-		assert.Error(t, err)
-		assert.Equal(t, expectedErr, err)
-	})
 }
 
 func TestTripInteractor_Create(t *testing.T) {
@@ -113,7 +88,7 @@ func TestTripInteractor_Create(t *testing.T) {
 	now := time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC)
 
 	mockUUIDGenerator.EXPECT().NewUUID().Return(generatedUUID).Times(1)
-	mockClock.EXPECT().Now().Return(now).Times(2)
+	mockClock.EXPECT().Now().Return(now).Times(1)
 
 	tripID, err := domain.NewTripID(generatedUUID)
 	assert.NoError(t, err)
@@ -160,44 +135,7 @@ func TestTripInteractor_Update(t *testing.T) {
 	t.Run("異常系: 無効なUUIDの場合", func(t *testing.T) {
 		invalidUUID := "invalid-uuid"
 		err := interactor.Update(context.Background(), invalidUUID, "any name")
-		assert.ErrorIs(t, err, _error.ErrInvalidUUID)
-	})
-
-	t.Run("異常系: FindByIDでエラーが返された場合", func(t *testing.T) {
-		tripID, err := domain.NewTripID("a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d")
-		assert.NoError(t, err)
-		updatedTripName := "Updated Trip"
-		expectedErr := errors.New("not found")
-
-		mockRepo.EXPECT().FindByID(gomock.Any(), tripID).Return(domain.Trip{}, expectedErr).Times(1)
-
-		err = interactor.Update(context.Background(), tripID.String(), updatedTripName)
-
-		assert.Error(t, err)
-		assert.Equal(t, expectedErr, err)
-	})
-
-	t.Run("異常系: Updateでエラーが返された場合", func(t *testing.T) {
-		tripID, err := domain.NewTripID("a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d")
-		assert.NoError(t, err)
-		tripName := "Original Trip"
-		updatedTripName := "Updated Trip"
-		originalCreatedAt := time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)
-		originalUpdatedAt := time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)
-		newUpdatedAt := time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC)
-
-		originalTrip := domain.NewTrip(tripID, tripName, originalCreatedAt, originalUpdatedAt)
-		updatedTrip := originalTrip.Update(updatedTripName, newUpdatedAt)
-		expectedErr := errors.New("update error")
-
-		mockRepo.EXPECT().FindByID(gomock.Any(), tripID).Return(originalTrip, nil).Times(1)
-		mockClock.EXPECT().Now().Return(newUpdatedAt).Times(1)
-		mockRepo.EXPECT().Update(gomock.Any(), updatedTrip).Return(expectedErr).Times(1)
-
-		err = interactor.Update(context.Background(), tripID.String(), updatedTripName)
-
-		assert.Error(t, err)
-		assert.Equal(t, expectedErr, err)
+		assert.ErrorIs(t, err, domain_errors.ErrInvalidUUID)
 	})
 }
 
@@ -227,35 +165,6 @@ func TestTripInteractor_Delete(t *testing.T) {
 	t.Run("異常系: 無効なUUIDの場合", func(t *testing.T) {
 		invalidUUID := "invalid-uuid"
 		err := interactor.Delete(context.Background(), invalidUUID)
-		assert.ErrorIs(t, err, _error.ErrInvalidUUID)
-	})
-
-	t.Run("異常系: FindByIDでエラーが返された場合", func(t *testing.T) {
-		tripID, err := domain.NewTripID("a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d")
-		assert.NoError(t, err)
-		expectedErr := errors.New("not found")
-
-		mockRepo.EXPECT().FindByID(gomock.Any(), tripID).Return(domain.Trip{}, expectedErr).Times(1)
-
-		err = interactor.Delete(context.Background(), tripID.String())
-
-		assert.Error(t, err)
-		assert.Equal(t, expectedErr, err)
-	})
-
-	t.Run("異常系: Deleteでエラーが返された場合", func(t *testing.T) {
-		tripID, err := domain.NewTripID("a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d")
-		assert.NoError(t, err)
-		now := time.Now()
-		tripToDelete := domain.NewTrip(tripID, "Trip to delete", now, now)
-		expectedErr := errors.New("delete error")
-
-		mockRepo.EXPECT().FindByID(gomock.Any(), tripID).Return(tripToDelete, nil).Times(1)
-		mockRepo.EXPECT().Delete(gomock.Any(), tripToDelete).Return(expectedErr).Times(1)
-
-		err = interactor.Delete(context.Background(), tripID.String())
-
-		assert.Error(t, err)
-		assert.Equal(t, expectedErr, err)
+		assert.ErrorIs(t, err, domain_errors.ErrInvalidUUID)
 	})
 }

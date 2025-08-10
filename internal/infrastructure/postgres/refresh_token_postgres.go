@@ -2,7 +2,6 @@ package postgres
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"time"
 	"travel-api/internal/domain"
@@ -11,7 +10,6 @@ import (
 	shared_errors "travel-api/internal/shared/errors"
 
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
@@ -47,10 +45,6 @@ func (r *RefreshTokenPostgresRepository) Create(ctx context.Context, token domai
 		ExpiresAt: validatedExpiresAt,
 		CreatedAt: validatedCreatedAt,
 	}); err != nil {
-		var pgErr *pgconn.PgError
-		if errors.As(err, &pgErr) && pgErr.Code == "23505" { // 23505 is unique_violation
-			return domain_errors.ErrTokenAlreadyExists
-		}
 		return shared_errors.NewInternalError(fmt.Sprintf("failed to create refresh token: %s", token.ID.String()), err)
 	}
 

@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 	"travel-api/internal/domain"
-	"travel-api/internal/domain/shared/app_error"
+	domain_errors "travel-api/internal/domain/shared/errors"
 	postgres "travel-api/internal/infrastructure/postgres/generated"
 
 	"github.com/google/uuid"
@@ -83,19 +83,6 @@ func TestRevokedTokenPostgresRepository_Create(t *testing.T) {
 		assert.True(t, token.ExpiresAt.Equal(createdRecord.ExpiresAt.Time))
 		assert.True(t, token.RevokedAt.Equal(createdRecord.RevokedAt.Time))
 	})
-
-	t.Run("異常系: 重複するJTIで作成", func(t *testing.T) {
-		jti := "duplicate-jti"
-		expiresAt := time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)
-		revokedAt := time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)
-		token1 := createTestRevokedToken(t, user.ID, jti, expiresAt, revokedAt)
-		insertTestRevokedToken(t, ctx, dbConn, token1)
-
-		token2 := createTestRevokedToken(t, user.ID, jti, expiresAt, revokedAt)
-
-		err := repo.Create(ctx, token2)
-		assert.ErrorIs(t, err, app_error.ErrTokenAlreadyExists)
-	})
 }
 
 func TestRevokedTokenPostgresRepository_FindByJTI(t *testing.T) {
@@ -123,6 +110,6 @@ func TestRevokedTokenPostgresRepository_FindByJTI(t *testing.T) {
 
 	t.Run("異常系: JTIでトークンが見つからない", func(t *testing.T) {
 		_, err := repo.FindByJTI(ctx, "nonexistent-jti")
-		assert.ErrorIs(t, err, app_error.ErrTokenNotFound)
+		assert.ErrorIs(t, err, domain_errors.ErrTokenNotFound)
 	})
 }

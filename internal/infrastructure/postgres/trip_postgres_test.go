@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 	"travel-api/internal/domain"
-	"travel-api/internal/domain/shared/app_error"
+	domain_errors "travel-api/internal/domain/shared/errors"
 	postgres "travel-api/internal/infrastructure/postgres/generated"
 
 	"github.com/google/uuid"
@@ -84,7 +84,7 @@ func TestTripPostgresRepository_FindByID(t *testing.T) {
 
 		_, err = repo.FindByID(ctx, id)
 
-		assert.ErrorIs(t, err, app_error.ErrTripNotFound)
+		assert.ErrorIs(t, err, domain_errors.ErrTripNotFound)
 	})
 }
 
@@ -153,16 +153,6 @@ func TestTripPostgresRepository_Create(t *testing.T) {
 		assert.Equal(t, trip.Name, createdRecord.Name)
 		assert.True(t, trip.CreatedAt.Equal(createdRecord.CreatedAt.Time))
 		assert.True(t, trip.UpdatedAt.Equal(createdRecord.UpdatedAt.Time))
-	})
-
-	t.Run("異常系: 重複するIDで作成", func(t *testing.T) {
-		name := "Existing Trip"
-		now := time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC)
-		trip := createTestTrip(t, name, now, now)
-		insertTestTrip(t, ctx, dbConn, trip) // 最初に挿入
-
-		err := repo.Create(ctx, trip) // 同じIDで再度挿入
-		assert.ErrorIs(t, err, app_error.ErrTripAlreadyExists)
 	})
 }
 

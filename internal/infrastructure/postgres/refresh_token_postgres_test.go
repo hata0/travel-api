@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 	"travel-api/internal/domain"
-	"travel-api/internal/domain/shared/app_error"
+	domain_errors "travel-api/internal/domain/shared/errors"
 	postgres "travel-api/internal/infrastructure/postgres/generated"
 
 	"github.com/google/uuid"
@@ -84,19 +84,6 @@ func TestRefreshTokenPostgresRepository_Create(t *testing.T) {
 		assert.True(t, token.ExpiresAt.Equal(createdRecord.ExpiresAt.Time))
 		assert.True(t, token.CreatedAt.Equal(createdRecord.CreatedAt.Time))
 	})
-
-	t.Run("異常系: 重複するトークンで作成", func(t *testing.T) {
-		tokenStr := "duplicate-refresh-token"
-		expiresAt := time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)
-		createdAt := time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)
-		token1 := createTestRefreshToken(t, user.ID, tokenStr, expiresAt, createdAt)
-		insertTestRefreshToken(t, ctx, dbConn, token1)
-
-		token2 := createTestRefreshToken(t, user.ID, tokenStr, expiresAt, createdAt)
-
-		err := repo.Create(ctx, token2)
-		assert.ErrorIs(t, err, app_error.ErrTokenAlreadyExists)
-	})
 }
 
 func TestRefreshTokenPostgresRepository_FindByToken(t *testing.T) {
@@ -123,7 +110,7 @@ func TestRefreshTokenPostgresRepository_FindByToken(t *testing.T) {
 
 	t.Run("異常系: トークンでリフレッシュトークンが見つからない", func(t *testing.T) {
 		_, err := repo.FindByToken(ctx, "nonexistent-token")
-		assert.ErrorIs(t, err, app_error.ErrTokenNotFound)
+		assert.ErrorIs(t, err, domain_errors.ErrTokenNotFound)
 	})
 }
 

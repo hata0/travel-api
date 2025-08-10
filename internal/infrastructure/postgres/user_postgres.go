@@ -2,7 +2,6 @@ package postgres
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"time"
 	"travel-api/internal/domain"
@@ -11,7 +10,6 @@ import (
 	shared_errors "travel-api/internal/shared/errors"
 
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
@@ -45,10 +43,6 @@ func (r *UserPostgresRepository) Create(ctx context.Context, user domain.User) e
 		CreatedAt:    validatedCreatedAt,
 		UpdatedAt:    validatedUpdatedAt,
 	}); err != nil {
-		var pgErr *pgconn.PgError
-		if errors.As(err, &pgErr) && pgErr.Code == "23505" { // 23505 is unique_violation
-			return domain_errors.ErrUserAlreadyExists
-		}
 		return shared_errors.NewInternalError(fmt.Sprintf("failed to create user: %s", user.ID.String()), err)
 	}
 
