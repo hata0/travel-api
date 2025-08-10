@@ -4,9 +4,8 @@ import (
 	"net/http"
 	"time"
 
-	"travel-api/internal/infrastructure/config"
-
 	"github.com/gin-gonic/gin"
+	"github.com/hata0/travel-api/internal/infrastructure/config"
 )
 
 func SetupSystemEndpoints(router *gin.Engine, cfg config.Config) {

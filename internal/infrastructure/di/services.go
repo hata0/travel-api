@@ -1,10 +1,10 @@
 package di
 
 import (
-	"travel-api/internal/domain/shared/clock"
-	"travel-api/internal/domain/shared/transaction_manager"
-	"travel-api/internal/domain/shared/uuid"
-	"travel-api/internal/infrastructure/postgres"
+	"github.com/hata0/travel-api/internal/domain/shared/clock"
+	"github.com/hata0/travel-api/internal/domain/shared/transaction_manager"
+	"github.com/hata0/travel-api/internal/domain/shared/uuid"
+	"github.com/hata0/travel-api/internal/infrastructure/postgres"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )

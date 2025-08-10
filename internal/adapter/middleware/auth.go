@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"log/slog"
 	"strings"
-	"travel-api/internal/adapter/presenter"
-	apperr "travel-api/internal/domain/errors"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/hata0/travel-api/internal/adapter/presenter"
+	apperr "github.com/hata0/travel-api/internal/domain/errors"
 )
 
 func AuthMiddleware(jwtSecret string) gin.HandlerFunc {

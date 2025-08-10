@@ -1,11 +1,11 @@
 package di
 
 import (
-	"travel-api/internal/adapter/handler"
-	"travel-api/internal/domain"
-	"travel-api/internal/domain/shared/clock"
-	"travel-api/internal/domain/shared/transaction_manager"
-	"travel-api/internal/domain/shared/uuid"
+	"github.com/hata0/travel-api/internal/adapter/handler"
+	"github.com/hata0/travel-api/internal/domain"
+	"github.com/hata0/travel-api/internal/domain/shared/clock"
+	"github.com/hata0/travel-api/internal/domain/shared/transaction_manager"
+	"github.com/hata0/travel-api/internal/domain/shared/uuid"
 )
 
 // HandlerProvider はハンドラー生成のインターフェース

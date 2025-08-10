@@ -4,10 +4,10 @@ import (
 	"context" // errorsパッケージのインポートを追加
 	"fmt"
 	"time"
-	"travel-api/internal/domain"
-	apperr "travel-api/internal/domain/errors"
-	postgres "travel-api/internal/infrastructure/postgres/generated"
 
+	"github.com/hata0/travel-api/internal/domain"
+	apperr "github.com/hata0/travel-api/internal/domain/errors"
+	postgres "github.com/hata0/travel-api/internal/infrastructure/postgres/generated"
 	"github.com/jackc/pgx/v5" // pgconnパッケージのインポートを追加
 	"github.com/jackc/pgx/v5/pgtype"
 )

@@ -8,12 +8,12 @@ import (
 	"net/http/httptest"
 	"testing"
 	"time"
-	"travel-api/internal/adapter/presenter"
-	"travel-api/internal/domain"
-	mock_handler "travel-api/internal/usecase/mock"
-	"travel-api/internal/usecase/output"
 
 	"github.com/gin-gonic/gin"
+	"github.com/hata0/travel-api/internal/adapter/presenter"
+	"github.com/hata0/travel-api/internal/domain"
+	mock_handler "github.com/hata0/travel-api/internal/usecase/mock"
+	"github.com/hata0/travel-api/internal/usecase/output"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
 )

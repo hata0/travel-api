@@ -8,9 +8,9 @@ import (
 	"log/slog"
 	"net/http"
 	"strings"
-	apperr "travel-api/internal/domain/errors"
 
 	"github.com/go-playground/validator/v10"
+	apperr "github.com/hata0/travel-api/internal/domain/errors"
 )
 
 type Error struct {

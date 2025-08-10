@@ -6,11 +6,11 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
-	"travel-api/internal/adapter/presenter"
-	mock_handler "travel-api/internal/usecase/mock"
-	"travel-api/internal/usecase/output"
 
 	"github.com/gin-gonic/gin"
+	"github.com/hata0/travel-api/internal/adapter/presenter"
+	mock_handler "github.com/hata0/travel-api/internal/usecase/mock"
+	"github.com/hata0/travel-api/internal/usecase/output"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
 )

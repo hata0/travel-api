@@ -1,8 +1,8 @@
 package di
 
 import (
-	"travel-api/internal/infrastructure/config"
-	"travel-api/internal/usecase"
+	"github.com/hata0/travel-api/internal/infrastructure/config"
+	"github.com/hata0/travel-api/internal/usecase"
 )
 
 // Usecases はユースケースを提供する

@@ -3,8 +3,8 @@ package di
 import (
 	"context"
 	"fmt"
-	"travel-api/internal/infrastructure/config"
 
+	"github.com/hata0/travel-api/internal/infrastructure/config"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 

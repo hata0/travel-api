@@ -4,7 +4,7 @@ import (
 	"log/slog"
 	"os"
 
-	"travel-api/internal/infrastructure/config"
+	"github.com/hata0/travel-api/internal/infrastructure/config"
 )
 
 func SetupLogger(cfg config.LogConfig) *slog.Logger {

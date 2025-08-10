@@ -4,9 +4,8 @@ import (
 	"testing"
 	"time"
 
-	apperr "travel-api/internal/domain/errors"
-
 	"github.com/google/uuid"
+	apperr "github.com/hata0/travel-api/internal/domain/errors"
 	"github.com/stretchr/testify/assert"
 )
 

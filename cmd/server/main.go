@@ -4,7 +4,8 @@ import (
 	"context"
 	"log/slog"
 	"os"
-	"travel-api/internal/infrastructure/server"
+
+	"github.com/hata0/travel-api/internal/infrastructure/server"
 )
 
 func main() {

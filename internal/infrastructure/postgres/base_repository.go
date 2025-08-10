@@ -2,7 +2,8 @@ package postgres
 
 import (
 	"context"
-	postgres "travel-api/internal/infrastructure/postgres/generated"
+
+	postgres "github.com/hata0/travel-api/internal/infrastructure/postgres/generated"
 )
 
 // BaseRepository はすべてのPostgresリポジトリに共通の機能を提供します。

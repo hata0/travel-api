@@ -2,11 +2,11 @@ package handler
 
 import (
 	"net/http"
-	"travel-api/internal/adapter/presenter"
-	"travel-api/internal/adapter/validator"
-	"travel-api/internal/usecase"
 
 	"github.com/gin-gonic/gin"
+	"github.com/hata0/travel-api/internal/adapter/presenter"
+	"github.com/hata0/travel-api/internal/adapter/validator"
+	"github.com/hata0/travel-api/internal/usecase"
 )
 
 type TripHandler struct {

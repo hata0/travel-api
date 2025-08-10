@@ -3,11 +3,12 @@ package domain
 import (
 	"context"
 	"time"
-	apperr "travel-api/internal/domain/errors"
-	"travel-api/internal/domain/shared/uuid"
+
+	apperr "github.com/hata0/travel-api/internal/domain/errors"
+	"github.com/hata0/travel-api/internal/domain/shared/uuid"
 )
 
-//go:generate mockgen -destination mock/revoked_token.go travel-api/internal/domain RevokedTokenRepository
+//go:generate mockgen -destination mock/revoked_token.go github.com/hata0/travel-api/internal/domain RevokedTokenRepository
 type RevokedTokenRepository interface {
 	Create(ctx context.Context, token RevokedToken) error
 	FindByJTI(ctx context.Context, jti string) (RevokedToken, error)

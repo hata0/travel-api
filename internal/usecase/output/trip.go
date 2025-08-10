@@ -2,7 +2,8 @@ package output
 
 import (
 	"time"
-	"travel-api/internal/domain"
+
+	"github.com/hata0/travel-api/internal/domain"
 )
 
 type Trip struct {

@@ -3,7 +3,8 @@ package presenter
 import (
 	"encoding/json"
 	"time"
-	"travel-api/internal/usecase/output"
+
+	"github.com/hata0/travel-api/internal/usecase/output"
 )
 
 type (

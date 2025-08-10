@@ -2,14 +2,15 @@ package usecase
 
 import (
 	"context"
-	"travel-api/internal/domain"
-	apperr "travel-api/internal/domain/errors"
-	"travel-api/internal/domain/shared/clock"
-	"travel-api/internal/domain/shared/uuid"
-	"travel-api/internal/usecase/output"
+
+	"github.com/hata0/travel-api/internal/domain"
+	apperr "github.com/hata0/travel-api/internal/domain/errors"
+	"github.com/hata0/travel-api/internal/domain/shared/clock"
+	"github.com/hata0/travel-api/internal/domain/shared/uuid"
+	"github.com/hata0/travel-api/internal/usecase/output"
 )
 
-//go:generate mockgen -destination mock/trip.go travel-api/internal/usecase TripUsecase
+//go:generate mockgen -destination mock/trip.go github.com/hata0/travel-api/internal/usecase TripUsecase
 type TripUsecase interface {
 	Get(ctx context.Context, id string) (output.GetTripOutput, error)
 	List(ctx context.Context) (output.ListTripOutput, error)

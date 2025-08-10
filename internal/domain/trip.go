@@ -3,11 +3,12 @@ package domain
 import (
 	"context"
 	"time"
-	apperr "travel-api/internal/domain/errors"
-	"travel-api/internal/domain/shared/uuid"
+
+	apperr "github.com/hata0/travel-api/internal/domain/errors"
+	"github.com/hata0/travel-api/internal/domain/shared/uuid"
 )
 
-//go:generate mockgen -destination mock/trip.go travel-api/internal/domain TripRepository
+//go:generate mockgen -destination mock/trip.go github.com/hata0/travel-api/internal/domain TripRepository
 type TripRepository interface {
 	FindByID(ctx context.Context, id TripID) (Trip, error)
 	FindMany(ctx context.Context) ([]Trip, error)

@@ -10,7 +10,7 @@ import (
 )
 
 type client struct {
-	lastRequest time.Time
+	lastRequest  time.Time
 	requestCount int
 }
 

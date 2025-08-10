@@ -1,9 +1,8 @@
 package di
 
 import (
-	"travel-api/internal/domain"
-	"travel-api/internal/infrastructure/postgres"
-
+	"github.com/hata0/travel-api/internal/domain"
+	"github.com/hata0/travel-api/internal/infrastructure/postgres"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 

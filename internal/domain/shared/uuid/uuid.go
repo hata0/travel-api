@@ -4,7 +4,7 @@ import "github.com/google/uuid"
 
 // UUIDGenerator はUUIDを生成するためのインターフェースです。
 //
-//go:generate mockgen -destination mock/uuid_generator.go travel-api/internal/domain/shared/uuid UUIDGenerator
+//go:generate mockgen -destination mock/uuid_generator.go github.com/hata0/travel-api/internal/domain/shared/uuid UUIDGenerator
 type UUIDGenerator interface {
 	NewUUID() string
 }

@@ -9,9 +9,9 @@ import (
 	"os/signal"
 	"syscall"
 
-	"travel-api/internal/infrastructure/config"
-	"travel-api/internal/infrastructure/di"
-	"travel-api/internal/infrastructure/router"
+	"github.com/hata0/travel-api/internal/infrastructure/config"
+	"github.com/hata0/travel-api/internal/infrastructure/di"
+	"github.com/hata0/travel-api/internal/infrastructure/router"
 )
 
 type Server struct {

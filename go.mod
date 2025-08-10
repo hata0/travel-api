@@ -1,4 +1,4 @@
-module travel-api
+module github.com/hata0/travel-api
 
 go 1.24.5
 

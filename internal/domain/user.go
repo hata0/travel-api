@@ -3,11 +3,12 @@ package domain
 import (
 	"context"
 	"time"
-	apperr "travel-api/internal/domain/errors"
-	"travel-api/internal/domain/shared/uuid"
+
+	apperr "github.com/hata0/travel-api/internal/domain/errors"
+	"github.com/hata0/travel-api/internal/domain/shared/uuid"
 )
 
-//go:generate mockgen -destination mock/user.go travel-api/internal/domain UserRepository
+//go:generate mockgen -destination mock/user.go github.com/hata0/travel-api/internal/domain UserRepository
 type UserRepository interface {
 	Create(ctx context.Context, user User) error
 	FindByEmail(ctx context.Context, email string) (User, error)

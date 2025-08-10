@@ -3,11 +3,12 @@ package domain
 import (
 	"context"
 	"time"
-	apperr "travel-api/internal/domain/errors"
-	"travel-api/internal/domain/shared/uuid"
+
+	apperr "github.com/hata0/travel-api/internal/domain/errors"
+	"github.com/hata0/travel-api/internal/domain/shared/uuid"
 )
 
-//go:generate mockgen -destination mock/refresh_token.go travel-api/internal/domain RefreshTokenRepository
+//go:generate mockgen -destination mock/refresh_token.go github.com/hata0/travel-api/internal/domain RefreshTokenRepository
 type RefreshTokenRepository interface {
 	Create(ctx context.Context, token RefreshToken) error
 	FindByToken(ctx context.Context, token string) (RefreshToken, error)

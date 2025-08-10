@@ -1,7 +1,7 @@
 package di
 
 import (
-	"travel-api/internal/adapter/handler"
+	"github.com/hata0/travel-api/internal/adapter/handler"
 )
 
 // Handlers はハンドラーを提供する

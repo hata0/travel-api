@@ -5,19 +5,19 @@ import (
 	"errors"
 	"log/slog"
 	"time"
-	"travel-api/internal/domain"
-	apperr "travel-api/internal/domain/errors"
-	"travel-api/internal/domain/shared/clock"
-	"travel-api/internal/domain/shared/transaction_manager"
-	"travel-api/internal/domain/shared/uuid"
-	"travel-api/internal/infrastructure/config"
-	"travel-api/internal/usecase/output"
 
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/hata0/travel-api/internal/domain"
+	apperr "github.com/hata0/travel-api/internal/domain/errors"
+	"github.com/hata0/travel-api/internal/domain/shared/clock"
+	"github.com/hata0/travel-api/internal/domain/shared/transaction_manager"
+	"github.com/hata0/travel-api/internal/domain/shared/uuid"
+	"github.com/hata0/travel-api/internal/infrastructure/config"
+	"github.com/hata0/travel-api/internal/usecase/output"
 	"golang.org/x/crypto/bcrypt"
 )
 
-//go:generate mockgen -destination mock/auth.go travel-api/internal/usecase AuthUsecase
+//go:generate mockgen -destination mock/auth.go github.com/hata0/travel-api/internal/usecase AuthUsecase
 type AuthUsecase interface {
 	Register(ctx context.Context, username, email, password string) (output.RegisterOutput, error)
 	Login(ctx context.Context, email, password string) (output.TokenPairOutput, error)

@@ -5,10 +5,9 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-
-	"travel-api/internal/adapter/middleware"
-	"travel-api/internal/infrastructure/config"
-	"travel-api/internal/infrastructure/di"
+	"github.com/hata0/travel-api/internal/adapter/middleware"
+	"github.com/hata0/travel-api/internal/infrastructure/config"
+	"github.com/hata0/travel-api/internal/infrastructure/di"
 )
 
 func SetupRouter(cfg config.Config, container *di.Container, logger *slog.Logger) *gin.Engine {
