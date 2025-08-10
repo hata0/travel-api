@@ -1,11 +1,11 @@
 package injector
 
 import (
+	"travel-api/internal/adapter/handler"
 	"travel-api/internal/domain"
 	"travel-api/internal/domain/shared/clock"
 	"travel-api/internal/domain/shared/transaction_manager"
 	"travel-api/internal/domain/shared/uuid"
-	"travel-api/internal/interface/handler"
 )
 
 // HandlerProvider はハンドラー生成のインターフェース

@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"log/slog"
 	"strings"
+	"travel-api/internal/adapter/presenter"
 	apperr "travel-api/internal/domain/errors"
-	"travel-api/internal/interface/presenter"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"

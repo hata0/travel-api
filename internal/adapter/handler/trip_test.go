@@ -8,8 +8,8 @@ import (
 	"net/http/httptest"
 	"testing"
 	"time"
+	"travel-api/internal/adapter/presenter"
 	"travel-api/internal/domain"
-	"travel-api/internal/interface/presenter"
 	mock_handler "travel-api/internal/usecase/mock"
 	"travel-api/internal/usecase/output"
 

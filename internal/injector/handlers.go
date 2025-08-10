@@ -1,7 +1,7 @@
 package injector
 
 import (
-	"travel-api/internal/interface/handler"
+	"travel-api/internal/adapter/handler"
 )
 
 // Handlers はハンドラーを提供する

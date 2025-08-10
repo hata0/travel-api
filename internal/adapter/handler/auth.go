@@ -2,8 +2,8 @@ package handler
 
 import (
 	"net/http"
-	"travel-api/internal/interface/presenter"
-	"travel-api/internal/interface/validator"
+	"travel-api/internal/adapter/presenter"
+	"travel-api/internal/adapter/validator"
 	"travel-api/internal/usecase"
 
 	"github.com/gin-gonic/gin"

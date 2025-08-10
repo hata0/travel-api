@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
-	"travel-api/internal/interface/presenter"
+	"travel-api/internal/adapter/presenter"
 	mock_handler "travel-api/internal/usecase/mock"
 	"travel-api/internal/usecase/output"
 

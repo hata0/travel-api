@@ -6,9 +6,9 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	"travel-api/internal/adapter/middleware"
 	"travel-api/internal/config"
 	"travel-api/internal/injector"
-	"travel-api/internal/interface/middleware"
 )
 
 func SetupRouter(cfg config.Config, container *injector.Container, logger *slog.Logger) *gin.Engine {
