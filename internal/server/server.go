@@ -10,8 +10,8 @@ import (
 	"syscall"
 
 	"travel-api/internal/infrastructure/config"
+	"travel-api/internal/infrastructure/router"
 	"travel-api/internal/injector"
-	"travel-api/internal/router"
 )
 
 type Server struct {
