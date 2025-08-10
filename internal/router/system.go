@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"time"
 
-	"travel-api/internal/config"
+	"travel-api/internal/infrastructure/config"
 
 	"github.com/gin-gonic/gin"
 )

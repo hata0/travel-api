@@ -5,12 +5,12 @@ import (
 	"errors"
 	"log/slog"
 	"time"
-	"travel-api/internal/config"
 	"travel-api/internal/domain"
 	apperr "travel-api/internal/domain/errors"
 	"travel-api/internal/domain/shared/clock"
 	"travel-api/internal/domain/shared/transaction_manager"
 	"travel-api/internal/domain/shared/uuid"
+	"travel-api/internal/infrastructure/config"
 	"travel-api/internal/usecase/output"
 
 	"github.com/golang-jwt/jwt/v5"

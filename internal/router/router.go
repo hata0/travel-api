@@ -7,7 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"travel-api/internal/adapter/middleware"
-	"travel-api/internal/config"
+	"travel-api/internal/infrastructure/config"
 	"travel-api/internal/injector"
 )
 

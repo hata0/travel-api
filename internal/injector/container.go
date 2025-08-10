@@ -2,10 +2,10 @@ package injector
 
 import (
 	"travel-api/internal/adapter/handler"
-	"travel-api/internal/config"
 	"travel-api/internal/domain/shared/clock"
 	"travel-api/internal/domain/shared/transaction_manager"
 	"travel-api/internal/domain/shared/uuid"
+	"travel-api/internal/infrastructure/config"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )

@@ -1,7 +1,7 @@
 package injector
 
 import (
-	"travel-api/internal/config"
+	"travel-api/internal/infrastructure/config"
 	"travel-api/internal/usecase"
 )
 

@@ -9,7 +9,7 @@ import (
 	"os/signal"
 	"syscall"
 
-	"travel-api/internal/config"
+	"travel-api/internal/infrastructure/config"
 	"travel-api/internal/injector"
 	"travel-api/internal/router"
 )

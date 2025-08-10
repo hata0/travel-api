@@ -3,7 +3,7 @@ package injector
 import (
 	"context"
 	"fmt"
-	"travel-api/internal/config"
+	"travel-api/internal/infrastructure/config"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )
