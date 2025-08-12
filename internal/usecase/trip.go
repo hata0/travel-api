@@ -5,69 +5,64 @@ import (
 
 	"github.com/hata0/travel-api/internal/domain"
 	apperr "github.com/hata0/travel-api/internal/domain/errors"
-	"github.com/hata0/travel-api/internal/domain/shared/clock"
-	"github.com/hata0/travel-api/internal/domain/shared/uuid"
 	"github.com/hata0/travel-api/internal/usecase/output"
+	"github.com/hata0/travel-api/internal/usecase/services"
 )
 
 //go:generate mockgen -destination mock/trip.go github.com/hata0/travel-api/internal/usecase TripUsecase
 type TripUsecase interface {
-	Get(ctx context.Context, id string) (output.GetTripOutput, error)
-	List(ctx context.Context) (output.ListTripOutput, error)
+	Get(ctx context.Context, id string) (*output.GetTripOutput, error)
+	List(ctx context.Context) (*output.ListTripOutput, error)
 	Create(ctx context.Context, name string) (string, error)
 	Update(ctx context.Context, id string, name string) error
 	Delete(ctx context.Context, id string) error
 }
 
 type TripInteractor struct {
-	repository    domain.TripRepository
-	clock         clock.Clock
-	uuidGenerator uuid.UUIDGenerator
+	repository   domain.TripRepository
+	timeProvider services.TimeProvider
+	idGenerator  services.IDGenerator
 }
 
-func NewTripInteractor(repository domain.TripRepository, clock clock.Clock, uuidGenerator uuid.UUIDGenerator) *TripInteractor {
+func NewTripInteractor(repository domain.TripRepository, timeProvider services.TimeProvider, idGenerator services.IDGenerator) *TripInteractor {
 	return &TripInteractor{
-		repository:    repository,
-		clock:         clock,
-		uuidGenerator: uuidGenerator,
+		repository:   repository,
+		timeProvider: timeProvider,
+		idGenerator:  idGenerator,
 	}
 }
 
-func (i *TripInteractor) Get(ctx context.Context, id string) (output.GetTripOutput, error) {
-	tripID, err := domain.NewTripID(id)
-	if err != nil {
-		return output.GetTripOutput{}, apperr.NewInternalError("trip id creation failed", err)
-	}
+func (i *TripInteractor) Get(ctx context.Context, id string) (*output.GetTripOutput, error) {
+	tripID := domain.NewTripID(id)
 
 	trip, err := i.repository.FindByID(ctx, tripID)
 	if err != nil {
 		if apperr.IsTripNotFound(err) {
-			return output.GetTripOutput{}, apperr.NewNotFoundError("trip")
+			// TODO: messageを設定する
+			return nil, apperr.NewNotFoundError("")
 		}
 
-		return output.GetTripOutput{}, apperr.NewInternalError("failed to find trip", err)
+		return nil, apperr.NewInternalError("", err)
 	}
 
 	return output.NewGetTripOutput(trip), nil
 }
 
-func (i *TripInteractor) List(ctx context.Context) (output.ListTripOutput, error) {
+func (i *TripInteractor) List(ctx context.Context) (*output.ListTripOutput, error) {
 	trips, err := i.repository.FindMany(ctx)
 	if err != nil {
-		return output.ListTripOutput{}, apperr.NewInternalError("failed to find trips", err)
+		return nil, apperr.NewInternalError("", err)
 	}
 
 	return output.NewListTripOutput(trips), nil
 }
 
 func (i *TripInteractor) Create(ctx context.Context, name string) (string, error) {
-	newUUID := i.uuidGenerator.NewUUID()
-	tripID, err := domain.NewTripID(newUUID)
-	if err != nil {
-		return "", apperr.NewInternalError("trip id generation failed", err)
-	}
+	newID := i.idGenerator.Generate()
+	now := i.timeProvider.Now()
 
-	now := i.clock.Now()
+	tripID := domain.NewTripID(newID)
+
 	trip := domain.NewTrip(
 		tripID,
 		name,
@@ -75,53 +70,44 @@ func (i *TripInteractor) Create(ctx context.Context, name string) (string, error
 		now,
 	)
 
-	err = i.repository.Create(ctx, trip)
+	err := i.repository.Create(ctx, trip)
 	if err != nil {
-		return "", apperr.NewInternalError("failed to create trip", err)
+		return "", apperr.NewInternalError("", err)
 	}
 
 	return tripID.String(), nil
 }
 
 func (i *TripInteractor) Update(ctx context.Context, id string, name string) error {
-	tripID, err := domain.NewTripID(id)
-	if err != nil {
-		return apperr.NewInternalError("trip id creation failed", err)
-	}
+	now := i.timeProvider.Now()
+
+	tripID := domain.NewTripID(id)
 
 	trip, err := i.repository.FindByID(ctx, tripID)
 	if err != nil {
 		if apperr.IsTripNotFound(err) {
-			return apperr.NewNotFoundError("trip")
+			return apperr.NewNotFoundError("")
 		}
-		return apperr.NewInternalError("failed to find trip", err)
+		return apperr.NewInternalError("", err)
 	}
 
-	updatedTrip := trip.Update(name, i.clock.Now())
+	updatedTrip := trip.Update(name, now)
 
 	if err := i.repository.Update(ctx, updatedTrip); err != nil {
-		return apperr.NewInternalError("failed to update trip", err)
+		return apperr.NewInternalError("", err)
 	}
 
 	return nil
 }
 
 func (i *TripInteractor) Delete(ctx context.Context, id string) error {
-	tripID, err := domain.NewTripID(id)
-	if err != nil {
-		return apperr.NewInternalError("trip id creation failed", err)
-	}
+	tripID := domain.NewTripID(id)
 
-	trip, err := i.repository.FindByID(ctx, tripID)
-	if err != nil {
+	if err := i.repository.Delete(ctx, tripID); err != nil {
 		if apperr.IsTripNotFound(err) {
-			return apperr.NewNotFoundError("trip")
+			return apperr.NewNotFoundError("")
 		}
-		return apperr.NewInternalError("failed to find trip", err)
-	}
-
-	if err := i.repository.Delete(ctx, trip); err != nil {
-		return apperr.NewInternalError("failed to delete trip", err)
+		return apperr.NewInternalError("", err)
 	}
 
 	return nil

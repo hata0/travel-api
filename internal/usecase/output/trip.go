@@ -14,35 +14,35 @@ type Trip struct {
 }
 
 type GetTripOutput struct {
-	Trip Trip
+	Trip *Trip
 }
 
-func NewGetTripOutput(trip domain.Trip) GetTripOutput {
-	return GetTripOutput{
+func NewGetTripOutput(trip *domain.Trip) *GetTripOutput {
+	return &GetTripOutput{
 		Trip: mapToTrip(trip),
 	}
 }
 
 type ListTripOutput struct {
-	Trips []Trip
+	Trips []*Trip
 }
 
-func NewListTripOutput(trips []domain.Trip) ListTripOutput {
-	formattedTrips := make([]Trip, len(trips))
-	for i, trip := range trips {
-		formattedTrips[i] = mapToTrip(trip)
+func NewListTripOutput(trips []*domain.Trip) *ListTripOutput {
+	formattedTrips := make([]*Trip, len(trips))
+	for _, trip := range trips {
+		formattedTrips = append(formattedTrips, mapToTrip(trip))
 	}
 
-	return ListTripOutput{
+	return &ListTripOutput{
 		Trips: formattedTrips,
 	}
 }
 
-func mapToTrip(trip domain.Trip) Trip {
-	return Trip{
-		ID:        trip.ID.String(),
-		Name:      trip.Name,
-		CreatedAt: trip.CreatedAt,
-		UpdatedAt: trip.UpdatedAt,
+func mapToTrip(trip *domain.Trip) *Trip {
+	return &Trip{
+		ID:        trip.ID().String(),
+		Name:      trip.Name(),
+		CreatedAt: trip.CreatedAt(),
+		UpdatedAt: trip.UpdatedAt(),
 	}
 }
