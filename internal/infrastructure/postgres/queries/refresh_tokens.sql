@@ -6,10 +6,10 @@ VALUES ($1, $2, $3, $4, $5);
 SELECT id, user_id, token, expires_at, created_at FROM refresh_tokens
 WHERE token = $1 LIMIT 1;
 
--- name: DeleteRefreshToken :exec
+-- name: DeleteRefreshToken :execrows
 DELETE FROM refresh_tokens
 WHERE id = $1;
 
--- name: DeleteRefreshTokensByUserID :exec
+-- name: DeleteRefreshTokensByUserID :execrows
 DELETE FROM refresh_tokens
 WHERE user_id = $1;
