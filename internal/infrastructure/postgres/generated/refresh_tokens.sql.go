@@ -58,13 +58,13 @@ func (q *Queries) DeleteRefreshTokenByUserID(ctx context.Context, userID pgtype.
 	return err
 }
 
-const getRefreshTokenByToken = `-- name: GetRefreshTokenByToken :one
+const findRefreshTokenByToken = `-- name: FindRefreshTokenByToken :one
 SELECT id, user_id, token, expires_at, created_at FROM refresh_tokens
-WHERE token = $1 LIMIT 1
+WHERE token = $1
 `
 
-func (q *Queries) GetRefreshTokenByToken(ctx context.Context, token string) (RefreshToken, error) {
-	row := q.db.QueryRow(ctx, getRefreshTokenByToken, token)
+func (q *Queries) FindRefreshTokenByToken(ctx context.Context, token string) (RefreshToken, error) {
+	row := q.db.QueryRow(ctx, findRefreshTokenByToken, token)
 	var i RefreshToken
 	err := row.Scan(
 		&i.ID,

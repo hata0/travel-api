@@ -128,7 +128,7 @@ func (s *refreshTokenTestSuite) createRefreshTokenInDB(t *testing.T, token testR
 func (s *refreshTokenTestSuite) getRefreshTokenFromDB(t *testing.T, token string) (*postgres.RefreshToken, error) {
 	t.Helper()
 
-	record, err := s.queries.GetRefreshTokenByToken(s.ctx, token)
+	record, err := s.queries.FindRefreshTokenByToken(s.ctx, token)
 
 	return &record, err
 }

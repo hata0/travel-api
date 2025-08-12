@@ -66,7 +66,7 @@ func (r *UserPostgresRepository) Create(ctx context.Context, user *domain.User) 
 func (r *UserPostgresRepository) FindByEmail(ctx context.Context, email string) (*domain.User, error) {
 	queries := r.GetQueries(ctx)
 
-	record, err := queries.GetUserByEmail(ctx, email)
+	record, err := queries.FindUserByEmail(ctx, email)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, apperr.ErrUserNotFound
@@ -86,7 +86,7 @@ func (r *UserPostgresRepository) FindByEmail(ctx context.Context, email string) 
 func (r *UserPostgresRepository) FindByUsername(ctx context.Context, username string) (*domain.User, error) {
 	queries := r.GetQueries(ctx)
 
-	record, err := queries.GetUserByUsername(ctx, username)
+	record, err := queries.FindUserByUsername(ctx, username)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, apperr.ErrUserNotFound
@@ -112,7 +112,7 @@ func (r *UserPostgresRepository) FindByID(ctx context.Context, id domain.UserID)
 		return nil, apperr.NewInternalError("Failed to convert user ID to UUID", err)
 	}
 
-	record, err := queries.GetUser(ctx, pgUUID)
+	record, err := queries.FindUser(ctx, pgUUID)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, apperr.ErrUserNotFound

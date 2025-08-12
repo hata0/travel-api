@@ -35,13 +35,13 @@ func (q *Queries) CreateRevokedToken(ctx context.Context, arg CreateRevokedToken
 	return err
 }
 
-const getRevokedTokenByJTI = `-- name: GetRevokedTokenByJTI :one
+const findRevokedTokenByJTI = `-- name: FindRevokedTokenByJTI :one
 SELECT id, user_id, token_jti, expires_at, revoked_at FROM revoked_tokens
-WHERE token_jti = $1 LIMIT 1
+WHERE token_jti = $1
 `
 
-func (q *Queries) GetRevokedTokenByJTI(ctx context.Context, tokenJti string) (RevokedToken, error) {
-	row := q.db.QueryRow(ctx, getRevokedTokenByJTI, tokenJti)
+func (q *Queries) FindRevokedTokenByJTI(ctx context.Context, tokenJti string) (RevokedToken, error) {
+	row := q.db.QueryRow(ctx, findRevokedTokenByJTI, tokenJti)
 	var i RevokedToken
 	err := row.Scan(
 		&i.ID,

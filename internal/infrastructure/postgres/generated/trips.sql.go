@@ -12,11 +12,8 @@ import (
 )
 
 const createTrip = `-- name: CreateTrip :exec
-INSERT INTO trips (
-  id, name, created_at, updated_at
-) VALUES (
-  $1, $2, $3, $4
-)
+INSERT INTO trips (id, name, created_at, updated_at)
+VALUES ($1, $2, $3, $4)
 `
 
 type CreateTripParams struct {
@@ -49,13 +46,13 @@ func (q *Queries) DeleteTrip(ctx context.Context, id pgtype.UUID) (int64, error)
 	return result.RowsAffected(), nil
 }
 
-const getTrip = `-- name: GetTrip :one
+const findTrip = `-- name: FindTrip :one
 SELECT id, name, created_at, updated_at FROM trips
-WHERE id = $1 LIMIT 1
+WHERE id = $1
 `
 
-func (q *Queries) GetTrip(ctx context.Context, id pgtype.UUID) (Trip, error) {
-	row := q.db.QueryRow(ctx, getTrip, id)
+func (q *Queries) FindTrip(ctx context.Context, id pgtype.UUID) (Trip, error) {
+	row := q.db.QueryRow(ctx, findTrip, id)
 	var i Trip
 	err := row.Scan(
 		&i.ID,

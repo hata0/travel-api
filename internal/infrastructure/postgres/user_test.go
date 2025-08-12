@@ -109,7 +109,7 @@ func (s *userTestSuite) getUserFromDB(t *testing.T, id domain.UserID) (*postgres
 
 	pgUUID, err := s.mapper.ToUUID(id.String())
 	require.NoError(t, err, "UUID変換に失敗")
-	user, err := s.queries.GetUser(s.ctx, pgUUID)
+	user, err := s.queries.FindUser(s.ctx, pgUUID)
 
 	return &user, err
 }

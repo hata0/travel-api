@@ -128,7 +128,7 @@ func (s *revokedTokenTestSuite) createRevokedTokenInDB(t *testing.T, token testR
 func (s *revokedTokenTestSuite) getRevokedTokenFromDB(t *testing.T, jti string) (*postgres.RevokedToken, error) {
 	t.Helper()
 
-	token, err := s.queries.GetRevokedTokenByJTI(s.ctx, jti)
+	token, err := s.queries.FindRevokedTokenByJTI(s.ctx, jti)
 
 	return &token, err
 }

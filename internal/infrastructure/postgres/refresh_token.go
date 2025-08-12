@@ -70,7 +70,7 @@ func (r *RefreshTokenPostgresRepository) Create(ctx context.Context, token *doma
 func (r *RefreshTokenPostgresRepository) FindByToken(ctx context.Context, token string) (*domain.RefreshToken, error) {
 	queries := r.GetQueries(ctx)
 
-	record, err := queries.GetRefreshTokenByToken(ctx, token)
+	record, err := queries.FindRefreshTokenByToken(ctx, token)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, apperr.ErrRefreshTokenNotFound

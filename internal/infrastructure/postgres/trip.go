@@ -32,7 +32,7 @@ func (r *TripPostgresRepository) FindByID(ctx context.Context, id domain.TripID)
 		return nil, apperr.NewInternalError("Failed to convert trip ID to UUID", err)
 	}
 
-	record, err := queries.GetTrip(ctx, pgUUID)
+	record, err := queries.FindTrip(ctx, pgUUID)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, apperr.ErrTripNotFound

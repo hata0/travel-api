@@ -37,13 +37,13 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) error {
 	return err
 }
 
-const getUser = `-- name: GetUser :one
+const findUser = `-- name: FindUser :one
 SELECT id, username, email, password_hash, created_at, updated_at FROM users
-WHERE id = $1 LIMIT 1
+WHERE id = $1
 `
 
-func (q *Queries) GetUser(ctx context.Context, id pgtype.UUID) (User, error) {
-	row := q.db.QueryRow(ctx, getUser, id)
+func (q *Queries) FindUser(ctx context.Context, id pgtype.UUID) (User, error) {
+	row := q.db.QueryRow(ctx, findUser, id)
 	var i User
 	err := row.Scan(
 		&i.ID,
@@ -56,13 +56,13 @@ func (q *Queries) GetUser(ctx context.Context, id pgtype.UUID) (User, error) {
 	return i, err
 }
 
-const getUserByEmail = `-- name: GetUserByEmail :one
+const findUserByEmail = `-- name: FindUserByEmail :one
 SELECT id, username, email, password_hash, created_at, updated_at FROM users
-WHERE email = $1 LIMIT 1
+WHERE email = $1
 `
 
-func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error) {
-	row := q.db.QueryRow(ctx, getUserByEmail, email)
+func (q *Queries) FindUserByEmail(ctx context.Context, email string) (User, error) {
+	row := q.db.QueryRow(ctx, findUserByEmail, email)
 	var i User
 	err := row.Scan(
 		&i.ID,
@@ -75,13 +75,13 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 	return i, err
 }
 
-const getUserByUsername = `-- name: GetUserByUsername :one
+const findUserByUsername = `-- name: FindUserByUsername :one
 SELECT id, username, email, password_hash, created_at, updated_at FROM users
-WHERE username = $1 LIMIT 1
+WHERE username = $1
 `
 
-func (q *Queries) GetUserByUsername(ctx context.Context, username string) (User, error) {
-	row := q.db.QueryRow(ctx, getUserByUsername, username)
+func (q *Queries) FindUserByUsername(ctx context.Context, username string) (User, error) {
+	row := q.db.QueryRow(ctx, findUserByUsername, username)
 	var i User
 	err := row.Scan(
 		&i.ID,

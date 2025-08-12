@@ -70,7 +70,7 @@ func (r *RevokedTokenPostgresRepository) Create(ctx context.Context, token *doma
 func (r *RevokedTokenPostgresRepository) FindByJTI(ctx context.Context, jti string) (*domain.RevokedToken, error) {
 	queries := r.GetQueries(ctx)
 
-	record, err := queries.GetRevokedTokenByJTI(ctx, jti)
+	record, err := queries.FindRevokedTokenByJTI(ctx, jti)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, apperr.ErrRevokedTokenNotFound

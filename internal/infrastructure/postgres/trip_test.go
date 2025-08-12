@@ -103,7 +103,7 @@ func (s *tripTestSuite) getTripFromDB(t *testing.T, id domain.TripID) (*postgres
 
 	pgUUID, err := s.mapper.ToUUID(id.String())
 	require.NoError(t, err, "UUID変換に失敗")
-	trip, err := s.queries.GetTrip(s.ctx, pgUUID)
+	trip, err := s.queries.FindTrip(s.ctx, pgUUID)
 
 	return &trip, err
 }

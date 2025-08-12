@@ -1,16 +1,13 @@
--- name: GetTrip :one
+-- name: FindTrip :one
 SELECT id, name, created_at, updated_at FROM trips
-WHERE id = $1 LIMIT 1;
+WHERE id = $1;
 
 -- name: ListTrips :many
 SELECT id, name, created_at, updated_at FROM trips;
 
 -- name: CreateTrip :exec
-INSERT INTO trips (
-  id, name, created_at, updated_at
-) VALUES (
-  $1, $2, $3, $4
-);
+INSERT INTO trips (id, name, created_at, updated_at)
+VALUES ($1, $2, $3, $4);
 
 -- name: UpdateTrip :exec
 UPDATE trips
