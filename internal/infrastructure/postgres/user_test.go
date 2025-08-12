@@ -151,13 +151,13 @@ func (s *userTestSuite) assertUserExistsInDB(t *testing.T, expected testUser) {
 }
 
 // assertUserNotExistsInDB データベースにUserが存在しないことをアサートする
-func (s *userTestSuite) assertUserNotExistsInDB(t *testing.T, id domain.UserID) {
-	t.Helper()
+// func (s *userTestSuite) assertUserNotExistsInDB(t *testing.T, id domain.UserID) {
+// 	t.Helper()
 
-	_, err := s.getUserFromDB(t, id)
-	assert.ErrorIs(t, err, pgx.ErrNoRows,
-		"データベースにUserが存在しないこと")
-}
+// 	_, err := s.getUserFromDB(t, id)
+// 	assert.ErrorIs(t, err, pgx.ErrNoRows,
+// 		"データベースにUserが存在しないこと")
+// }
 
 func TestUserPostgresRepository_NewUserPostgresRepository(t *testing.T) {
 	ctx := context.Background()
