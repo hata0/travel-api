@@ -38,11 +38,10 @@ func (i *TripInteractor) Get(ctx context.Context, id string) (*output.GetTripOut
 	trip, err := i.repository.FindByID(ctx, tripID)
 	if err != nil {
 		if apperr.IsTripNotFound(err) {
-			// TODO: messageを設定する
-			return nil, apperr.NewNotFoundError("")
+			return nil, apperr.NewNotFoundError("Trip not found")
 		}
 
-		return nil, apperr.NewInternalError("", err)
+		return nil, apperr.NewInternalError("Failed to retrieve trip", err)
 	}
 
 	return output.NewGetTripOutput(trip), nil
@@ -51,7 +50,7 @@ func (i *TripInteractor) Get(ctx context.Context, id string) (*output.GetTripOut
 func (i *TripInteractor) List(ctx context.Context) (*output.ListTripOutput, error) {
 	trips, err := i.repository.FindMany(ctx)
 	if err != nil {
-		return nil, apperr.NewInternalError("", err)
+		return nil, apperr.NewInternalError("Failed to retrieve trips", err)
 	}
 
 	return output.NewListTripOutput(trips), nil
@@ -72,7 +71,7 @@ func (i *TripInteractor) Create(ctx context.Context, name string) (string, error
 
 	err := i.repository.Create(ctx, trip)
 	if err != nil {
-		return "", apperr.NewInternalError("", err)
+		return "", apperr.NewInternalError("Failed to create trip", err)
 	}
 
 	return tripID.String(), nil
@@ -86,15 +85,15 @@ func (i *TripInteractor) Update(ctx context.Context, id string, name string) err
 	trip, err := i.repository.FindByID(ctx, tripID)
 	if err != nil {
 		if apperr.IsTripNotFound(err) {
-			return apperr.NewNotFoundError("")
+			return apperr.NewNotFoundError("Trip not found")
 		}
-		return apperr.NewInternalError("", err)
+		return apperr.NewInternalError("Failed to retrieve trip for update", err)
 	}
 
 	updatedTrip := trip.Update(name, now)
 
 	if err := i.repository.Update(ctx, updatedTrip); err != nil {
-		return apperr.NewInternalError("", err)
+		return apperr.NewInternalError("Failed to update trip", err)
 	}
 
 	return nil
@@ -105,9 +104,9 @@ func (i *TripInteractor) Delete(ctx context.Context, id string) error {
 
 	if err := i.repository.Delete(ctx, tripID); err != nil {
 		if apperr.IsTripNotFound(err) {
-			return apperr.NewNotFoundError("")
+			return apperr.NewNotFoundError("Trip not found")
 		}
-		return apperr.NewInternalError("", err)
+		return apperr.NewInternalError("Failed to delete trip", err)
 	}
 
 	return nil
