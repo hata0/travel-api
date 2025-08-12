@@ -48,26 +48,23 @@ func (q *Queries) DeleteRefreshToken(ctx context.Context, id pgtype.UUID) (int64
 	return result.RowsAffected(), nil
 }
 
-const deleteRefreshTokensByUserID = `-- name: DeleteRefreshTokensByUserID :execrows
+const deleteRefreshTokenByUserID = `-- name: DeleteRefreshTokenByUserID :exec
 DELETE FROM refresh_tokens
 WHERE user_id = $1
 `
 
-func (q *Queries) DeleteRefreshTokensByUserID(ctx context.Context, userID pgtype.UUID) (int64, error) {
-	result, err := q.db.Exec(ctx, deleteRefreshTokensByUserID, userID)
-	if err != nil {
-		return 0, err
-	}
-	return result.RowsAffected(), nil
+func (q *Queries) DeleteRefreshTokenByUserID(ctx context.Context, userID pgtype.UUID) error {
+	_, err := q.db.Exec(ctx, deleteRefreshTokenByUserID, userID)
+	return err
 }
 
-const findRefreshTokenByToken = `-- name: FindRefreshTokenByToken :one
+const getRefreshTokenByToken = `-- name: GetRefreshTokenByToken :one
 SELECT id, user_id, token, expires_at, created_at FROM refresh_tokens
 WHERE token = $1 LIMIT 1
 `
 
-func (q *Queries) FindRefreshTokenByToken(ctx context.Context, token string) (RefreshToken, error) {
-	row := q.db.QueryRow(ctx, findRefreshTokenByToken, token)
+func (q *Queries) GetRefreshTokenByToken(ctx context.Context, token string) (RefreshToken, error) {
+	row := q.db.QueryRow(ctx, getRefreshTokenByToken, token)
 	var i RefreshToken
 	err := row.Scan(
 		&i.ID,
