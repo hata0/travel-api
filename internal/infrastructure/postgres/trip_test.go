@@ -145,8 +145,8 @@ func (s *tripTestSuite) assertTripNotExistsInDB(t *testing.T, id domain.TripID) 
 	t.Helper()
 
 	_, err := s.getTripFromDB(t, id)
-	assert.True(t, errors.Is(err, pgx.ErrNoRows),
-		"データベースにTripが存在しないこと (actual error: %v)", err)
+	assert.ErrorIs(t, err, pgx.ErrNoRows,
+		"データベースにTripが存在しないこと")
 }
 
 // assertTripsContainAll 取得したTripリストに期待するTripがすべて含まれることをアサートする
@@ -205,8 +205,8 @@ func TestTripPostgresRepository_FindByID(t *testing.T) {
 		_, err := suite.repo.FindByID(suite.ctx, nonExistentID)
 
 		// Then: ErrTripNotFoundが返される
-		assert.True(t, errors.Is(err, apperr.ErrTripNotFound),
-			"ErrTripNotFoundが返されるべき、実際: %v", err)
+		assert.ErrorIs(t, err, apperr.ErrTripNotFound,
+			"ErrTripNotFoundが返されるべき")
 	})
 
 	t.Run("不正な形式のIDでInternalErrorが返されること", func(t *testing.T) {
@@ -219,8 +219,8 @@ func TestTripPostgresRepository_FindByID(t *testing.T) {
 		_, err := suite.repo.FindByID(suite.ctx, invalidID)
 
 		// Then: InternalErrorが返される
-		assert.True(t, errors.Is(err, apperr.NewInternalError("", nil)),
-			"InternalErrorが返されるべき、実際: %v", err)
+		assert.ErrorIs(t, err, apperr.NewInternalError("", nil),
+			"InternalErrorが返されるべき")
 	})
 
 	t.Run("空文字列のIDでInternalErrorが返されること", func(t *testing.T) {
@@ -233,8 +233,8 @@ func TestTripPostgresRepository_FindByID(t *testing.T) {
 		_, err := suite.repo.FindByID(suite.ctx, emptyID)
 
 		// Then: InternalErrorが返される
-		assert.True(t, errors.Is(err, apperr.NewInternalError("", nil)),
-			"InternalErrorが返されるべき、実際: %v", err)
+		assert.ErrorIs(t, err, apperr.NewInternalError("", nil),
+			"InternalErrorが返されるべき")
 	})
 }
 
@@ -313,8 +313,8 @@ func TestTripPostgresRepository_Create(t *testing.T) {
 		err := suite.repo.Create(suite.ctx, nil)
 
 		// Then: InternalErrorが返される
-		assert.True(t, errors.Is(err, apperr.NewInternalError("", nil)),
-			"InternalErrorが返されるべき、実際: %v", err)
+		assert.ErrorIs(t, err, apperr.NewInternalError("", nil),
+			"InternalErrorが返されるべき")
 	})
 
 	t.Run("重複するIDでエラーが返されること", func(t *testing.T) {
@@ -335,8 +335,8 @@ func TestTripPostgresRepository_Create(t *testing.T) {
 
 		// Then: エラーが返される
 		assert.Error(t, err, "重複IDでの作成はエラーになるべき")
-		assert.True(t, errors.Is(err, apperr.NewInternalError("", nil)),
-			"InternalErrorが返されるべき、実際: %v", err)
+		assert.ErrorIs(t, err, apperr.NewInternalError("", nil),
+			"InternalErrorが返されるべき")
 	})
 
 	t.Run("不正なIDでInternalErrorが返されること", func(t *testing.T) {
@@ -354,8 +354,8 @@ func TestTripPostgresRepository_Create(t *testing.T) {
 		err := suite.repo.Create(suite.ctx, invalidTrip.toDomainTrip())
 
 		// Then: InternalErrorが返される
-		assert.True(t, errors.Is(err, apperr.NewInternalError("", nil)),
-			"InternalErrorが返されるべき、実際: %v", err)
+		assert.ErrorIs(t, err, apperr.NewInternalError("", nil),
+			"InternalErrorが返されるべき")
 	})
 
 	t.Run("空文字列の名前でTripを作成できること", func(t *testing.T) {
@@ -425,8 +425,8 @@ func TestTripPostgresRepository_Update(t *testing.T) {
 		err := suite.repo.Update(suite.ctx, nil)
 
 		// Then: InternalErrorが返される
-		assert.True(t, errors.Is(err, apperr.NewInternalError("", nil)),
-			"InternalErrorが返されるべき、実際: %v", err)
+		assert.ErrorIs(t, err, apperr.NewInternalError("", nil),
+			"InternalErrorが返されるべき")
 	})
 
 	t.Run("存在しないIDでもエラーにならないこと", func(t *testing.T) {
@@ -457,8 +457,8 @@ func TestTripPostgresRepository_Update(t *testing.T) {
 		err := suite.repo.Update(suite.ctx, invalidTrip.toDomainTrip())
 
 		// Then: InternalErrorが返される
-		assert.True(t, errors.Is(err, apperr.NewInternalError("", nil)),
-			"InternalErrorが返されるべき、実際: %v", err)
+		assert.ErrorIs(t, err, apperr.NewInternalError("", nil),
+			"InternalErrorが返されるべき")
 	})
 
 	t.Run("名前のみを更新できること", func(t *testing.T) {
@@ -511,8 +511,8 @@ func TestTripPostgresRepository_Delete(t *testing.T) {
 		err := suite.repo.Delete(suite.ctx, nonExistentID)
 
 		// Then: ErrTripNotFoundが返される
-		assert.True(t, errors.Is(err, apperr.ErrTripNotFound),
-			"ErrTripNotFoundが返されるべき、実際: %v", err)
+		assert.ErrorIs(t, err, apperr.ErrTripNotFound,
+			"ErrTripNotFoundが返されるべき")
 	})
 
 	t.Run("不正な形式のIDでInternalErrorが返されること", func(t *testing.T) {
@@ -525,8 +525,8 @@ func TestTripPostgresRepository_Delete(t *testing.T) {
 		err := suite.repo.Delete(suite.ctx, invalidID)
 
 		// Then: InternalErrorが返される
-		assert.True(t, errors.Is(err, apperr.NewInternalError("", nil)),
-			"InternalErrorが返されるべき、実際: %v", err)
+		assert.ErrorIs(t, err, apperr.NewInternalError("", nil),
+			"InternalErrorが返されるべき")
 	})
 
 	t.Run("空文字列のIDでInternalErrorが返されること", func(t *testing.T) {
