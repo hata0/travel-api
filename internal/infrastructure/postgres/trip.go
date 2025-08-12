@@ -151,8 +151,13 @@ func (r *TripPostgresRepository) Delete(ctx context.Context, id domain.TripID) e
 		return apperr.NewInternalError("failed to convert trip ID to UUID for deletion", err)
 	}
 
-	if err := queries.DeleteTrip(ctx, pgUUID); err != nil {
+	rows, err := queries.DeleteTrip(ctx, pgUUID)
+	if err != nil {
 		return apperr.NewInternalError("failed to delete trip from database", err)
+	}
+
+	if rows == 0 {
+		return apperr.ErrTripNotFound
 	}
 
 	return nil

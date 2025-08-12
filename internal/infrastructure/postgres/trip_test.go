@@ -501,7 +501,7 @@ func TestTripPostgresRepository_Delete(t *testing.T) {
 		suite.assertTripNotExistsInDB(t, existingTrip.ID)
 	})
 
-	t.Run("存在しないIDでもエラーにならないこと", func(t *testing.T) {
+	t.Run("存在しないIDでErrTripNotFoundが返されること", func(t *testing.T) {
 		suite := newTripTestSuite(t)
 
 		// Given: 存在しないID
@@ -510,8 +510,9 @@ func TestTripPostgresRepository_Delete(t *testing.T) {
 		// When: 存在しないIDでTripを削除する
 		err := suite.repo.Delete(suite.ctx, nonExistentID)
 
-		// Then: エラーにならない（べき等性）
-		assert.NoError(t, err, "存在しないIDの削除はエラーにならないべき")
+		// Then: ErrTripNotFoundが返される
+		assert.True(t, errors.Is(err, apperr.ErrTripNotFound),
+			"ErrTripNotFoundが返されるべき、実際: %v", err)
 	})
 
 	t.Run("不正な形式のIDでInternalErrorが返されること", func(t *testing.T) {
@@ -538,8 +539,7 @@ func TestTripPostgresRepository_Delete(t *testing.T) {
 		err := suite.repo.Delete(suite.ctx, emptyID)
 
 		// Then: InternalErrorが返される
-		assert.True(t, errors.Is(err, apperr.NewInternalError("", nil)),
-			"InternalErrorが返されるべき、実際: %v", err)
+		assert.ErrorIs(t, err, apperr.NewInternalError("", nil), "InternalErrorが返されるべき")
 	})
 
 	t.Run("複数のTripが存在する場合指定したもののみ削除されること", func(t *testing.T) {
@@ -564,7 +564,7 @@ func TestTripPostgresRepository_Delete(t *testing.T) {
 		suite.assertTripExistsInDB(t, trip3)
 	})
 
-	t.Run("同じIDを複数回削除してもエラーにならないこと", func(t *testing.T) {
+	t.Run("同じIDを複数回削除した場合2回目はErrTripNotFoundが返されること", func(t *testing.T) {
 		suite := newTripTestSuite(t)
 
 		// Given: 既存のTrip
@@ -575,9 +575,12 @@ func TestTripPostgresRepository_Delete(t *testing.T) {
 		err1 := suite.repo.Delete(suite.ctx, existingTrip.ID)
 		err2 := suite.repo.Delete(suite.ctx, existingTrip.ID)
 
-		// Then: 両方ともエラーにならない（べき等性）
+		// Then: 1回目は正常に削除される
 		assert.NoError(t, err1, "1回目の削除でエラーが発生してはならない")
-		assert.NoError(t, err2, "2回目の削除でエラーが発生してはならない")
+
+		// 2回目はErrTripNotFoundが返される
+		assert.ErrorIs(t, err2, apperr.ErrTripNotFound, "2回目はErrTripNotFoundが返されるべき")
+
 		suite.assertTripNotExistsInDB(t, existingTrip.ID)
 	})
 }

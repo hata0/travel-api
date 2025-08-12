@@ -19,6 +19,6 @@ SET
   updated_at = $3
 WHERE id = $1;
 
--- name: DeleteTrip :exec
+-- name: DeleteTrip :execrows
 DELETE FROM trips
 WHERE id = $1;
