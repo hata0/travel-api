@@ -1,30 +1,17 @@
 package errors
 
-func NewInvalidCredentialsError(message string) *AppError {
-	return &AppError{
-		Code:    CodeInvalidCredentials,
-		Message: message,
-	}
+func NewInvalidCredentialsError(message string, opts ...AppErrorOption) *AppError {
+	return NewAppError(CodeInvalidCredentials, message, opts...)
 }
 
-func NewNotFoundError(message string) *AppError {
-	return &AppError{
-		Code:    CodeNotFound,
-		Message: message,
-	}
+func NewNotFoundError(message string, opts ...AppErrorOption) *AppError {
+	return NewAppError(CodeNotFound, message, opts...)
 }
 
-func NewConflictError(message string) *AppError {
-	return &AppError{
-		Code:    CodeConflict,
-		Message: message,
-	}
+func NewConflictError(message string, opts ...AppErrorOption) *AppError {
+	return NewAppError(CodeConflict, message, opts...)
 }
 
-func NewInternalError(message string, cause error) *AppError {
-	return &AppError{
-		Code:    CodeInternalError,
-		Message: message,
-		Cause:   cause,
-	}
+func NewInternalError(message string, opts ...AppErrorOption) *AppError {
+	return NewAppError(CodeInternalError, message, opts...)
 }
