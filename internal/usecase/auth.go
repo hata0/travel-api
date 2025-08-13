@@ -60,19 +60,19 @@ func (i *AuthInteractor) Register(ctx context.Context, username, email, password
 	}
 
 	// 新しいユーザーIDを生成
-	genUserID := i.idGenerator.Generate()
-	newUserID := domain.NewUserID(genUserID)
+	userIDStr := i.idGenerator.Generate()
+	userID := domain.NewUserID(userIDStr)
 
 	// ユーザーエンティティを作成
-	newUser := domain.NewUser(newUserID, username, email, hashedPassword, now, now)
+	user := domain.NewUser(userID, username, email, hashedPassword, now, now)
 
 	// ユーザーを保存
-	err = i.userRepository.Create(ctx, newUser)
+	err = i.userRepository.Create(ctx, user)
 	if err != nil {
 		return nil, apperr.NewInternalError("Failed to create user", err)
 	}
 
-	return output.NewRegisterOutput(newUserID), nil
+	return output.NewRegisterOutput(userID), nil
 }
 
 // Login はユーザーの認証を行い、トークンペアを返します
@@ -98,17 +98,17 @@ func (i *AuthInteractor) Login(ctx context.Context, email, password string) (*ou
 		}
 
 		// トークンペアの生成
-		newAccessTokenString, newRefreshTokenString, err := i.generateTokenPair(foundUser.ID(), now)
+		accessToken, refreshToken, err := i.generateTokenPair(foundUser.ID(), now)
 		if err != nil {
 			return apperr.NewInternalError("Failed to generate token pair", err)
 		}
 
 		// リフレッシュトークンをデータベースに保存
-		if err := i.storeRefreshToken(txCtx, foundUser.ID(), newRefreshTokenString, now); err != nil {
+		if err := i.storeRefreshToken(txCtx, foundUser.ID(), refreshToken, now); err != nil {
 			return err
 		}
 
-		tokenPair = output.NewTokenPairOutput(newAccessTokenString, newRefreshTokenString)
+		tokenPair = output.NewTokenPairOutput(accessToken, refreshToken)
 		return nil
 	})
 
@@ -143,16 +143,16 @@ func (i *AuthInteractor) VerifyRefreshToken(ctx context.Context, refreshToken st
 		}
 
 		// 新しいトークンペアの生成
-		newAccessTokenString, newRefreshTokenString, err := i.generateTokenPair(foundRefreshToken.UserID(), now)
+		newAccessToken, newRefreshToken, err := i.generateTokenPair(foundRefreshToken.UserID(), now)
 		if err != nil {
 			return apperr.NewInternalError("Failed to generate token pair", err)
 		}
 
-		if err := i.storeRefreshToken(txCtx, foundRefreshToken.UserID(), newRefreshTokenString, now); err != nil {
+		if err := i.storeRefreshToken(txCtx, foundRefreshToken.UserID(), newRefreshToken, now); err != nil {
 			return err
 		}
 
-		tokenPair = output.NewTokenPairOutput(newAccessTokenString, newRefreshTokenString)
+		tokenPair = output.NewTokenPairOutput(newAccessToken, newRefreshToken)
 		return nil
 	})
 
@@ -234,20 +234,20 @@ func (i *AuthInteractor) verifyPassword(hashedPassword, password string) error {
 }
 
 // storeRefreshToken はリフレッシュトークンをデータベースに保存します
-func (i *AuthInteractor) storeRefreshToken(ctx context.Context, userID domain.UserID, refreshTokenString string, now time.Time) error {
-	genRefreshTokenID := i.idGenerator.Generate()
-	newRefreshTokenID := domain.NewRefreshTokenID(genRefreshTokenID)
+func (i *AuthInteractor) storeRefreshToken(ctx context.Context, userID domain.UserID, refreshTokenStr string, now time.Time) error {
+	refreshTokenIDStr := i.idGenerator.Generate()
+	refreshTokenID := domain.NewRefreshTokenID(refreshTokenIDStr)
 
-	newRefreshToken := domain.NewRefreshToken(
-		newRefreshTokenID,
+	refreshToken := domain.NewRefreshToken(
+		refreshTokenID,
 		userID,
-		refreshTokenString,
+		refreshTokenStr,
 		// TODO: config di する
 		now.Add(config.RefreshTokenExpiration()),
 		now,
 	)
 
-	if err := i.refreshTokenRepository.Create(ctx, newRefreshToken); err != nil {
+	if err := i.refreshTokenRepository.Create(ctx, refreshToken); err != nil {
 		return apperr.NewInternalError("Failed to store refresh token", err)
 	}
 
@@ -321,18 +321,18 @@ func (i *AuthInteractor) findAndValidateRefreshToken(ctx context.Context, refres
 // revokeToken はトークンを失効済みとして記録し削除します
 func (i *AuthInteractor) revokeToken(ctx context.Context, refreshToken *domain.RefreshToken, now time.Time) error {
 	// 失効済みトークンとして記録
-	genRevokedTokenID := i.idGenerator.Generate()
-	newRevokedTokenID := domain.NewRevokedTokenID(genRevokedTokenID)
+	revokedTokenIDStr := i.idGenerator.Generate()
+	revokedTokenID := domain.NewRevokedTokenID(revokedTokenIDStr)
 
-	newRevokedToken := domain.NewRevokedToken(
-		newRevokedTokenID,
+	revokedToken := domain.NewRevokedToken(
+		revokedTokenID,
 		refreshToken.UserID(),
 		refreshToken.Token(),
 		refreshToken.ExpiresAt(),
 		now,
 	)
 
-	if err := i.revokedTokenRepository.Create(ctx, newRevokedToken); err != nil {
+	if err := i.revokedTokenRepository.Create(ctx, revokedToken); err != nil {
 		return apperr.NewInternalError("Failed to record revoked token", err)
 	}
 
@@ -363,6 +363,7 @@ func (i *AuthInteractor) generateTokenPair(userID domain.UserID, now time.Time) 
 		return "", "", apperr.NewInternalError("Failed to sign access token", err)
 	}
 
+	// TODO: リフレッシュトークンの生成方法を改善
 	// リフレッシュトークンの生成
 	refreshTokenString := i.idGenerator.Generate()
 
