@@ -25,7 +25,7 @@ func NewRevokedTokenPostgresRepository(db postgres.DBTX) domain.RevokedTokenRepo
 // Create は新しいRevokedTokenを作成する
 func (r *RevokedTokenPostgresRepository) Create(ctx context.Context, token *domain.RevokedToken) error {
 	if token == nil {
-		return apperr.NewInternalError("RevokedToken entity cannot be nil", nil)
+		return apperr.NewInternalError("RevokedToken entity cannot be nil")
 	}
 
 	queries := r.GetQueries(ctx)
@@ -33,22 +33,22 @@ func (r *RevokedTokenPostgresRepository) Create(ctx context.Context, token *doma
 
 	pgID, err := mapper.ToUUID(token.ID().String())
 	if err != nil {
-		return apperr.NewInternalError("Failed to convert revoked token ID to UUID for creation", err)
+		return apperr.NewInternalError("Failed to convert revoked token ID to UUID for creation", apperr.WithCause(err))
 	}
 
 	pgUserID, err := mapper.ToUUID(token.UserID().String())
 	if err != nil {
-		return apperr.NewInternalError("Failed to convert user ID to UUID for creation", err)
+		return apperr.NewInternalError("Failed to convert user ID to UUID for creation", apperr.WithCause(err))
 	}
 
 	pgExpiresAt, err := mapper.ToTimestamp(token.ExpiresAt())
 	if err != nil {
-		return apperr.NewInternalError("Failed to convert expires_at to timestamp", err)
+		return apperr.NewInternalError("Failed to convert expires_at to timestamp", apperr.WithCause(err))
 	}
 
 	pgRevokedAt, err := mapper.ToTimestamp(token.RevokedAt())
 	if err != nil {
-		return apperr.NewInternalError("Failed to convert revoked_at to timestamp", err)
+		return apperr.NewInternalError("Failed to convert revoked_at to timestamp", apperr.WithCause(err))
 	}
 
 	params := postgres.CreateRevokedTokenParams{
@@ -60,7 +60,7 @@ func (r *RevokedTokenPostgresRepository) Create(ctx context.Context, token *doma
 	}
 
 	if err := queries.CreateRevokedToken(ctx, params); err != nil {
-		return apperr.NewInternalError("Failed to create revoked token in database", err)
+		return apperr.NewInternalError("Failed to create revoked token in database", apperr.WithCause(err))
 	}
 
 	return nil
@@ -75,12 +75,12 @@ func (r *RevokedTokenPostgresRepository) FindByJTI(ctx context.Context, jti stri
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, apperr.ErrRevokedTokenNotFound
 		}
-		return nil, apperr.NewInternalError("Failed to fetch revoked token by JTI from database", err)
+		return nil, apperr.NewInternalError("Failed to fetch revoked token by JTI from database", apperr.WithCause(err))
 	}
 
 	revokedToken, err := r.mapToRevokedToken(record)
 	if err != nil {
-		return nil, apperr.NewInternalError("Failed to map database record to revoked token domain object", err)
+		return nil, apperr.NewInternalError("Failed to map database record to revoked token domain object", apperr.WithCause(err))
 	}
 
 	return revokedToken, nil

@@ -190,7 +190,7 @@ func TestUserPostgresRepository_Create(t *testing.T) {
 		err := suite.repo.Create(suite.ctx, nil)
 
 		// Then: InternalErrorが返される
-		assert.ErrorIs(t, err, apperr.NewInternalError("", nil),
+		assert.ErrorIs(t, err, apperr.NewInternalError(""),
 			"InternalErrorが返されるべき")
 	})
 
@@ -214,7 +214,7 @@ func TestUserPostgresRepository_Create(t *testing.T) {
 
 		// Then: エラーが返される
 		assert.Error(t, err, "重複IDでの作成はエラーになるべき")
-		assert.ErrorIs(t, err, apperr.NewInternalError("", nil),
+		assert.ErrorIs(t, err, apperr.NewInternalError(""),
 			"InternalErrorが返されるべき")
 	})
 
@@ -231,7 +231,7 @@ func TestUserPostgresRepository_Create(t *testing.T) {
 
 		// Then: エラーが返される
 		assert.Error(t, err, "重複Emailでの作成はエラーになるべき")
-		assert.ErrorIs(t, err, apperr.NewInternalError("", nil),
+		assert.ErrorIs(t, err, apperr.NewInternalError(""),
 			"InternalErrorが返されるべき")
 	})
 
@@ -248,7 +248,7 @@ func TestUserPostgresRepository_Create(t *testing.T) {
 
 		// Then: エラーが返される
 		assert.Error(t, err, "重複Usernameでの作成はエラーになるべき")
-		assert.ErrorIs(t, err, apperr.NewInternalError("", nil),
+		assert.ErrorIs(t, err, apperr.NewInternalError(""),
 			"InternalErrorが返されるべき")
 	})
 
@@ -380,7 +380,7 @@ func TestUserPostgresRepository_FindByID(t *testing.T) {
 		_, err := suite.repo.FindByID(suite.ctx, invalidID)
 
 		// Then: InternalErrorが返される
-		assert.ErrorIs(t, err, apperr.NewInternalError("", nil),
+		assert.ErrorIs(t, err, apperr.NewInternalError(""),
 			"InternalErrorが返されるべき")
 	})
 
@@ -394,6 +394,6 @@ func TestUserPostgresRepository_FindByID(t *testing.T) {
 		_, err := suite.repo.FindByID(suite.ctx, emptyID)
 
 		// Then: InternalErrorが返される
-		assert.ErrorIs(t, err, apperr.NewInternalError("", nil), "InternalErrorが返されるべき")
+		assert.ErrorIs(t, err, apperr.NewInternalError(""), "InternalErrorが返されるべき")
 	})
 }

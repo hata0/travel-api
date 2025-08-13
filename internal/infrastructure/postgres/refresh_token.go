@@ -25,7 +25,7 @@ func NewRefreshTokenPostgresRepository(db postgres.DBTX) domain.RefreshTokenRepo
 // Create は新しいRefreshTokenを作成する
 func (r *RefreshTokenPostgresRepository) Create(ctx context.Context, token *domain.RefreshToken) error {
 	if token == nil {
-		return apperr.NewInternalError("RefreshToken entity cannot be nil", nil)
+		return apperr.NewInternalError("RefreshToken entity cannot be nil")
 	}
 
 	queries := r.GetQueries(ctx)
@@ -33,22 +33,22 @@ func (r *RefreshTokenPostgresRepository) Create(ctx context.Context, token *doma
 
 	pgID, err := mapper.ToUUID(token.ID().String())
 	if err != nil {
-		return apperr.NewInternalError("Failed to convert refresh token ID to UUID for creation", err)
+		return apperr.NewInternalError("Failed to convert refresh token ID to UUID for creation", apperr.WithCause(err))
 	}
 
 	pgUserID, err := mapper.ToUUID(token.UserID().String())
 	if err != nil {
-		return apperr.NewInternalError("Failed to convert user ID to UUID for creation", err)
+		return apperr.NewInternalError("Failed to convert user ID to UUID for creation", apperr.WithCause(err))
 	}
 
 	pgExpiresAt, err := mapper.ToTimestamp(token.ExpiresAt())
 	if err != nil {
-		return apperr.NewInternalError("Failed to convert expires_at to timestamp", err)
+		return apperr.NewInternalError("Failed to convert expires_at to timestamp", apperr.WithCause(err))
 	}
 
 	pgCreatedAt, err := mapper.ToTimestamp(token.CreatedAt())
 	if err != nil {
-		return apperr.NewInternalError("Failed to convert created_at to timestamp", err)
+		return apperr.NewInternalError("Failed to convert created_at to timestamp", apperr.WithCause(err))
 	}
 
 	params := postgres.CreateRefreshTokenParams{
@@ -60,7 +60,7 @@ func (r *RefreshTokenPostgresRepository) Create(ctx context.Context, token *doma
 	}
 
 	if err := queries.CreateRefreshToken(ctx, params); err != nil {
-		return apperr.NewInternalError("Failed to create refresh token in database", err)
+		return apperr.NewInternalError("Failed to create refresh token in database", apperr.WithCause(err))
 	}
 
 	return nil
@@ -75,12 +75,12 @@ func (r *RefreshTokenPostgresRepository) FindByToken(ctx context.Context, token 
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, apperr.ErrRefreshTokenNotFound
 		}
-		return nil, apperr.NewInternalError("Failed to fetch refresh token by token from database", err)
+		return nil, apperr.NewInternalError("Failed to fetch refresh token by token from database", apperr.WithCause(err))
 	}
 
 	refreshToken, err := r.mapToRefreshToken(record)
 	if err != nil {
-		return nil, apperr.NewInternalError("Failed to map database record to refresh token domain object", err)
+		return nil, apperr.NewInternalError("Failed to map database record to refresh token domain object", apperr.WithCause(err))
 	}
 
 	return refreshToken, nil
@@ -93,12 +93,12 @@ func (r *RefreshTokenPostgresRepository) Delete(ctx context.Context, id domain.R
 
 	pgID, err := mapper.ToUUID(id.String())
 	if err != nil {
-		return apperr.NewInternalError("Failed to convert refresh token ID to UUID for deletion", err)
+		return apperr.NewInternalError("Failed to convert refresh token ID to UUID for deletion", apperr.WithCause(err))
 	}
 
 	rows, err := queries.DeleteRefreshToken(ctx, pgID)
 	if err != nil {
-		return apperr.NewInternalError("Failed to delete refresh token from database", err)
+		return apperr.NewInternalError("Failed to delete refresh token from database", apperr.WithCause(err))
 	}
 
 	if rows == 0 {
@@ -115,11 +115,11 @@ func (r *RefreshTokenPostgresRepository) DeleteByUserID(ctx context.Context, use
 
 	pgUserID, err := mapper.ToUUID(userID.String())
 	if err != nil {
-		return apperr.NewInternalError("Failed to convert user ID to UUID for deletion by user ID", err)
+		return apperr.NewInternalError("Failed to convert user ID to UUID for deletion by user ID", apperr.WithCause(err))
 	}
 
 	if err = queries.DeleteRefreshTokenByUserID(ctx, pgUserID); err != nil {
-		return apperr.NewInternalError("Failed to delete refresh token by user ID from database", err)
+		return apperr.NewInternalError("Failed to delete refresh token by user ID from database", apperr.WithCause(err))
 	}
 
 	return nil

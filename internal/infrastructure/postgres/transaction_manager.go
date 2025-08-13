@@ -24,7 +24,7 @@ func NewTransactionManager(pool *pgxpool.Pool) *TransactionManager {
 func (tm *TransactionManager) RunInTx(ctx context.Context, fn func(ctx context.Context) error) error {
 	tx, err := tm.pool.Begin(ctx)
 	if err != nil {
-		return apperr.NewInternalError("transaction failed", err)
+		return apperr.NewInternalError("transaction failed", apperr.WithCause(err))
 	}
 	defer tx.Rollback(ctx) // 関数が終了する際に常にロールバックを試みる
 

@@ -25,7 +25,7 @@ func NewUserPostgresRepository(db postgres.DBTX) domain.UserRepository {
 // Create は新しいUserを作成する
 func (r *UserPostgresRepository) Create(ctx context.Context, user *domain.User) error {
 	if user == nil {
-		return apperr.NewInternalError("User entity cannot be nil", nil)
+		return apperr.NewInternalError("User entity cannot be nil")
 	}
 
 	queries := r.GetQueries(ctx)
@@ -33,17 +33,17 @@ func (r *UserPostgresRepository) Create(ctx context.Context, user *domain.User) 
 
 	pgUUID, err := mapper.ToUUID(user.ID().String())
 	if err != nil {
-		return apperr.NewInternalError("Failed to convert user ID to UUID for creation", err)
+		return apperr.NewInternalError("Failed to convert user ID to UUID for creation", apperr.WithCause(err))
 	}
 
 	pgCreatedAt, err := mapper.ToTimestamp(user.CreatedAt())
 	if err != nil {
-		return apperr.NewInternalError("Failed to convert user created_at to timestamp", err)
+		return apperr.NewInternalError("Failed to convert user created_at to timestamp", apperr.WithCause(err))
 	}
 
 	pgUpdatedAt, err := mapper.ToTimestamp(user.UpdatedAt())
 	if err != nil {
-		return apperr.NewInternalError("Failed to convert user updated_at to timestamp", err)
+		return apperr.NewInternalError("Failed to convert user updated_at to timestamp", apperr.WithCause(err))
 	}
 
 	params := postgres.CreateUserParams{
@@ -56,7 +56,7 @@ func (r *UserPostgresRepository) Create(ctx context.Context, user *domain.User) 
 	}
 
 	if err := queries.CreateUser(ctx, params); err != nil {
-		return apperr.NewInternalError("Failed to create user in database", err)
+		return apperr.NewInternalError("Failed to create user in database", apperr.WithCause(err))
 	}
 
 	return nil
@@ -71,12 +71,12 @@ func (r *UserPostgresRepository) FindByEmail(ctx context.Context, email string) 
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, apperr.ErrUserNotFound
 		}
-		return nil, apperr.NewInternalError("Failed to fetch user by email from database", err)
+		return nil, apperr.NewInternalError("Failed to fetch user by email from database", apperr.WithCause(err))
 	}
 
 	user, err := r.mapToUser(record)
 	if err != nil {
-		return nil, apperr.NewInternalError("Failed to map database record to user domain object", err)
+		return nil, apperr.NewInternalError("Failed to map database record to user domain object", apperr.WithCause(err))
 	}
 
 	return user, nil
@@ -91,12 +91,12 @@ func (r *UserPostgresRepository) FindByUsername(ctx context.Context, username st
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, apperr.ErrUserNotFound
 		}
-		return nil, apperr.NewInternalError("Failed to fetch user by username from database", err)
+		return nil, apperr.NewInternalError("Failed to fetch user by username from database", apperr.WithCause(err))
 	}
 
 	user, err := r.mapToUser(record)
 	if err != nil {
-		return nil, apperr.NewInternalError("Failed to map database record to user domain object", err)
+		return nil, apperr.NewInternalError("Failed to map database record to user domain object", apperr.WithCause(err))
 	}
 
 	return user, nil
@@ -109,7 +109,7 @@ func (r *UserPostgresRepository) FindByID(ctx context.Context, id domain.UserID)
 
 	pgUUID, err := mapper.ToUUID(id.String())
 	if err != nil {
-		return nil, apperr.NewInternalError("Failed to convert user ID to UUID", err)
+		return nil, apperr.NewInternalError("Failed to convert user ID to UUID", apperr.WithCause(err))
 	}
 
 	record, err := queries.FindUser(ctx, pgUUID)
@@ -117,12 +117,12 @@ func (r *UserPostgresRepository) FindByID(ctx context.Context, id domain.UserID)
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, apperr.ErrUserNotFound
 		}
-		return nil, apperr.NewInternalError("Failed to fetch user from database", err)
+		return nil, apperr.NewInternalError("Failed to fetch user from database", apperr.WithCause(err))
 	}
 
 	user, err := r.mapToUser(record)
 	if err != nil {
-		return nil, apperr.NewInternalError("Failed to map database record to user domain object", err)
+		return nil, apperr.NewInternalError("Failed to map database record to user domain object", apperr.WithCause(err))
 	}
 
 	return user, nil

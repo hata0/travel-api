@@ -214,7 +214,7 @@ func TestRefreshTokenPostgresRepository_Create(t *testing.T) {
 		err := suite.repo.Create(suite.ctx, nil)
 
 		// Then: InternalErrorが返される
-		assert.ErrorIs(t, err, apperr.NewInternalError("", nil),
+		assert.ErrorIs(t, err, apperr.NewInternalError(""),
 			"InternalErrorが返されるべき")
 	})
 
@@ -236,7 +236,7 @@ func TestRefreshTokenPostgresRepository_Create(t *testing.T) {
 
 		// Then: エラーが返される
 		assert.Error(t, err, "重複Tokenでの作成はエラーになるべき")
-		assert.ErrorIs(t, err, apperr.NewInternalError("", nil),
+		assert.ErrorIs(t, err, apperr.NewInternalError(""),
 			"InternalErrorが返されるべき")
 	})
 }

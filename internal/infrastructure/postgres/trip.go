@@ -29,7 +29,7 @@ func (r *TripPostgresRepository) FindByID(ctx context.Context, id domain.TripID)
 
 	pgUUID, err := mapper.ToUUID(id.String())
 	if err != nil {
-		return nil, apperr.NewInternalError("Failed to convert trip ID to UUID", err)
+		return nil, apperr.NewInternalError("Failed to convert trip ID to UUID", apperr.WithCause(err))
 	}
 
 	record, err := queries.FindTrip(ctx, pgUUID)
@@ -37,12 +37,12 @@ func (r *TripPostgresRepository) FindByID(ctx context.Context, id domain.TripID)
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, apperr.ErrTripNotFound
 		}
-		return nil, apperr.NewInternalError("Failed to fetch trip from database", err)
+		return nil, apperr.NewInternalError("Failed to fetch trip from database", apperr.WithCause(err))
 	}
 
 	trip, err := r.mapToTrip(record)
 	if err != nil {
-		return nil, apperr.NewInternalError("Failed to map database record to trip domain object", err)
+		return nil, apperr.NewInternalError("Failed to map database record to trip domain object", apperr.WithCause(err))
 	}
 
 	return trip, nil
@@ -54,7 +54,7 @@ func (r *TripPostgresRepository) FindMany(ctx context.Context) ([]*domain.Trip, 
 
 	records, err := queries.ListTrips(ctx)
 	if err != nil {
-		return nil, apperr.NewInternalError("Failed to fetch trips list from database", err)
+		return nil, apperr.NewInternalError("Failed to fetch trips list from database", apperr.WithCause(err))
 	}
 
 	trips := make([]*domain.Trip, 0, len(records))
@@ -74,7 +74,7 @@ func (r *TripPostgresRepository) FindMany(ctx context.Context) ([]*domain.Trip, 
 // Create は新しいTripを作成する
 func (r *TripPostgresRepository) Create(ctx context.Context, trip *domain.Trip) error {
 	if trip == nil {
-		return apperr.NewInternalError("Trip entity cannot be nil", nil)
+		return apperr.NewInternalError("Trip entity cannot be nil")
 	}
 
 	queries := r.GetQueries(ctx)
@@ -82,17 +82,17 @@ func (r *TripPostgresRepository) Create(ctx context.Context, trip *domain.Trip) 
 
 	pgUUID, err := mapper.ToUUID(trip.ID().String())
 	if err != nil {
-		return apperr.NewInternalError("Failed to convert trip ID to UUID for creation", err)
+		return apperr.NewInternalError("Failed to convert trip ID to UUID for creation", apperr.WithCause(err))
 	}
 
 	pgCreatedAt, err := mapper.ToTimestamp(trip.CreatedAt())
 	if err != nil {
-		return apperr.NewInternalError("Failed to convert trip created_at to timestamp", err)
+		return apperr.NewInternalError("Failed to convert trip created_at to timestamp", apperr.WithCause(err))
 	}
 
 	pgUpdatedAt, err := mapper.ToTimestamp(trip.UpdatedAt())
 	if err != nil {
-		return apperr.NewInternalError("Failed to convert trip updated_at to timestamp", err)
+		return apperr.NewInternalError("Failed to convert trip updated_at to timestamp", apperr.WithCause(err))
 	}
 
 	params := postgres.CreateTripParams{
@@ -103,7 +103,7 @@ func (r *TripPostgresRepository) Create(ctx context.Context, trip *domain.Trip) 
 	}
 
 	if err := queries.CreateTrip(ctx, params); err != nil {
-		return apperr.NewInternalError("Failed to create trip in database", err)
+		return apperr.NewInternalError("Failed to create trip in database", apperr.WithCause(err))
 	}
 
 	return nil
@@ -112,7 +112,7 @@ func (r *TripPostgresRepository) Create(ctx context.Context, trip *domain.Trip) 
 // Update は既存のTripを更新する
 func (r *TripPostgresRepository) Update(ctx context.Context, trip *domain.Trip) error {
 	if trip == nil {
-		return apperr.NewInternalError("Trip entity cannot be nil", nil)
+		return apperr.NewInternalError("Trip entity cannot be nil")
 	}
 
 	queries := r.GetQueries(ctx)
@@ -120,12 +120,12 @@ func (r *TripPostgresRepository) Update(ctx context.Context, trip *domain.Trip) 
 
 	pgUUID, err := mapper.ToUUID(trip.ID().String())
 	if err != nil {
-		return apperr.NewInternalError("Failed to convert trip ID to UUID for update", err)
+		return apperr.NewInternalError("Failed to convert trip ID to UUID for update", apperr.WithCause(err))
 	}
 
 	pgUpdatedAt, err := mapper.ToTimestamp(trip.UpdatedAt())
 	if err != nil {
-		return apperr.NewInternalError("Failed to convert trip updated_at to timestamp for update", err)
+		return apperr.NewInternalError("Failed to convert trip updated_at to timestamp for update", apperr.WithCause(err))
 	}
 
 	params := postgres.UpdateTripParams{
@@ -135,7 +135,7 @@ func (r *TripPostgresRepository) Update(ctx context.Context, trip *domain.Trip) 
 	}
 
 	if err := queries.UpdateTrip(ctx, params); err != nil {
-		return apperr.NewInternalError("Failed to update trip in database", err)
+		return apperr.NewInternalError("Failed to update trip in database", apperr.WithCause(err))
 	}
 
 	return nil
@@ -148,12 +148,12 @@ func (r *TripPostgresRepository) Delete(ctx context.Context, id domain.TripID) e
 
 	pgUUID, err := mapper.ToUUID(id.String())
 	if err != nil {
-		return apperr.NewInternalError("Failed to convert trip ID to UUID for deletion", err)
+		return apperr.NewInternalError("Failed to convert trip ID to UUID for deletion", apperr.WithCause(err))
 	}
 
 	rows, err := queries.DeleteTrip(ctx, pgUUID)
 	if err != nil {
-		return apperr.NewInternalError("Failed to delete trip from database", err)
+		return apperr.NewInternalError("Failed to delete trip from database", apperr.WithCause(err))
 	}
 
 	if rows == 0 {
