@@ -97,7 +97,7 @@ func TestTripInteractor_Get(t *testing.T) {
 				repository: func(ctrl *gomock.Controller) domain.TripRepository {
 					repo := mock_domain.NewMockTripRepository(ctrl)
 					repo.EXPECT().FindByID(gomock.Any(), domain.NewTripID("test-id")).
-						Return(nil, apperr.NewInternalError("", nil))
+						Return(nil, apperr.NewInternalError(""))
 					return repo
 				},
 				timeProvider: func(ctrl *gomock.Controller) service.TimeService {
@@ -113,7 +113,7 @@ func TestTripInteractor_Get(t *testing.T) {
 			},
 			want:        nil,
 			wantErr:     true,
-			expectedErr: apperr.NewInternalError("", nil),
+			expectedErr: apperr.NewInternalError(""),
 		},
 	}
 
@@ -235,7 +235,7 @@ func TestTripInteractor_List(t *testing.T) {
 			fields: fields{
 				repository: func(ctrl *gomock.Controller) domain.TripRepository {
 					repo := mock_domain.NewMockTripRepository(ctrl)
-					repo.EXPECT().FindMany(gomock.Any()).Return(nil, apperr.NewInternalError("", nil))
+					repo.EXPECT().FindMany(gomock.Any()).Return(nil, apperr.NewInternalError(""))
 					return repo
 				},
 				timeProvider: func(ctrl *gomock.Controller) service.TimeService {
@@ -250,7 +250,7 @@ func TestTripInteractor_List(t *testing.T) {
 			},
 			want:        nil,
 			wantErr:     true,
-			expectedErr: apperr.NewInternalError("", nil),
+			expectedErr: apperr.NewInternalError(""),
 		},
 	}
 
@@ -339,7 +339,7 @@ func TestTripInteractor_Create(t *testing.T) {
 			fields: fields{
 				repository: func(ctrl *gomock.Controller) domain.TripRepository {
 					repo := mock_domain.NewMockTripRepository(ctrl)
-					repo.EXPECT().Create(gomock.Any(), gomock.Any()).Return(apperr.NewInternalError("", nil))
+					repo.EXPECT().Create(gomock.Any(), gomock.Any()).Return(apperr.NewInternalError(""))
 					return repo
 				},
 				timeProvider: func(ctrl *gomock.Controller) service.TimeService {
@@ -359,7 +359,7 @@ func TestTripInteractor_Create(t *testing.T) {
 			},
 			want:        "",
 			wantErr:     true,
-			expectedErr: apperr.NewInternalError("", nil),
+			expectedErr: apperr.NewInternalError(""),
 		},
 	}
 
@@ -476,7 +476,7 @@ func TestTripInteractor_Update(t *testing.T) {
 				repository: func(ctrl *gomock.Controller) domain.TripRepository {
 					repo := mock_domain.NewMockTripRepository(ctrl)
 					repo.EXPECT().FindByID(gomock.Any(), domain.NewTripID("test-id")).
-						Return(nil, apperr.NewInternalError("", nil))
+						Return(nil, apperr.NewInternalError(""))
 					return repo
 				},
 				timeProvider: func(ctrl *gomock.Controller) service.TimeService {
@@ -494,7 +494,7 @@ func TestTripInteractor_Update(t *testing.T) {
 				name: "Updated Name",
 			},
 			wantErr:     true,
-			expectedErr: apperr.NewInternalError("", nil),
+			expectedErr: apperr.NewInternalError(""),
 		},
 		{
 			name: "異常系: Trip更新時にリポジトリでエラーが発生した場合",
@@ -504,7 +504,7 @@ func TestTripInteractor_Update(t *testing.T) {
 					repo.EXPECT().FindByID(gomock.Any(), domain.NewTripID("test-id")).
 						Return(originalTrip, nil)
 					repo.EXPECT().Update(gomock.Any(), gomock.Any()).
-						Return(apperr.NewInternalError("", nil))
+						Return(apperr.NewInternalError(""))
 					return repo
 				},
 				timeProvider: func(ctrl *gomock.Controller) service.TimeService {
@@ -522,7 +522,7 @@ func TestTripInteractor_Update(t *testing.T) {
 				name: "Updated Name",
 			},
 			wantErr:     true,
-			expectedErr: apperr.NewInternalError("", nil),
+			expectedErr: apperr.NewInternalError(""),
 		},
 	}
 
@@ -618,7 +618,7 @@ func TestTripInteractor_Delete(t *testing.T) {
 				repository: func(ctrl *gomock.Controller) domain.TripRepository {
 					repo := mock_domain.NewMockTripRepository(ctrl)
 					repo.EXPECT().Delete(gomock.Any(), domain.NewTripID("test-id")).
-						Return(apperr.NewInternalError("", nil))
+						Return(apperr.NewInternalError(""))
 					return repo
 				},
 				timeProvider: func(ctrl *gomock.Controller) service.TimeService {
@@ -633,7 +633,7 @@ func TestTripInteractor_Delete(t *testing.T) {
 				id:  "test-id",
 			},
 			wantErr:     true,
-			expectedErr: apperr.NewInternalError("", nil),
+			expectedErr: apperr.NewInternalError(""),
 		},
 	}
 

@@ -41,7 +41,7 @@ func (i *TripInteractor) Get(ctx context.Context, id string) (*output.GetTripOut
 			return nil, apperr.NewNotFoundError("Trip not found")
 		}
 
-		return nil, apperr.NewInternalError("Failed to retrieve trip", err)
+		return nil, err
 	}
 
 	return output.NewGetTripOutput(trip), nil
@@ -50,7 +50,7 @@ func (i *TripInteractor) Get(ctx context.Context, id string) (*output.GetTripOut
 func (i *TripInteractor) List(ctx context.Context) (*output.ListTripOutput, error) {
 	trips, err := i.repository.FindMany(ctx)
 	if err != nil {
-		return nil, apperr.NewInternalError("Failed to retrieve trips", err)
+		return nil, err
 	}
 
 	return output.NewListTripOutput(trips), nil
@@ -71,7 +71,7 @@ func (i *TripInteractor) Create(ctx context.Context, name string) (string, error
 
 	err := i.repository.Create(ctx, trip)
 	if err != nil {
-		return "", apperr.NewInternalError("Failed to create trip", err)
+		return "", err
 	}
 
 	return tripID.String(), nil
@@ -87,13 +87,13 @@ func (i *TripInteractor) Update(ctx context.Context, id string, name string) err
 		if apperr.IsTripNotFound(err) {
 			return apperr.NewNotFoundError("Trip not found")
 		}
-		return apperr.NewInternalError("Failed to retrieve trip for update", err)
+		return err
 	}
 
 	updatedTrip := trip.Update(name, now)
 
 	if err := i.repository.Update(ctx, updatedTrip); err != nil {
-		return apperr.NewInternalError("Failed to update trip", err)
+		return err
 	}
 
 	return nil
@@ -106,7 +106,7 @@ func (i *TripInteractor) Delete(ctx context.Context, id string) error {
 		if apperr.IsTripNotFound(err) {
 			return apperr.NewNotFoundError("Trip not found")
 		}
-		return apperr.NewInternalError("Failed to delete trip", err)
+		return err
 	}
 
 	return nil
