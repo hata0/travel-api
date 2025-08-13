@@ -12,15 +12,15 @@ import (
 	apperr "github.com/hata0/travel-api/internal/domain/errors"
 	mock_domain "github.com/hata0/travel-api/internal/domain/mock"
 	"github.com/hata0/travel-api/internal/usecase/output"
-	"github.com/hata0/travel-api/internal/usecase/services"
-	mock_services "github.com/hata0/travel-api/internal/usecase/services/mock"
+	"github.com/hata0/travel-api/internal/usecase/service"
+	mock_services "github.com/hata0/travel-api/internal/usecase/service/mock"
 )
 
 func TestTripInteractor_Get(t *testing.T) {
 	type fields struct {
 		repository   func(ctrl *gomock.Controller) domain.TripRepository
-		timeProvider func(ctrl *gomock.Controller) services.TimeProvider
-		idGenerator  func(ctrl *gomock.Controller) services.IDGenerator
+		timeProvider func(ctrl *gomock.Controller) service.TimeProvider
+		idGenerator  func(ctrl *gomock.Controller) service.IDGenerator
 	}
 	type args struct {
 		ctx context.Context
@@ -48,10 +48,10 @@ func TestTripInteractor_Get(t *testing.T) {
 					repo.EXPECT().FindByID(gomock.Any(), domain.NewTripID("test-id")).Return(expectedTrip, nil)
 					return repo
 				},
-				timeProvider: func(ctrl *gomock.Controller) services.TimeProvider {
+				timeProvider: func(ctrl *gomock.Controller) service.TimeProvider {
 					return mock_services.NewMockTimeProvider(ctrl)
 				},
-				idGenerator: func(ctrl *gomock.Controller) services.IDGenerator {
+				idGenerator: func(ctrl *gomock.Controller) service.IDGenerator {
 					return mock_services.NewMockIDGenerator(ctrl)
 				},
 			},
@@ -76,10 +76,10 @@ func TestTripInteractor_Get(t *testing.T) {
 						Return(nil, apperr.ErrTripNotFound)
 					return repo
 				},
-				timeProvider: func(ctrl *gomock.Controller) services.TimeProvider {
+				timeProvider: func(ctrl *gomock.Controller) service.TimeProvider {
 					return mock_services.NewMockTimeProvider(ctrl)
 				},
-				idGenerator: func(ctrl *gomock.Controller) services.IDGenerator {
+				idGenerator: func(ctrl *gomock.Controller) service.IDGenerator {
 					return mock_services.NewMockIDGenerator(ctrl)
 				},
 			},
@@ -100,10 +100,10 @@ func TestTripInteractor_Get(t *testing.T) {
 						Return(nil, apperr.NewInternalError("", nil))
 					return repo
 				},
-				timeProvider: func(ctrl *gomock.Controller) services.TimeProvider {
+				timeProvider: func(ctrl *gomock.Controller) service.TimeProvider {
 					return mock_services.NewMockTimeProvider(ctrl)
 				},
-				idGenerator: func(ctrl *gomock.Controller) services.IDGenerator {
+				idGenerator: func(ctrl *gomock.Controller) service.IDGenerator {
 					return mock_services.NewMockIDGenerator(ctrl)
 				},
 			},
@@ -147,8 +147,8 @@ func TestTripInteractor_Get(t *testing.T) {
 func TestTripInteractor_List(t *testing.T) {
 	type fields struct {
 		repository   func(ctrl *gomock.Controller) domain.TripRepository
-		timeProvider func(ctrl *gomock.Controller) services.TimeProvider
-		idGenerator  func(ctrl *gomock.Controller) services.IDGenerator
+		timeProvider func(ctrl *gomock.Controller) service.TimeProvider
+		idGenerator  func(ctrl *gomock.Controller) service.IDGenerator
 	}
 	type args struct {
 		ctx context.Context
@@ -183,10 +183,10 @@ func TestTripInteractor_List(t *testing.T) {
 					repo.EXPECT().FindMany(gomock.Any()).Return(trips, nil)
 					return repo
 				},
-				timeProvider: func(ctrl *gomock.Controller) services.TimeProvider {
+				timeProvider: func(ctrl *gomock.Controller) service.TimeProvider {
 					return mock_services.NewMockTimeProvider(ctrl)
 				},
-				idGenerator: func(ctrl *gomock.Controller) services.IDGenerator {
+				idGenerator: func(ctrl *gomock.Controller) service.IDGenerator {
 					return mock_services.NewMockIDGenerator(ctrl)
 				},
 			},
@@ -217,10 +217,10 @@ func TestTripInteractor_List(t *testing.T) {
 					repo.EXPECT().FindMany(gomock.Any()).Return([]*domain.Trip{}, nil)
 					return repo
 				},
-				timeProvider: func(ctrl *gomock.Controller) services.TimeProvider {
+				timeProvider: func(ctrl *gomock.Controller) service.TimeProvider {
 					return mock_services.NewMockTimeProvider(ctrl)
 				},
-				idGenerator: func(ctrl *gomock.Controller) services.IDGenerator {
+				idGenerator: func(ctrl *gomock.Controller) service.IDGenerator {
 					return mock_services.NewMockIDGenerator(ctrl)
 				},
 			},
@@ -238,10 +238,10 @@ func TestTripInteractor_List(t *testing.T) {
 					repo.EXPECT().FindMany(gomock.Any()).Return(nil, apperr.NewInternalError("", nil))
 					return repo
 				},
-				timeProvider: func(ctrl *gomock.Controller) services.TimeProvider {
+				timeProvider: func(ctrl *gomock.Controller) service.TimeProvider {
 					return mock_services.NewMockTimeProvider(ctrl)
 				},
-				idGenerator: func(ctrl *gomock.Controller) services.IDGenerator {
+				idGenerator: func(ctrl *gomock.Controller) service.IDGenerator {
 					return mock_services.NewMockIDGenerator(ctrl)
 				},
 			},
@@ -287,8 +287,8 @@ func TestTripInteractor_Create(t *testing.T) {
 
 	type fields struct {
 		repository   func(ctrl *gomock.Controller) domain.TripRepository
-		timeProvider func(ctrl *gomock.Controller) services.TimeProvider
-		idGenerator  func(ctrl *gomock.Controller) services.IDGenerator
+		timeProvider func(ctrl *gomock.Controller) service.TimeProvider
+		idGenerator  func(ctrl *gomock.Controller) service.IDGenerator
 	}
 	type args struct {
 		ctx  context.Context
@@ -316,12 +316,12 @@ func TestTripInteractor_Create(t *testing.T) {
 					repo.EXPECT().Create(gomock.Any(), expectedTrip).Return(nil)
 					return repo
 				},
-				timeProvider: func(ctrl *gomock.Controller) services.TimeProvider {
+				timeProvider: func(ctrl *gomock.Controller) service.TimeProvider {
 					provider := mock_services.NewMockTimeProvider(ctrl)
 					provider.EXPECT().Now().Return(fixedTime)
 					return provider
 				},
-				idGenerator: func(ctrl *gomock.Controller) services.IDGenerator {
+				idGenerator: func(ctrl *gomock.Controller) service.IDGenerator {
 					generator := mock_services.NewMockIDGenerator(ctrl)
 					generator.EXPECT().Generate().Return(generatedID)
 					return generator
@@ -342,12 +342,12 @@ func TestTripInteractor_Create(t *testing.T) {
 					repo.EXPECT().Create(gomock.Any(), gomock.Any()).Return(apperr.NewInternalError("", nil))
 					return repo
 				},
-				timeProvider: func(ctrl *gomock.Controller) services.TimeProvider {
+				timeProvider: func(ctrl *gomock.Controller) service.TimeProvider {
 					provider := mock_services.NewMockTimeProvider(ctrl)
 					provider.EXPECT().Now().Return(fixedTime)
 					return provider
 				},
-				idGenerator: func(ctrl *gomock.Controller) services.IDGenerator {
+				idGenerator: func(ctrl *gomock.Controller) service.IDGenerator {
 					generator := mock_services.NewMockIDGenerator(ctrl)
 					generator.EXPECT().Generate().Return(generatedID)
 					return generator
@@ -401,8 +401,8 @@ func TestTripInteractor_Update(t *testing.T) {
 
 	type fields struct {
 		repository   func(ctrl *gomock.Controller) domain.TripRepository
-		timeProvider func(ctrl *gomock.Controller) services.TimeProvider
-		idGenerator  func(ctrl *gomock.Controller) services.IDGenerator
+		timeProvider func(ctrl *gomock.Controller) service.TimeProvider
+		idGenerator  func(ctrl *gomock.Controller) service.IDGenerator
 	}
 	type args struct {
 		ctx  context.Context
@@ -428,12 +428,12 @@ func TestTripInteractor_Update(t *testing.T) {
 					repo.EXPECT().Update(gomock.Any(), updatedTrip).Return(nil)
 					return repo
 				},
-				timeProvider: func(ctrl *gomock.Controller) services.TimeProvider {
+				timeProvider: func(ctrl *gomock.Controller) service.TimeProvider {
 					provider := mock_services.NewMockTimeProvider(ctrl)
 					provider.EXPECT().Now().Return(fixedTime)
 					return provider
 				},
-				idGenerator: func(ctrl *gomock.Controller) services.IDGenerator {
+				idGenerator: func(ctrl *gomock.Controller) service.IDGenerator {
 					return mock_services.NewMockIDGenerator(ctrl)
 				},
 			},
@@ -453,12 +453,12 @@ func TestTripInteractor_Update(t *testing.T) {
 						Return(nil, apperr.ErrTripNotFound)
 					return repo
 				},
-				timeProvider: func(ctrl *gomock.Controller) services.TimeProvider {
+				timeProvider: func(ctrl *gomock.Controller) service.TimeProvider {
 					provider := mock_services.NewMockTimeProvider(ctrl)
 					provider.EXPECT().Now().Return(fixedTime)
 					return provider
 				},
-				idGenerator: func(ctrl *gomock.Controller) services.IDGenerator {
+				idGenerator: func(ctrl *gomock.Controller) service.IDGenerator {
 					return mock_services.NewMockIDGenerator(ctrl)
 				},
 			},
@@ -479,12 +479,12 @@ func TestTripInteractor_Update(t *testing.T) {
 						Return(nil, apperr.NewInternalError("", nil))
 					return repo
 				},
-				timeProvider: func(ctrl *gomock.Controller) services.TimeProvider {
+				timeProvider: func(ctrl *gomock.Controller) service.TimeProvider {
 					provider := mock_services.NewMockTimeProvider(ctrl)
 					provider.EXPECT().Now().Return(fixedTime)
 					return provider
 				},
-				idGenerator: func(ctrl *gomock.Controller) services.IDGenerator {
+				idGenerator: func(ctrl *gomock.Controller) service.IDGenerator {
 					return mock_services.NewMockIDGenerator(ctrl)
 				},
 			},
@@ -507,12 +507,12 @@ func TestTripInteractor_Update(t *testing.T) {
 						Return(apperr.NewInternalError("", nil))
 					return repo
 				},
-				timeProvider: func(ctrl *gomock.Controller) services.TimeProvider {
+				timeProvider: func(ctrl *gomock.Controller) service.TimeProvider {
 					provider := mock_services.NewMockTimeProvider(ctrl)
 					provider.EXPECT().Now().Return(fixedTime)
 					return provider
 				},
-				idGenerator: func(ctrl *gomock.Controller) services.IDGenerator {
+				idGenerator: func(ctrl *gomock.Controller) service.IDGenerator {
 					return mock_services.NewMockIDGenerator(ctrl)
 				},
 			},
@@ -554,8 +554,8 @@ func TestTripInteractor_Update(t *testing.T) {
 func TestTripInteractor_Delete(t *testing.T) {
 	type fields struct {
 		repository   func(ctrl *gomock.Controller) domain.TripRepository
-		timeProvider func(ctrl *gomock.Controller) services.TimeProvider
-		idGenerator  func(ctrl *gomock.Controller) services.IDGenerator
+		timeProvider func(ctrl *gomock.Controller) service.TimeProvider
+		idGenerator  func(ctrl *gomock.Controller) service.IDGenerator
 	}
 	type args struct {
 		ctx context.Context
@@ -576,10 +576,10 @@ func TestTripInteractor_Delete(t *testing.T) {
 					repo.EXPECT().Delete(gomock.Any(), domain.NewTripID("test-id")).Return(nil)
 					return repo
 				},
-				timeProvider: func(ctrl *gomock.Controller) services.TimeProvider {
+				timeProvider: func(ctrl *gomock.Controller) service.TimeProvider {
 					return mock_services.NewMockTimeProvider(ctrl)
 				},
-				idGenerator: func(ctrl *gomock.Controller) services.IDGenerator {
+				idGenerator: func(ctrl *gomock.Controller) service.IDGenerator {
 					return mock_services.NewMockIDGenerator(ctrl)
 				},
 			},
@@ -598,10 +598,10 @@ func TestTripInteractor_Delete(t *testing.T) {
 						Return(apperr.ErrTripNotFound)
 					return repo
 				},
-				timeProvider: func(ctrl *gomock.Controller) services.TimeProvider {
+				timeProvider: func(ctrl *gomock.Controller) service.TimeProvider {
 					return mock_services.NewMockTimeProvider(ctrl)
 				},
-				idGenerator: func(ctrl *gomock.Controller) services.IDGenerator {
+				idGenerator: func(ctrl *gomock.Controller) service.IDGenerator {
 					return mock_services.NewMockIDGenerator(ctrl)
 				},
 			},
@@ -621,10 +621,10 @@ func TestTripInteractor_Delete(t *testing.T) {
 						Return(apperr.NewInternalError("", nil))
 					return repo
 				},
-				timeProvider: func(ctrl *gomock.Controller) services.TimeProvider {
+				timeProvider: func(ctrl *gomock.Controller) service.TimeProvider {
 					return mock_services.NewMockTimeProvider(ctrl)
 				},
-				idGenerator: func(ctrl *gomock.Controller) services.IDGenerator {
+				idGenerator: func(ctrl *gomock.Controller) service.IDGenerator {
 					return mock_services.NewMockIDGenerator(ctrl)
 				},
 			},

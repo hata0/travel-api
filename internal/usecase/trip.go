@@ -6,7 +6,7 @@ import (
 	"github.com/hata0/travel-api/internal/domain"
 	apperr "github.com/hata0/travel-api/internal/domain/errors"
 	"github.com/hata0/travel-api/internal/usecase/output"
-	"github.com/hata0/travel-api/internal/usecase/services"
+	"github.com/hata0/travel-api/internal/usecase/service"
 )
 
 //go:generate mockgen -destination mock/trip.go github.com/hata0/travel-api/internal/usecase TripUsecase
@@ -20,11 +20,11 @@ type TripUsecase interface {
 
 type TripInteractor struct {
 	repository   domain.TripRepository
-	timeProvider services.TimeProvider
-	idGenerator  services.IDGenerator
+	timeProvider service.TimeProvider
+	idGenerator  service.IDGenerator
 }
 
-func NewTripInteractor(repository domain.TripRepository, timeProvider services.TimeProvider, idGenerator services.IDGenerator) *TripInteractor {
+func NewTripInteractor(repository domain.TripRepository, timeProvider service.TimeProvider, idGenerator service.IDGenerator) *TripInteractor {
 	return &TripInteractor{
 		repository:   repository,
 		timeProvider: timeProvider,
