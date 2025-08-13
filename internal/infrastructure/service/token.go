@@ -12,7 +12,6 @@ import (
 	"github.com/hata0/travel-api/internal/usecase/service"
 )
 
-// TokenSettings はトークン関連の設定を保持する
 type TokenSettings struct {
 	Audience              string
 	Issuer                string
@@ -22,13 +21,11 @@ type TokenSettings struct {
 	RefreshTokenBytes     int
 }
 
-// TokenServiceImpl はservice.TokenServiceの実装
 type TokenServiceImpl struct {
 	timeService   service.TimeService
 	tokenSettings *TokenSettings
 }
 
-// NewTokenService は新しいTokenServiceを作成する
 func NewTokenService(timeService service.TimeService, tokenSettings *TokenSettings) service.TokenService {
 	return &TokenServiceImpl{
 		timeService:   timeService,
