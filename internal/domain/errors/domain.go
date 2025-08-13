@@ -3,10 +3,10 @@ package errors
 import "errors"
 
 var (
-	ErrInvalidUUID   = errors.New("invalid uuid format")
-	ErrTripNotFound  = errors.New("trip not found")
-	ErrUserNotFound  = errors.New("user not found")
-	ErrTokenNotFound = errors.New("token not found")
+	ErrTripNotFound         = errors.New("trip not found")
+	ErrUserNotFound         = errors.New("user not found")
+	ErrRefreshTokenNotFound = errors.New("refresh token not found")
+	ErrRevokedTokenNotFound = errors.New("revoked token not found")
 )
 
 func IsTripNotFound(err error) bool {
@@ -17,6 +17,10 @@ func IsUserNotFound(err error) bool {
 	return errors.Is(err, ErrUserNotFound)
 }
 
-func IsTokenNotFound(err error) bool {
-	return errors.Is(err, ErrTokenNotFound)
+func IsRefreshTokenNotFound(err error) bool {
+	return errors.Is(err, ErrRefreshTokenNotFound)
+}
+
+func IsRevokedTokenNotFound(err error) bool {
+	return errors.Is(err, ErrRevokedTokenNotFound)
 }

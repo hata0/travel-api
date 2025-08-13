@@ -1,7 +1,5 @@
 package errors
 
-import "fmt"
-
 func NewInvalidCredentialsError(message string) *AppError {
 	return &AppError{
 		Code:    CodeInvalidCredentials,
@@ -9,17 +7,17 @@ func NewInvalidCredentialsError(message string) *AppError {
 	}
 }
 
-func NewNotFoundError(resource string) *AppError {
+func NewNotFoundError(message string) *AppError {
 	return &AppError{
 		Code:    CodeNotFound,
-		Message: fmt.Sprintf("%s not found", resource),
+		Message: message,
 	}
 }
 
-func NewConflictError(resource string) *AppError {
+func NewConflictError(message string) *AppError {
 	return &AppError{
 		Code:    CodeConflict,
-		Message: fmt.Sprintf("%s already exists", resource),
+		Message: message,
 	}
 }
 
