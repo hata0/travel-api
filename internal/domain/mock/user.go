@@ -42,7 +42,7 @@ func (m *MockUserRepository) EXPECT() *MockUserRepositoryMockRecorder {
 }
 
 // Create mocks base method.
-func (m *MockUserRepository) Create(ctx context.Context, user domain.User) error {
+func (m *MockUserRepository) Create(ctx context.Context, user *domain.User) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Create", ctx, user)
 	ret0, _ := ret[0].(error)
@@ -56,10 +56,10 @@ func (mr *MockUserRepositoryMockRecorder) Create(ctx, user any) *gomock.Call {
 }
 
 // FindByEmail mocks base method.
-func (m *MockUserRepository) FindByEmail(ctx context.Context, email string) (domain.User, error) {
+func (m *MockUserRepository) FindByEmail(ctx context.Context, email string) (*domain.User, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "FindByEmail", ctx, email)
-	ret0, _ := ret[0].(domain.User)
+	ret0, _ := ret[0].(*domain.User)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -71,10 +71,10 @@ func (mr *MockUserRepositoryMockRecorder) FindByEmail(ctx, email any) *gomock.Ca
 }
 
 // FindByID mocks base method.
-func (m *MockUserRepository) FindByID(ctx context.Context, id domain.UserID) (domain.User, error) {
+func (m *MockUserRepository) FindByID(ctx context.Context, id domain.UserID) (*domain.User, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "FindByID", ctx, id)
-	ret0, _ := ret[0].(domain.User)
+	ret0, _ := ret[0].(*domain.User)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -86,10 +86,10 @@ func (mr *MockUserRepositoryMockRecorder) FindByID(ctx, id any) *gomock.Call {
 }
 
 // FindByUsername mocks base method.
-func (m *MockUserRepository) FindByUsername(ctx context.Context, username string) (domain.User, error) {
+func (m *MockUserRepository) FindByUsername(ctx context.Context, username string) (*domain.User, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "FindByUsername", ctx, username)
-	ret0, _ := ret[0].(domain.User)
+	ret0, _ := ret[0].(*domain.User)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

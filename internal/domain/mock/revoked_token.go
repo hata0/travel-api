@@ -42,7 +42,7 @@ func (m *MockRevokedTokenRepository) EXPECT() *MockRevokedTokenRepositoryMockRec
 }
 
 // Create mocks base method.
-func (m *MockRevokedTokenRepository) Create(ctx context.Context, token domain.RevokedToken) error {
+func (m *MockRevokedTokenRepository) Create(ctx context.Context, token *domain.RevokedToken) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Create", ctx, token)
 	ret0, _ := ret[0].(error)
@@ -56,10 +56,10 @@ func (mr *MockRevokedTokenRepositoryMockRecorder) Create(ctx, token any) *gomock
 }
 
 // FindByJTI mocks base method.
-func (m *MockRevokedTokenRepository) FindByJTI(ctx context.Context, jti string) (domain.RevokedToken, error) {
+func (m *MockRevokedTokenRepository) FindByJTI(ctx context.Context, jti string) (*domain.RevokedToken, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "FindByJTI", ctx, jti)
-	ret0, _ := ret[0].(domain.RevokedToken)
+	ret0, _ := ret[0].(*domain.RevokedToken)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

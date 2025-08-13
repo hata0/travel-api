@@ -42,7 +42,7 @@ func (m *MockRefreshTokenRepository) EXPECT() *MockRefreshTokenRepositoryMockRec
 }
 
 // Create mocks base method.
-func (m *MockRefreshTokenRepository) Create(ctx context.Context, token domain.RefreshToken) error {
+func (m *MockRefreshTokenRepository) Create(ctx context.Context, token *domain.RefreshToken) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Create", ctx, token)
 	ret0, _ := ret[0].(error)
@@ -56,17 +56,17 @@ func (mr *MockRefreshTokenRepositoryMockRecorder) Create(ctx, token any) *gomock
 }
 
 // Delete mocks base method.
-func (m *MockRefreshTokenRepository) Delete(ctx context.Context, token domain.RefreshToken) error {
+func (m *MockRefreshTokenRepository) Delete(ctx context.Context, id domain.RefreshTokenID) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Delete", ctx, token)
+	ret := m.ctrl.Call(m, "Delete", ctx, id)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // Delete indicates an expected call of Delete.
-func (mr *MockRefreshTokenRepositoryMockRecorder) Delete(ctx, token any) *gomock.Call {
+func (mr *MockRefreshTokenRepositoryMockRecorder) Delete(ctx, id any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Delete", reflect.TypeOf((*MockRefreshTokenRepository)(nil).Delete), ctx, token)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Delete", reflect.TypeOf((*MockRefreshTokenRepository)(nil).Delete), ctx, id)
 }
 
 // DeleteByUserID mocks base method.
@@ -84,10 +84,10 @@ func (mr *MockRefreshTokenRepositoryMockRecorder) DeleteByUserID(ctx, userID any
 }
 
 // FindByToken mocks base method.
-func (m *MockRefreshTokenRepository) FindByToken(ctx context.Context, token string) (domain.RefreshToken, error) {
+func (m *MockRefreshTokenRepository) FindByToken(ctx context.Context, token string) (*domain.RefreshToken, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "FindByToken", ctx, token)
-	ret0, _ := ret[0].(domain.RefreshToken)
+	ret0, _ := ret[0].(*domain.RefreshToken)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

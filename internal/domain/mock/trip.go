@@ -42,7 +42,7 @@ func (m *MockTripRepository) EXPECT() *MockTripRepositoryMockRecorder {
 }
 
 // Create mocks base method.
-func (m *MockTripRepository) Create(ctx context.Context, trip domain.Trip) error {
+func (m *MockTripRepository) Create(ctx context.Context, trip *domain.Trip) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Create", ctx, trip)
 	ret0, _ := ret[0].(error)
@@ -56,24 +56,24 @@ func (mr *MockTripRepositoryMockRecorder) Create(ctx, trip any) *gomock.Call {
 }
 
 // Delete mocks base method.
-func (m *MockTripRepository) Delete(ctx context.Context, trip domain.Trip) error {
+func (m *MockTripRepository) Delete(ctx context.Context, id domain.TripID) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Delete", ctx, trip)
+	ret := m.ctrl.Call(m, "Delete", ctx, id)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // Delete indicates an expected call of Delete.
-func (mr *MockTripRepositoryMockRecorder) Delete(ctx, trip any) *gomock.Call {
+func (mr *MockTripRepositoryMockRecorder) Delete(ctx, id any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Delete", reflect.TypeOf((*MockTripRepository)(nil).Delete), ctx, trip)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Delete", reflect.TypeOf((*MockTripRepository)(nil).Delete), ctx, id)
 }
 
 // FindByID mocks base method.
-func (m *MockTripRepository) FindByID(ctx context.Context, id domain.TripID) (domain.Trip, error) {
+func (m *MockTripRepository) FindByID(ctx context.Context, id domain.TripID) (*domain.Trip, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "FindByID", ctx, id)
-	ret0, _ := ret[0].(domain.Trip)
+	ret0, _ := ret[0].(*domain.Trip)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -85,10 +85,10 @@ func (mr *MockTripRepositoryMockRecorder) FindByID(ctx, id any) *gomock.Call {
 }
 
 // FindMany mocks base method.
-func (m *MockTripRepository) FindMany(ctx context.Context) ([]domain.Trip, error) {
+func (m *MockTripRepository) FindMany(ctx context.Context) ([]*domain.Trip, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "FindMany", ctx)
-	ret0, _ := ret[0].([]domain.Trip)
+	ret0, _ := ret[0].([]*domain.Trip)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -100,7 +100,7 @@ func (mr *MockTripRepositoryMockRecorder) FindMany(ctx any) *gomock.Call {
 }
 
 // Update mocks base method.
-func (m *MockTripRepository) Update(ctx context.Context, trip domain.Trip) error {
+func (m *MockTripRepository) Update(ctx context.Context, trip *domain.Trip) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Update", ctx, trip)
 	ret0, _ := ret[0].(error)
