@@ -19,16 +19,16 @@ type TripUsecase interface {
 }
 
 type TripInteractor struct {
-	repository   domain.TripRepository
-	timeProvider service.TimeProvider
-	idGenerator  service.IDGenerator
+	repository  domain.TripRepository
+	timeService service.TimeService
+	idService   service.IDService
 }
 
-func NewTripInteractor(repository domain.TripRepository, timeProvider service.TimeProvider, idGenerator service.IDGenerator) *TripInteractor {
+func NewTripInteractor(repository domain.TripRepository, timeService service.TimeService, idService service.IDService) *TripInteractor {
 	return &TripInteractor{
-		repository:   repository,
-		timeProvider: timeProvider,
-		idGenerator:  idGenerator,
+		repository:  repository,
+		timeService: timeService,
+		idService:   idService,
 	}
 }
 
@@ -57,8 +57,8 @@ func (i *TripInteractor) List(ctx context.Context) (*output.ListTripOutput, erro
 }
 
 func (i *TripInteractor) Create(ctx context.Context, name string) (string, error) {
-	newID := i.idGenerator.Generate()
-	now := i.timeProvider.Now()
+	newID := i.idService.Generate()
+	now := i.timeService.Now()
 
 	tripID := domain.NewTripID(newID)
 
@@ -78,7 +78,7 @@ func (i *TripInteractor) Create(ctx context.Context, name string) (string, error
 }
 
 func (i *TripInteractor) Update(ctx context.Context, id string, name string) error {
-	now := i.timeProvider.Now()
+	now := i.timeService.Now()
 
 	tripID := domain.NewTripID(id)
 
