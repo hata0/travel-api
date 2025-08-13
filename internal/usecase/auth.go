@@ -56,6 +56,7 @@ func NewAuthInteractor(
 	}
 }
 
+// Register はユーザーを登録する
 func (i *AuthInteractor) Register(ctx context.Context, username, email, password string) (*output.RegisterOutput, error) {
 	now := i.timeService.Now()
 
@@ -78,6 +79,7 @@ func (i *AuthInteractor) Register(ctx context.Context, username, email, password
 	return output.NewRegisterOutput(userID), nil
 }
 
+// Login はユーザーをログインさせ、トークンペアを生成する
 func (i *AuthInteractor) Login(ctx context.Context, email, password string) (*output.TokenPairOutput, error) {
 	now := i.timeService.Now()
 
@@ -113,6 +115,7 @@ func (i *AuthInteractor) Login(ctx context.Context, email, password string) (*ou
 	return tokenPair, nil
 }
 
+// VerifyRefreshToken はリフレッシュトークンを検証し、新しいトークンペアを生成する
 func (i *AuthInteractor) VerifyRefreshToken(ctx context.Context, refreshToken string) (*output.TokenPairOutput, error) {
 	now := i.timeService.Now()
 
@@ -152,6 +155,7 @@ func (i *AuthInteractor) VerifyRefreshToken(ctx context.Context, refreshToken st
 	return tokenPair, nil
 }
 
+// RevokeRefreshToken はリフレッシュトークンを失効させる
 func (i *AuthInteractor) RevokeRefreshToken(ctx context.Context, refreshToken string) error {
 	now := i.timeService.Now()
 
@@ -168,6 +172,7 @@ func (i *AuthInteractor) RevokeRefreshToken(ctx context.Context, refreshToken st
 	})
 }
 
+// checkUserExistence はユーザー名とメールアドレスの重複をチェックする
 func (i *AuthInteractor) checkUserExistence(ctx context.Context, username, email string) error {
 	_, err := i.userRepository.FindByUsername(ctx, username)
 	if err == nil {
@@ -188,6 +193,7 @@ func (i *AuthInteractor) checkUserExistence(ctx context.Context, username, email
 	return nil
 }
 
+// findUserByEmail はメールアドレスでユーザーを検索する
 func (i *AuthInteractor) findUserByEmail(ctx context.Context, email string) (*domain.User, error) {
 	user, err := i.userRepository.FindByEmail(ctx, email)
 	if err != nil {
@@ -199,6 +205,7 @@ func (i *AuthInteractor) findUserByEmail(ctx context.Context, email string) (*do
 	return user, nil
 }
 
+// storeRefreshToken はリフレッシュトークンを保存する
 func (i *AuthInteractor) storeRefreshToken(ctx context.Context, userID domain.UserID, refreshTokenStr string, now time.Time) error {
 	refreshTokenIDStr := i.idService.Generate()
 	refreshTokenID := domain.NewRefreshTokenID(refreshTokenIDStr)
@@ -255,6 +262,7 @@ func (i *AuthInteractor) handleTokenReuseAttack(ctx context.Context, refreshToke
 	})
 }
 
+// findAndValidateRefreshToken はリフレッシュトークンを検索し、検証する
 func (i *AuthInteractor) findAndValidateRefreshToken(ctx context.Context, refreshToken string, now time.Time) (*domain.RefreshToken, error) {
 	foundRefreshToken, err := i.refreshTokenRepository.FindByToken(ctx, refreshToken)
 	if err != nil {
@@ -275,6 +283,7 @@ func (i *AuthInteractor) findAndValidateRefreshToken(ctx context.Context, refres
 	return foundRefreshToken, nil
 }
 
+// revokeToken はトークンを失効させる
 func (i *AuthInteractor) revokeToken(ctx context.Context, refreshToken *domain.RefreshToken, now time.Time) error {
 	revokedTokenIDStr := i.idService.Generate()
 	revokedTokenID := domain.NewRevokedTokenID(revokedTokenIDStr)
@@ -300,6 +309,7 @@ func (i *AuthInteractor) revokeToken(ctx context.Context, refreshToken *domain.R
 	return nil
 }
 
+// generateTokenPair はアクセストークンとリフレッシュトークンのペアを生成する
 func (i *AuthInteractor) generateTokenPair(userID domain.UserID) (string, string, error) {
 	accessToken, err := i.tokenService.GenerateAccessToken(userID)
 	if err != nil {
