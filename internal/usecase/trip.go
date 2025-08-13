@@ -32,6 +32,7 @@ func NewTripInteractor(repository domain.TripRepository, timeService service.Tim
 	}
 }
 
+// Get は指定されたIDの旅行を取得する
 func (i *TripInteractor) Get(ctx context.Context, id string) (*output.GetTripOutput, error) {
 	tripID := domain.NewTripID(id)
 
@@ -47,6 +48,7 @@ func (i *TripInteractor) Get(ctx context.Context, id string) (*output.GetTripOut
 	return output.NewGetTripOutput(trip), nil
 }
 
+// List はすべての旅行を取得する
 func (i *TripInteractor) List(ctx context.Context) (*output.ListTripOutput, error) {
 	trips, err := i.repository.FindMany(ctx)
 	if err != nil {
@@ -56,6 +58,7 @@ func (i *TripInteractor) List(ctx context.Context) (*output.ListTripOutput, erro
 	return output.NewListTripOutput(trips), nil
 }
 
+// Create は新しい旅行を作成する
 func (i *TripInteractor) Create(ctx context.Context, name string) (string, error) {
 	newID := i.idService.Generate()
 	now := i.timeService.Now()
@@ -77,6 +80,7 @@ func (i *TripInteractor) Create(ctx context.Context, name string) (string, error
 	return tripID.String(), nil
 }
 
+// Update は既存の旅行を更新する
 func (i *TripInteractor) Update(ctx context.Context, id string, name string) error {
 	now := i.timeService.Now()
 
@@ -99,6 +103,7 @@ func (i *TripInteractor) Update(ctx context.Context, id string, name string) err
 	return nil
 }
 
+// Delete は指定されたIDの旅行を削除する
 func (i *TripInteractor) Delete(ctx context.Context, id string) error {
 	tripID := domain.NewTripID(id)
 
