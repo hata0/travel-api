@@ -22,14 +22,14 @@ type TokenSettings struct {
 }
 
 type TokenServiceImpl struct {
-	timeService   service.TimeService
-	tokenSettings *TokenSettings
+	timeService service.TimeService
+	settings    *TokenSettings
 }
 
-func NewTokenService(timeService service.TimeService, tokenSettings *TokenSettings) service.TokenService {
+func NewTokenService(timeService service.TimeService, settings *TokenSettings) service.TokenService {
 	return &TokenServiceImpl{
-		timeService:   timeService,
-		tokenSettings: tokenSettings,
+		timeService: timeService,
+		settings:    settings,
 	}
 }
 
@@ -44,16 +44,16 @@ func (t *TokenServiceImpl) GenerateAccessToken(userID domain.UserID) (string, er
 
 	claims := jwt.RegisteredClaims{
 		Subject:   userID.String(),
-		Audience:  jwt.ClaimStrings{t.tokenSettings.Audience},
-		Issuer:    t.tokenSettings.Issuer,
+		Audience:  jwt.ClaimStrings{t.settings.Audience},
+		Issuer:    t.settings.Issuer,
 		IssuedAt:  jwt.NewNumericDate(now),
 		NotBefore: jwt.NewNumericDate(now),
-		ExpiresAt: jwt.NewNumericDate(now.Add(t.tokenSettings.AccessTokenExpiration)),
+		ExpiresAt: jwt.NewNumericDate(now.Add(t.settings.AccessTokenExpiration)),
 		ID:        jti,
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodES256, claims)
-	signed, err := token.SignedString(t.tokenSettings.ECDSAPrivateKey)
+	signed, err := token.SignedString(t.settings.ECDSAPrivateKey)
 	if err != nil {
 		return "", apperr.NewInternalError("Failed to sign access token", apperr.WithCause(err))
 	}
@@ -63,7 +63,7 @@ func (t *TokenServiceImpl) GenerateAccessToken(userID domain.UserID) (string, er
 
 // GenerateRefreshToken はリフレッシュトークンを生成する
 func (t *TokenServiceImpl) GenerateRefreshToken() (string, error) {
-	b := make([]byte, t.tokenSettings.RefreshTokenBytes)
+	b := make([]byte, t.settings.RefreshTokenBytes)
 	if _, err := rand.Read(b); err != nil {
 		return "", apperr.NewInternalError("Failed to generate random bytes for refresh token", apperr.WithCause(err))
 	}
@@ -72,7 +72,7 @@ func (t *TokenServiceImpl) GenerateRefreshToken() (string, error) {
 
 // generateJTI はJTI（JWT ID）を生成する
 func (t *TokenServiceImpl) generateJTI() (string, error) {
-	b := make([]byte, t.tokenSettings.JTIBytes)
+	b := make([]byte, t.settings.JTIBytes)
 	if _, err := rand.Read(b); err != nil {
 		return "", err
 	}
