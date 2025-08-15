@@ -33,12 +33,12 @@ type User struct {
 	id           UserID
 	username     string
 	email        string
-	passwordHash string
+	passwordHash []byte
 	createdAt    time.Time
 	updatedAt    time.Time
 }
 
-func NewUser(id UserID, username, email, passwordHash string, createdAt, updatedAt time.Time) *User {
+func NewUser(id UserID, username, email string, passwordHash []byte, createdAt, updatedAt time.Time) *User {
 	return &User{
 		id:           id,
 		username:     username,
@@ -53,12 +53,12 @@ func NewUser(id UserID, username, email, passwordHash string, createdAt, updated
 func (u *User) ID() UserID           { return u.id }
 func (u *User) Username() string     { return u.username }
 func (u *User) Email() string        { return u.email }
-func (u *User) PasswordHash() string { return u.passwordHash }
+func (u *User) PasswordHash() []byte { return u.passwordHash }
 func (u *User) CreatedAt() time.Time { return u.createdAt }
 func (u *User) UpdatedAt() time.Time { return u.updatedAt }
 
 // Update はユーザー情報を更新する
-func (u *User) Update(username, email, passwordHash string, updatedAt time.Time) *User {
+func (u *User) Update(username, email string, passwordHash []byte, updatedAt time.Time) *User {
 	return &User{
 		id:           u.id,
 		username:     username,

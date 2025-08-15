@@ -35,7 +35,7 @@ type User struct {
 	ID           pgtype.UUID
 	Username     string
 	Email        string
-	PasswordHash string
+	PasswordHash []byte
 	CreatedAt    pgtype.Timestamptz
 	UpdatedAt    pgtype.Timestamptz
 }

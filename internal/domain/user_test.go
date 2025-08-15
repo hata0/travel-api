@@ -32,7 +32,7 @@ func TestNewUser(t *testing.T) {
 	id := NewUserID("user-id-1")
 	username := "testuser"
 	email := "test@example.com"
-	passwordHash := "hashedpassword"
+	passwordHash := []byte("hashedpassword")
 	createdAt := time.Now().Add(-24 * time.Hour)
 	updatedAt := time.Now()
 
@@ -51,7 +51,7 @@ func TestUser_Getters(t *testing.T) {
 	id := NewUserID("user-id-2")
 	username := "anotheruser"
 	email := "another@example.com"
-	passwordHash := "anotherhashedpassword"
+	passwordHash := []byte("anotherhashedpassword")
 	createdAt := time.Now().Add(-48 * time.Hour)
 	updatedAt := time.Now().Add(-24 * time.Hour)
 
@@ -69,7 +69,7 @@ func TestUser_Update(t *testing.T) {
 	id := NewUserID("user-id-3")
 	originalUsername := "originaluser"
 	originalEmail := "original@example.com"
-	originalPasswordHash := "originalhashedpassword"
+	originalPasswordHash := []byte("originalhashedpassword")
 	originalCreatedAt := time.Now().Add(-72 * time.Hour)
 	originalUpdatedAt := time.Now().Add(-48 * time.Hour)
 
@@ -77,7 +77,7 @@ func TestUser_Update(t *testing.T) {
 
 	newUsername := "updateduser"
 	newEmail := "updated@example.com"
-	newPasswordHash := "newhashedpassword"
+	newPasswordHash := []byte("newhashedpassword")
 	newUpdatedAt := time.Now()
 
 	updatedUser := user.Update(newUsername, newEmail, newPasswordHash, newUpdatedAt)
@@ -102,9 +102,9 @@ func TestUser_Equals(t *testing.T) {
 	id2 := NewUserID("user-id-5")
 	now := time.Now()
 
-	user1 := NewUser(id1, "User A", "a@example.com", "hashA", now, now)
-	user2 := NewUser(id1, "User A", "a@example.com", "hashA", now, now) // user1 と同じ ID
-	user3 := NewUser(id2, "User B", "b@example.com", "hashB", now, now) // user1 と異なる ID
+	user1 := NewUser(id1, "userA", "a@example.com", []byte("hashA"), now, now)
+	user2 := NewUser(id1, "userA", "a@example.com", []byte("hashA"), now, now) // user1 と同じ ID
+	user3 := NewUser(id2, "userB", "b@example.com", []byte("hashB"), now, now) // user1 と異なる ID
 
 	assert.True(t, user1.Equals(user2), "同じ ID を持つ 2 つの User は等しいと判定されるべき")
 	assert.False(t, user1.Equals(user3), "異なる ID を持つ 2 つの User は等しくないと判定されるべき")

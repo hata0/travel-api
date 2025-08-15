@@ -21,7 +21,7 @@ type testUser struct {
 	ID           domain.UserID
 	Username     string
 	Email        string
-	PasswordHash string
+	PasswordHash []byte
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
 }
@@ -33,7 +33,7 @@ func newTestUser(username, email string) testUser {
 		ID:           domain.NewUserID(uuid.New().String()),
 		Username:     username,
 		Email:        email,
-		PasswordHash: "hashed_password_" + uuid.New().String(),
+		PasswordHash: []byte("hashed_password_" + uuid.New().String()),
 		CreatedAt:    now,
 		UpdatedAt:    now,
 	}
@@ -206,7 +206,7 @@ func TestUserPostgresRepository_Create(t *testing.T) {
 			ID:           existingUser.ID, // 同じID
 			Username:     "duplicateuser",
 			Email:        "duplicate@example.com",
-			PasswordHash: "new_hashed_password",
+			PasswordHash: []byte("new_hashed_password"),
 			CreatedAt:    time.Now().UTC(),
 			UpdatedAt:    time.Now().UTC(),
 		}
