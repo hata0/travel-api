@@ -1,35 +1,6 @@
-package domain
+package trip
 
-import (
-	"context"
-	"time"
-)
-
-//go:generate mockgen -destination mock/trip.go github.com/hata0/travel-api/internal/domain TripRepository
-type TripRepository interface {
-	FindByID(ctx context.Context, id TripID) (*Trip, error)
-	FindMany(ctx context.Context) ([]*Trip, error)
-	Create(ctx context.Context, trip *Trip) error
-	Update(ctx context.Context, trip *Trip) error
-	Delete(ctx context.Context, id TripID) error
-}
-
-// TripID は旅行IDを表現する値オブジェクト
-type TripID struct {
-	value string
-}
-
-func NewTripID(id string) TripID {
-	return TripID{value: id}
-}
-
-func (id TripID) String() string {
-	return id.value
-}
-
-func (id TripID) Equals(other TripID) bool {
-	return id.value == other.value
-}
+import "time"
 
 // Trip は旅行を表現するエンティティ
 type Trip struct {

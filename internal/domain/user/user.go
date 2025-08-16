@@ -1,33 +1,6 @@
-package domain
+package user
 
-import (
-	"context"
-	"time"
-)
-
-//go:generate mockgen -destination mock/user.go github.com/hata0/travel-api/internal/domain UserRepository
-type UserRepository interface {
-	Create(ctx context.Context, user *User) error
-	FindByEmail(ctx context.Context, email string) (*User, error)
-	FindByUsername(ctx context.Context, username string) (*User, error)
-	FindByID(ctx context.Context, id UserID) (*User, error)
-}
-
-type UserID struct {
-	value string
-}
-
-func NewUserID(id string) UserID {
-	return UserID{value: id}
-}
-
-func (id UserID) String() string {
-	return id.value
-}
-
-func (id UserID) Equals(other UserID) bool {
-	return id.value == other.value
-}
+import "time"
 
 type User struct {
 	id           UserID

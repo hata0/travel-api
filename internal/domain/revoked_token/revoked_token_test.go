@@ -1,36 +1,16 @@
-package domain
+package revokedtoken
 
 import (
 	"testing"
 	"time"
 
+	"github.com/hata0/travel-api/internal/domain/user"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestRevokedTokenID_NewRevokedTokenID(t *testing.T) {
-	idValue := "test-revoked-token-id-123"
-	revokedTokenID := NewRevokedTokenID(idValue)
-	assert.Equal(t, idValue, revokedTokenID.value, "NewRevokedTokenID は正しい値を持つ RevokedTokenID を生成するべき")
-}
-
-func TestRevokedTokenID_String(t *testing.T) {
-	idValue := "test-revoked-token-id-456"
-	revokedTokenID := NewRevokedTokenID(idValue)
-	assert.Equal(t, idValue, revokedTokenID.String(), "String() は正しい ID 値を返すべき")
-}
-
-func TestRevokedTokenID_Equals(t *testing.T) {
-	id1 := NewRevokedTokenID("id-1")
-	id2 := NewRevokedTokenID("id-1")
-	id3 := NewRevokedTokenID("id-2")
-
-	assert.True(t, id1.Equals(id2), "同じ値を持つ 2 つの RevokedTokenID は等しいと判定されるべき")
-	assert.False(t, id1.Equals(id3), "異なる値を持つ 2 つの RevokedTokenID は等しくないと判定されるべき")
-}
-
 func TestNewRevokedToken(t *testing.T) {
 	id := NewRevokedTokenID("revoked-token-id-1")
-	userID := NewUserID("user-id-1")
+	userID := user.NewUserID("user-id-1")
 	tokenJTI := "jti-123"
 	expiresAt := time.Now().Add(1 * time.Hour)
 	revokedAt := time.Now()
@@ -47,7 +27,7 @@ func TestNewRevokedToken(t *testing.T) {
 
 func TestRevokedToken_Getters(t *testing.T) {
 	id := NewRevokedTokenID("revoked-token-id-2")
-	userID := NewUserID("user-id-2")
+	userID := user.NewUserID("user-id-2")
 	tokenJTI := "jti-456"
 	expiresAt := time.Now().Add(2 * time.Hour)
 	revokedAt := time.Now().Add(1 * time.Hour)
@@ -64,11 +44,11 @@ func TestRevokedToken_Getters(t *testing.T) {
 func TestRevokedToken_Equals(t *testing.T) {
 	id1 := NewRevokedTokenID("revoked-token-id-3")
 	id2 := NewRevokedTokenID("revoked-token-id-4")
-	userID := NewUserID("user-id-3")
+	userID := user.NewUserID("user-id-3")
 	now := time.Now()
 
 	revokedToken1 := NewRevokedToken(id1, userID, "jti-A", now.Add(1*time.Hour), now)
-	revokedToken2 := NewRevokedToken(id1, userID, "jti-A", now.Add(1*time.Hour), now) // revokedToken1 と同じ ID
+	revokedToken2 := NewRevokedToken(id1, userID, "jti-A", now.Add(1*time.Hour), now)                  // revokedToken1 と同じ ID
 	revokedToken3 := NewRevokedToken(id2, userID, "jti-B", now.Add(2*time.Hour), now.Add(1*time.Hour)) // revokedToken1 と異なる ID
 
 	assert.True(t, revokedToken1.Equals(revokedToken2), "同じ ID を持つ 2 つの RevokedToken は等しいと判定されるべき")

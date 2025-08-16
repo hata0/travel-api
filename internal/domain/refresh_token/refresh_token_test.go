@@ -1,36 +1,16 @@
-package domain
+package refreshtoken
 
 import (
 	"testing"
 	"time"
 
+	"github.com/hata0/travel-api/internal/domain/user"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestRefreshTokenID_NewRefreshTokenID(t *testing.T) {
-	idValue := "test-refresh-token-id-123"
-	refreshTokenID := NewRefreshTokenID(idValue)
-	assert.Equal(t, idValue, refreshTokenID.value, "NewRefreshTokenID は正しい値を持つ RefreshTokenID を生成するべき")
-}
-
-func TestRefreshTokenID_String(t *testing.T) {
-	idValue := "test-refresh-token-id-456"
-	refreshTokenID := NewRefreshTokenID(idValue)
-	assert.Equal(t, idValue, refreshTokenID.String(), "String() は正しい ID 値を返すべき")
-}
-
-func TestRefreshTokenID_Equals(t *testing.T) {
-	id1 := NewRefreshTokenID("id-1")
-	id2 := NewRefreshTokenID("id-1")
-	id3 := NewRefreshTokenID("id-2")
-
-	assert.True(t, id1.Equals(id2), "同じ値を持つ 2 つの RefreshTokenID は等しいと判定されるべき")
-	assert.False(t, id1.Equals(id3), "異なる値を持つ 2 つの RefreshTokenID は等しくないと判定されるべき")
-}
-
 func TestNewRefreshToken(t *testing.T) {
 	id := NewRefreshTokenID("refresh-token-id-1")
-	userID := NewUserID("user-id-1")
+	userID := user.NewUserID("user-id-1")
 	token := "some-refresh-token-string"
 	expiresAt := time.Now().Add(24 * time.Hour)
 	createdAt := time.Now()
@@ -47,7 +27,7 @@ func TestNewRefreshToken(t *testing.T) {
 
 func TestRefreshToken_Getters(t *testing.T) {
 	id := NewRefreshTokenID("refresh-token-id-2")
-	userID := NewUserID("user-id-2")
+	userID := user.NewUserID("user-id-2")
 	token := "another-refresh-token-string"
 	expiresAt := time.Now().Add(48 * time.Hour)
 	createdAt := time.Now().Add(24 * time.Hour)
@@ -64,11 +44,11 @@ func TestRefreshToken_Getters(t *testing.T) {
 func TestRefreshToken_Equals(t *testing.T) {
 	id1 := NewRefreshTokenID("refresh-token-id-3")
 	id2 := NewRefreshTokenID("refresh-token-id-4")
-	userID := NewUserID("user-id-3")
+	userID := user.NewUserID("user-id-3")
 	now := time.Now()
 
 	refreshToken1 := NewRefreshToken(id1, userID, "token-A", now.Add(1*time.Hour), now)
-	refreshToken2 := NewRefreshToken(id1, userID, "token-A", now.Add(1*time.Hour), now) // refreshToken1 と同じ ID
+	refreshToken2 := NewRefreshToken(id1, userID, "token-A", now.Add(1*time.Hour), now)                  // refreshToken1 と同じ ID
 	refreshToken3 := NewRefreshToken(id2, userID, "token-B", now.Add(2*time.Hour), now.Add(1*time.Hour)) // refreshToken1 と異なる ID
 
 	assert.True(t, refreshToken1.Equals(refreshToken2), "同じ ID を持つ 2 つの RefreshToken は等しいと判定されるべき")
