@@ -2,142 +2,102 @@ package usecase
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 
-	"github.com/hata0/travel-api/internal/domain"
 	apperr "github.com/hata0/travel-api/internal/domain/errors"
-	mock_domain "github.com/hata0/travel-api/internal/domain/mock"
+	"github.com/hata0/travel-api/internal/domain/trip"
+	mock_trip "github.com/hata0/travel-api/internal/domain/trip/mock" // repository mock
 	"github.com/hata0/travel-api/internal/usecase/output"
-	"github.com/hata0/travel-api/internal/usecase/service"
-	mock_services "github.com/hata0/travel-api/internal/usecase/service/mock"
+	mock_service "github.com/hata0/travel-api/internal/usecase/service/mock" // service mocks
 )
 
 func TestTripInteractor_Get(t *testing.T) {
-	type fields struct {
-		repository   func(ctrl *gomock.Controller) domain.TripRepository
-		timeProvider func(ctrl *gomock.Controller) service.TimeService
-		idGenerator  func(ctrl *gomock.Controller) service.IDService
-	}
-	type args struct {
-		ctx context.Context
-		id  string
-	}
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockRepo := mock_trip.NewMockTripRepository(ctrl)
+	mockTimeService := mock_service.NewMockTimeService(ctrl)
+	mockIDService := mock_service.NewMockIDService(ctrl)
+
+	interactor := NewTripInteractor(mockRepo, mockTimeService, mockIDService)
+
+	fixedTime := time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC)
+	tripID := trip.NewTripID("test-id")
+	testTrip := trip.NewTrip(tripID, "Test Trip", fixedTime, fixedTime)
+
 	tests := []struct {
-		name        string
-		fields      fields
-		args        args
-		want        *output.GetTripOutput
-		wantErr     bool
-		expectedErr *apperr.AppError
+		name    string
+		id      string
+		setup   func()
+		want    *output.GetTripOutput
+		wantErr error
 	}{
 		{
-			name: "正常系: Tripが正常に取得できる場合",
-			fields: fields{
-				repository: func(ctrl *gomock.Controller) domain.TripRepository {
-					repo := mock_domain.NewMockTripRepository(ctrl)
-					expectedTrip := domain.NewTrip(
-						domain.NewTripID("test-id"),
-						"Tokyo Trip",
-						time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC),
-						time.Date(2024, 1, 2, 0, 0, 0, 0, time.UTC),
-					)
-					repo.EXPECT().FindByID(gomock.Any(), domain.NewTripID("test-id")).Return(expectedTrip, nil)
-					return repo
-				},
-				timeProvider: func(ctrl *gomock.Controller) service.TimeService {
-					return mock_services.NewMockTimeProvider(ctrl)
-				},
-				idGenerator: func(ctrl *gomock.Controller) service.IDService {
-					return mock_services.NewMockIDGenerator(ctrl)
-				},
+			name: "正常系: 旅行が正常に取得できる",
+			id:   "test-id",
+			setup: func() {
+				mockRepo.EXPECT().
+					FindByID(gomock.Any(), tripID).
+					Return(testTrip, nil).
+					Times(1)
 			},
-			args: args{
-				ctx: context.Background(),
-				id:  "test-id",
-			},
-			want: output.NewGetTripOutput(domain.NewTrip(
-				domain.NewTripID("test-id"),
-				"Tokyo Trip",
-				time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC),
-				time.Date(2024, 1, 2, 0, 0, 0, 0, time.UTC),
-			)),
-			wantErr: false,
+			want:    output.NewGetTripOutput(testTrip),
+			wantErr: nil,
 		},
 		{
-			name: "異常系: Tripが見つからない場合",
-			fields: fields{
-				repository: func(ctrl *gomock.Controller) domain.TripRepository {
-					repo := mock_domain.NewMockTripRepository(ctrl)
-					repo.EXPECT().FindByID(gomock.Any(), domain.NewTripID("nonexistent-id")).
-						Return(nil, apperr.ErrTripNotFound)
-					return repo
-				},
-				timeProvider: func(ctrl *gomock.Controller) service.TimeService {
-					return mock_services.NewMockTimeProvider(ctrl)
-				},
-				idGenerator: func(ctrl *gomock.Controller) service.IDService {
-					return mock_services.NewMockIDGenerator(ctrl)
-				},
+			name: "異常系: リポジトリからアプリケーションエラーが返される",
+			id:   "not-found-id",
+			setup: func() {
+				notFoundID := trip.NewTripID("not-found-id")
+				appErr := trip.NewTripNotFoundError()
+				mockRepo.EXPECT().
+					FindByID(gomock.Any(), notFoundID).
+					Return(nil, appErr).
+					Times(1)
 			},
-			args: args{
-				ctx: context.Background(),
-				id:  "nonexistent-id",
-			},
-			want:        nil,
-			wantErr:     true,
-			expectedErr: apperr.NewNotFoundError(""),
+			want:    nil,
+			wantErr: trip.NewTripNotFoundError(),
 		},
 		{
-			name: "異常系: リポジトリでエラーが発生した場合",
-			fields: fields{
-				repository: func(ctrl *gomock.Controller) domain.TripRepository {
-					repo := mock_domain.NewMockTripRepository(ctrl)
-					repo.EXPECT().FindByID(gomock.Any(), domain.NewTripID("test-id")).
-						Return(nil, apperr.NewInternalError(""))
-					return repo
-				},
-				timeProvider: func(ctrl *gomock.Controller) service.TimeService {
-					return mock_services.NewMockTimeProvider(ctrl)
-				},
-				idGenerator: func(ctrl *gomock.Controller) service.IDService {
-					return mock_services.NewMockIDGenerator(ctrl)
-				},
+			name: "異常系: リポジトリから予期しないエラーが返される",
+			id:   "error-id",
+			setup: func() {
+				errorID := trip.NewTripID("error-id")
+				unexpectedErr := errors.New("database connection error")
+				mockRepo.EXPECT().
+					FindByID(gomock.Any(), errorID).
+					Return(nil, unexpectedErr).
+					Times(1)
 			},
-			args: args{
-				ctx: context.Background(),
-				id:  "test-id",
-			},
-			want:        nil,
-			wantErr:     true,
-			expectedErr: apperr.NewInternalError(""),
+			want:    nil,
+			wantErr: apperr.NewInternalError("Failed to get trip", apperr.WithCause(errors.New("database connection error"))),
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ctrl := gomock.NewController(t)
-			defer ctrl.Finish()
+			tt.setup()
 
-			i := &TripInteractor{
-				repository:  tt.fields.repository(ctrl),
-				timeService: tt.fields.timeProvider(ctrl),
-				idService:   tt.fields.idGenerator(ctrl),
-			}
+			got, err := interactor.Get(context.Background(), tt.id)
 
-			got, err := i.Get(tt.args.ctx, tt.args.id)
-
-			if tt.wantErr {
-				assert.Error(t, err)
+			if tt.wantErr != nil {
+				require.Error(t, err)
 				assert.Nil(t, got)
-				if tt.expectedErr != nil {
-					assert.ErrorIs(t, err, tt.expectedErr)
+				// エラーの型とメッセージを検証
+				if appErr, ok := tt.wantErr.(*apperr.AppError); ok {
+					gotAppErr, ok := err.(*apperr.AppError)
+					require.True(t, ok, "Expected AppError but got %T", err)
+					assert.Equal(t, appErr.Code, gotAppErr.Code)
+					assert.Equal(t, appErr.Message, gotAppErr.Message)
 				}
 			} else {
-				assert.NoError(t, err)
+				require.NoError(t, err)
 				assert.Equal(t, tt.want, got)
 			}
 		})
@@ -145,136 +105,92 @@ func TestTripInteractor_Get(t *testing.T) {
 }
 
 func TestTripInteractor_List(t *testing.T) {
-	type fields struct {
-		repository   func(ctrl *gomock.Controller) domain.TripRepository
-		timeProvider func(ctrl *gomock.Controller) service.TimeService
-		idGenerator  func(ctrl *gomock.Controller) service.IDService
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockRepo := mock_trip.NewMockTripRepository(ctrl)
+	mockTimeService := mock_service.NewMockTimeService(ctrl)
+	mockIDService := mock_service.NewMockIDService(ctrl)
+
+	interactor := NewTripInteractor(mockRepo, mockTimeService, mockIDService)
+
+	fixedTime := time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC)
+	testTrips := []*trip.Trip{
+		trip.NewTrip(trip.NewTripID("id1"), "Trip 1", fixedTime, fixedTime),
+		trip.NewTrip(trip.NewTripID("id2"), "Trip 2", fixedTime, fixedTime),
 	}
-	type args struct {
-		ctx context.Context
-	}
+
 	tests := []struct {
-		name        string
-		fields      fields
-		args        args
-		want        *output.ListTripOutput
-		wantErr     bool
-		expectedErr *apperr.AppError
+		name    string
+		setup   func()
+		want    *output.ListTripOutput
+		wantErr error
 	}{
 		{
-			name: "正常系: Tripリストが正常に取得できる場合",
-			fields: fields{
-				repository: func(ctrl *gomock.Controller) domain.TripRepository {
-					repo := mock_domain.NewMockTripRepository(ctrl)
-					trips := []*domain.Trip{
-						domain.NewTrip(
-							domain.NewTripID("trip-1"),
-							"Tokyo Trip",
-							time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC),
-							time.Date(2024, 1, 2, 0, 0, 0, 0, time.UTC),
-						),
-						domain.NewTrip(
-							domain.NewTripID("trip-2"),
-							"Osaka Trip",
-							time.Date(2024, 2, 1, 0, 0, 0, 0, time.UTC),
-							time.Date(2024, 2, 2, 0, 0, 0, 0, time.UTC),
-						),
-					}
-					repo.EXPECT().FindMany(gomock.Any()).Return(trips, nil)
-					return repo
-				},
-				timeProvider: func(ctrl *gomock.Controller) service.TimeService {
-					return mock_services.NewMockTimeProvider(ctrl)
-				},
-				idGenerator: func(ctrl *gomock.Controller) service.IDService {
-					return mock_services.NewMockIDGenerator(ctrl)
-				},
+			name: "正常系: 旅行一覧が正常に取得できる",
+			setup: func() {
+				mockRepo.EXPECT().
+					FindMany(gomock.Any()).
+					Return(testTrips, nil).
+					Times(1)
 			},
-			args: args{
-				ctx: context.Background(),
-			},
-			want: output.NewListTripOutput([]*domain.Trip{
-				domain.NewTrip(
-					domain.NewTripID("trip-1"),
-					"Tokyo Trip",
-					time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC),
-					time.Date(2024, 1, 2, 0, 0, 0, 0, time.UTC),
-				),
-				domain.NewTrip(
-					domain.NewTripID("trip-2"),
-					"Osaka Trip",
-					time.Date(2024, 2, 1, 0, 0, 0, 0, time.UTC),
-					time.Date(2024, 2, 2, 0, 0, 0, 0, time.UTC),
-				),
-			}),
-			wantErr: false,
+			want:    output.NewListTripOutput(testTrips),
+			wantErr: nil,
 		},
 		{
-			name: "正常系: 空のTripリストが返される場合",
-			fields: fields{
-				repository: func(ctrl *gomock.Controller) domain.TripRepository {
-					repo := mock_domain.NewMockTripRepository(ctrl)
-					repo.EXPECT().FindMany(gomock.Any()).Return([]*domain.Trip{}, nil)
-					return repo
-				},
-				timeProvider: func(ctrl *gomock.Controller) service.TimeService {
-					return mock_services.NewMockTimeProvider(ctrl)
-				},
-				idGenerator: func(ctrl *gomock.Controller) service.IDService {
-					return mock_services.NewMockIDGenerator(ctrl)
-				},
+			name: "正常系: 空の旅行一覧が取得できる",
+			setup: func() {
+				mockRepo.EXPECT().
+					FindMany(gomock.Any()).
+					Return([]*trip.Trip{}, nil).
+					Times(1)
 			},
-			args: args{
-				ctx: context.Background(),
-			},
-			want:    output.NewListTripOutput([]*domain.Trip{}),
-			wantErr: false,
+			want:    output.NewListTripOutput([]*trip.Trip{}),
+			wantErr: nil,
 		},
 		{
-			name: "異常系: リポジトリでエラーが発生した場合",
-			fields: fields{
-				repository: func(ctrl *gomock.Controller) domain.TripRepository {
-					repo := mock_domain.NewMockTripRepository(ctrl)
-					repo.EXPECT().FindMany(gomock.Any()).Return(nil, apperr.NewInternalError(""))
-					return repo
-				},
-				timeProvider: func(ctrl *gomock.Controller) service.TimeService {
-					return mock_services.NewMockTimeProvider(ctrl)
-				},
-				idGenerator: func(ctrl *gomock.Controller) service.IDService {
-					return mock_services.NewMockIDGenerator(ctrl)
-				},
+			name: "異常系: リポジトリからアプリケーションエラーが返される",
+			setup: func() {
+				appErr := apperr.NewInternalError("Database error")
+				mockRepo.EXPECT().
+					FindMany(gomock.Any()).
+					Return(nil, appErr).
+					Times(1)
 			},
-			args: args{
-				ctx: context.Background(),
+			want:    nil,
+			wantErr: apperr.NewInternalError("Database error"),
+		},
+		{
+			name: "異常系: リポジトリから予期しないエラーが返される",
+			setup: func() {
+				unexpectedErr := errors.New("connection timeout")
+				mockRepo.EXPECT().
+					FindMany(gomock.Any()).
+					Return(nil, unexpectedErr).
+					Times(1)
 			},
-			want:        nil,
-			wantErr:     true,
-			expectedErr: apperr.NewInternalError(""),
+			want:    nil,
+			wantErr: apperr.NewInternalError("Failed to list trips", apperr.WithCause(errors.New("connection timeout"))),
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ctrl := gomock.NewController(t)
-			defer ctrl.Finish()
+			tt.setup()
 
-			i := &TripInteractor{
-				repository:  tt.fields.repository(ctrl),
-				timeService: tt.fields.timeProvider(ctrl),
-				idService:   tt.fields.idGenerator(ctrl),
-			}
+			got, err := interactor.List(context.Background())
 
-			got, err := i.List(tt.args.ctx)
-
-			if tt.wantErr {
-				assert.Error(t, err)
+			if tt.wantErr != nil {
+				require.Error(t, err)
 				assert.Nil(t, got)
-				if tt.expectedErr != nil {
-					assert.ErrorIs(t, err, tt.expectedErr)
+				if appErr, ok := tt.wantErr.(*apperr.AppError); ok {
+					gotAppErr, ok := err.(*apperr.AppError)
+					require.True(t, ok, "Expected AppError but got %T", err)
+					assert.Equal(t, appErr.Code, gotAppErr.Code)
+					assert.Equal(t, appErr.Message, gotAppErr.Message)
 				}
 			} else {
-				assert.NoError(t, err)
+				require.NoError(t, err)
 				assert.Equal(t, tt.want, got)
 			}
 		})
@@ -282,108 +198,127 @@ func TestTripInteractor_List(t *testing.T) {
 }
 
 func TestTripInteractor_Create(t *testing.T) {
-	fixedTime := time.Date(2024, 1, 1, 12, 0, 0, 0, time.UTC)
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockRepo := mock_trip.NewMockTripRepository(ctrl)
+	mockTimeService := mock_service.NewMockTimeService(ctrl)
+	mockIDService := mock_service.NewMockIDService(ctrl)
+
+	interactor := NewTripInteractor(mockRepo, mockTimeService, mockIDService)
+
+	fixedTime := time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC)
 	generatedID := "generated-id"
 
-	type fields struct {
-		repository   func(ctrl *gomock.Controller) domain.TripRepository
-		timeProvider func(ctrl *gomock.Controller) service.TimeService
-		idGenerator  func(ctrl *gomock.Controller) service.IDService
-	}
-	type args struct {
-		ctx  context.Context
-		name string
-	}
 	tests := []struct {
-		name        string
-		fields      fields
-		args        args
-		want        string
-		wantErr     bool
-		expectedErr *apperr.AppError
+		name     string
+		tripName string
+		setup    func()
+		want     *output.CreateTripOutput
+		wantErr  error
 	}{
 		{
-			name: "正常系: Tripが正常に作成される場合",
-			fields: fields{
-				repository: func(ctrl *gomock.Controller) domain.TripRepository {
-					repo := mock_domain.NewMockTripRepository(ctrl)
-					expectedTrip := domain.NewTrip(
-						domain.NewTripID(generatedID),
-						"New Trip",
-						fixedTime,
-						fixedTime,
-					)
-					repo.EXPECT().Create(gomock.Any(), expectedTrip).Return(nil)
-					return repo
-				},
-				timeProvider: func(ctrl *gomock.Controller) service.TimeService {
-					provider := mock_services.NewMockTimeProvider(ctrl)
-					provider.EXPECT().Now().Return(fixedTime)
-					return provider
-				},
-				idGenerator: func(ctrl *gomock.Controller) service.IDService {
-					generator := mock_services.NewMockIDGenerator(ctrl)
-					generator.EXPECT().Generate().Return(generatedID)
-					return generator
-				},
+			name:     "正常系: 旅行が正常に作成できる",
+			tripName: "New Trip",
+			setup: func() {
+				mockIDService.EXPECT().
+					Generate().
+					Return(generatedID).
+					Times(1)
+				mockTimeService.EXPECT().
+					Now().
+					Return(fixedTime).
+					Times(1)
+
+				expectedTrip := trip.NewTrip(
+					trip.NewTripID(generatedID),
+					"New Trip",
+					fixedTime,
+					fixedTime,
+				)
+				mockRepo.EXPECT().
+					Create(gomock.Any(), expectedTrip).
+					Return(nil).
+					Times(1)
 			},
-			args: args{
-				ctx:  context.Background(),
-				name: "New Trip",
-			},
-			want:    generatedID,
-			wantErr: false,
+			want:    output.NewCreateTripOutput(trip.NewTripID(generatedID)),
+			wantErr: nil,
 		},
 		{
-			name: "異常系: リポジトリでエラーが発生した場合",
-			fields: fields{
-				repository: func(ctrl *gomock.Controller) domain.TripRepository {
-					repo := mock_domain.NewMockTripRepository(ctrl)
-					repo.EXPECT().Create(gomock.Any(), gomock.Any()).Return(apperr.NewInternalError(""))
-					return repo
-				},
-				timeProvider: func(ctrl *gomock.Controller) service.TimeService {
-					provider := mock_services.NewMockTimeProvider(ctrl)
-					provider.EXPECT().Now().Return(fixedTime)
-					return provider
-				},
-				idGenerator: func(ctrl *gomock.Controller) service.IDService {
-					generator := mock_services.NewMockIDGenerator(ctrl)
-					generator.EXPECT().Generate().Return(generatedID)
-					return generator
-				},
+			name:     "異常系: リポジトリからアプリケーションエラーが返される",
+			tripName: "Error Trip",
+			setup: func() {
+				mockIDService.EXPECT().
+					Generate().
+					Return(generatedID).
+					Times(1)
+				mockTimeService.EXPECT().
+					Now().
+					Return(fixedTime).
+					Times(1)
+
+				appErr := apperr.NewInternalError("Database error")
+				expectedTrip := trip.NewTrip(
+					trip.NewTripID(generatedID),
+					"Error Trip",
+					fixedTime,
+					fixedTime,
+				)
+				mockRepo.EXPECT().
+					Create(gomock.Any(), expectedTrip).
+					Return(appErr).
+					Times(1)
 			},
-			args: args{
-				ctx:  context.Background(),
-				name: "New Trip",
+			want:    nil,
+			wantErr: apperr.NewInternalError("Database error"),
+		},
+		{
+			name:     "異常系: リポジトリから予期しないエラーが返される",
+			tripName: "Unexpected Error Trip",
+			setup: func() {
+				mockIDService.EXPECT().
+					Generate().
+					Return(generatedID).
+					Times(1)
+				mockTimeService.EXPECT().
+					Now().
+					Return(fixedTime).
+					Times(1)
+
+				unexpectedErr := errors.New("database write error")
+				expectedTrip := trip.NewTrip(
+					trip.NewTripID(generatedID),
+					"Unexpected Error Trip",
+					fixedTime,
+					fixedTime,
+				)
+				mockRepo.EXPECT().
+					Create(gomock.Any(), expectedTrip).
+					Return(unexpectedErr).
+					Times(1)
 			},
-			want:        "",
-			wantErr:     true,
-			expectedErr: apperr.NewInternalError(""),
+			want:    nil,
+			wantErr: apperr.NewInternalError("Failed to create trip", apperr.WithCause(errors.New("database write error"))),
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ctrl := gomock.NewController(t)
-			defer ctrl.Finish()
+			tt.setup()
 
-			i := &TripInteractor{
-				repository:  tt.fields.repository(ctrl),
-				timeService: tt.fields.timeProvider(ctrl),
-				idService:   tt.fields.idGenerator(ctrl),
-			}
+			got, err := interactor.Create(context.Background(), tt.tripName)
 
-			got, err := i.Create(tt.args.ctx, tt.args.name)
-
-			if tt.wantErr {
-				assert.Error(t, err)
-				assert.Equal(t, "", got)
-				if tt.expectedErr != nil {
-					assert.ErrorIs(t, err, tt.expectedErr)
+			if tt.wantErr != nil {
+				require.Error(t, err)
+				assert.Nil(t, got)
+				if appErr, ok := tt.wantErr.(*apperr.AppError); ok {
+					gotAppErr, ok := err.(*apperr.AppError)
+					require.True(t, ok, "Expected AppError but got %T", err)
+					assert.Equal(t, appErr.Code, gotAppErr.Code)
+					assert.Equal(t, appErr.Message, gotAppErr.Message)
 				}
 			} else {
-				assert.NoError(t, err)
+				require.NoError(t, err)
 				assert.Equal(t, tt.want, got)
 			}
 		})
@@ -391,289 +326,246 @@ func TestTripInteractor_Create(t *testing.T) {
 }
 
 func TestTripInteractor_Update(t *testing.T) {
-	fixedTime := time.Date(2024, 1, 1, 12, 0, 0, 0, time.UTC)
-	originalTrip := domain.NewTrip(
-		domain.NewTripID("test-id"),
-		"Original Name",
-		time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC),
-		time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC),
-	)
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
 
-	type fields struct {
-		repository   func(ctrl *gomock.Controller) domain.TripRepository
-		timeProvider func(ctrl *gomock.Controller) service.TimeService
-		idGenerator  func(ctrl *gomock.Controller) service.IDService
-	}
-	type args struct {
-		ctx  context.Context
-		id   string
-		name string
-	}
+	mockRepo := mock_trip.NewMockTripRepository(ctrl)
+	mockTimeService := mock_service.NewMockTimeService(ctrl)
+	mockIDService := mock_service.NewMockIDService(ctrl)
+
+	interactor := NewTripInteractor(mockRepo, mockTimeService, mockIDService)
+
+	fixedTime := time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC)
+	updateTime := time.Date(2023, 1, 2, 0, 0, 0, 0, time.UTC)
+	tripID := trip.NewTripID("test-id")
+	originalTrip := trip.NewTrip(tripID, "Original Trip", fixedTime, fixedTime)
+
 	tests := []struct {
-		name        string
-		fields      fields
-		args        args
-		wantErr     bool
-		expectedErr *apperr.AppError
+		name     string
+		id       string
+		tripName string
+		setup    func()
+		wantErr  error
 	}{
 		{
-			name: "正常系: Tripが正常に更新される場合",
-			fields: fields{
-				repository: func(ctrl *gomock.Controller) domain.TripRepository {
-					repo := mock_domain.NewMockTripRepository(ctrl)
-					repo.EXPECT().FindByID(gomock.Any(), domain.NewTripID("test-id")).
-						Return(originalTrip, nil)
+			name:     "正常系: 旅行が正常に更新できる",
+			id:       "test-id",
+			tripName: "Updated Trip",
+			setup: func() {
+				mockTimeService.EXPECT().
+					Now().
+					Return(updateTime).
+					Times(1)
 
-					updatedTrip := originalTrip.Update("Updated Name", fixedTime)
-					repo.EXPECT().Update(gomock.Any(), updatedTrip).Return(nil)
-					return repo
-				},
-				timeProvider: func(ctrl *gomock.Controller) service.TimeService {
-					provider := mock_services.NewMockTimeProvider(ctrl)
-					provider.EXPECT().Now().Return(fixedTime)
-					return provider
-				},
-				idGenerator: func(ctrl *gomock.Controller) service.IDService {
-					return mock_services.NewMockIDGenerator(ctrl)
-				},
+				mockRepo.EXPECT().
+					FindByID(gomock.Any(), tripID).
+					Return(originalTrip, nil).
+					Times(1)
+
+				updatedTrip := originalTrip.Update("Updated Trip", updateTime)
+				mockRepo.EXPECT().
+					Update(gomock.Any(), updatedTrip).
+					Return(nil).
+					Times(1)
 			},
-			args: args{
-				ctx:  context.Background(),
-				id:   "test-id",
-				name: "Updated Name",
-			},
-			wantErr: false,
+			wantErr: nil,
 		},
 		{
-			name: "異常系: 更新対象のTripが見つからない場合",
-			fields: fields{
-				repository: func(ctrl *gomock.Controller) domain.TripRepository {
-					repo := mock_domain.NewMockTripRepository(ctrl)
-					repo.EXPECT().FindByID(gomock.Any(), domain.NewTripID("nonexistent-id")).
-						Return(nil, apperr.ErrTripNotFound)
-					return repo
-				},
-				timeProvider: func(ctrl *gomock.Controller) service.TimeService {
-					provider := mock_services.NewMockTimeProvider(ctrl)
-					provider.EXPECT().Now().Return(fixedTime)
-					return provider
-				},
-				idGenerator: func(ctrl *gomock.Controller) service.IDService {
-					return mock_services.NewMockIDGenerator(ctrl)
-				},
+			name:     "異常系: 取得時にアプリケーションエラーが返される",
+			id:       "not-found-id",
+			tripName: "Updated Trip",
+			setup: func() {
+				mockTimeService.EXPECT().
+					Now().
+					Return(updateTime).
+					Times(1)
+
+				notFoundID := trip.NewTripID("not-found-id")
+				appErr := trip.NewTripNotFoundError()
+				mockRepo.EXPECT().
+					FindByID(gomock.Any(), notFoundID).
+					Return(nil, appErr).
+					Times(1)
 			},
-			args: args{
-				ctx:  context.Background(),
-				id:   "nonexistent-id",
-				name: "Updated Name",
-			},
-			wantErr:     true,
-			expectedErr: apperr.NewNotFoundError(""),
+			wantErr: trip.NewTripNotFoundError(),
 		},
 		{
-			name: "異常系: Trip取得時にリポジトリでエラーが発生した場合",
-			fields: fields{
-				repository: func(ctrl *gomock.Controller) domain.TripRepository {
-					repo := mock_domain.NewMockTripRepository(ctrl)
-					repo.EXPECT().FindByID(gomock.Any(), domain.NewTripID("test-id")).
-						Return(nil, apperr.NewInternalError(""))
-					return repo
-				},
-				timeProvider: func(ctrl *gomock.Controller) service.TimeService {
-					provider := mock_services.NewMockTimeProvider(ctrl)
-					provider.EXPECT().Now().Return(fixedTime)
-					return provider
-				},
-				idGenerator: func(ctrl *gomock.Controller) service.IDService {
-					return mock_services.NewMockIDGenerator(ctrl)
-				},
+			name:     "異常系: 取得時に予期しないエラーが返される",
+			id:       "error-id",
+			tripName: "Updated Trip",
+			setup: func() {
+				mockTimeService.EXPECT().
+					Now().
+					Return(updateTime).
+					Times(1)
+
+				errorID := trip.NewTripID("error-id")
+				unexpectedErr := errors.New("database connection error")
+				mockRepo.EXPECT().
+					FindByID(gomock.Any(), errorID).
+					Return(nil, unexpectedErr).
+					Times(1)
 			},
-			args: args{
-				ctx:  context.Background(),
-				id:   "test-id",
-				name: "Updated Name",
-			},
-			wantErr:     true,
-			expectedErr: apperr.NewInternalError(""),
+			wantErr: apperr.NewInternalError("Failed to get trip for update", apperr.WithCause(errors.New("database connection error"))),
 		},
 		{
-			name: "異常系: Trip更新時にリポジトリでエラーが発生した場合",
-			fields: fields{
-				repository: func(ctrl *gomock.Controller) domain.TripRepository {
-					repo := mock_domain.NewMockTripRepository(ctrl)
-					repo.EXPECT().FindByID(gomock.Any(), domain.NewTripID("test-id")).
-						Return(originalTrip, nil)
-					repo.EXPECT().Update(gomock.Any(), gomock.Any()).
-						Return(apperr.NewInternalError(""))
-					return repo
-				},
-				timeProvider: func(ctrl *gomock.Controller) service.TimeService {
-					provider := mock_services.NewMockTimeProvider(ctrl)
-					provider.EXPECT().Now().Return(fixedTime)
-					return provider
-				},
-				idGenerator: func(ctrl *gomock.Controller) service.IDService {
-					return mock_services.NewMockIDGenerator(ctrl)
-				},
+			name:     "異常系: 更新時にアプリケーションエラーが返される",
+			id:       "test-id",
+			tripName: "Updated Trip",
+			setup: func() {
+				mockTimeService.EXPECT().
+					Now().
+					Return(updateTime).
+					Times(1)
+
+				mockRepo.EXPECT().
+					FindByID(gomock.Any(), tripID).
+					Return(originalTrip, nil).
+					Times(1)
+
+				appErr := apperr.NewInternalError("Database error")
+				updatedTrip := originalTrip.Update("Updated Trip", updateTime)
+				mockRepo.EXPECT().
+					Update(gomock.Any(), updatedTrip).
+					Return(appErr).
+					Times(1)
 			},
-			args: args{
-				ctx:  context.Background(),
-				id:   "test-id",
-				name: "Updated Name",
+			wantErr: apperr.NewInternalError("Database error"),
+		},
+		{
+			name:     "異常系: 更新時に予期しないエラーが返される",
+			id:       "test-id",
+			tripName: "Updated Trip",
+			setup: func() {
+				mockTimeService.EXPECT().
+					Now().
+					Return(updateTime).
+					Times(1)
+
+				mockRepo.EXPECT().
+					FindByID(gomock.Any(), tripID).
+					Return(originalTrip, nil).
+					Times(1)
+
+				unexpectedErr := errors.New("database update error")
+				updatedTrip := originalTrip.Update("Updated Trip", updateTime)
+				mockRepo.EXPECT().
+					Update(gomock.Any(), updatedTrip).
+					Return(unexpectedErr).
+					Times(1)
 			},
-			wantErr:     true,
-			expectedErr: apperr.NewInternalError(""),
+			wantErr: apperr.NewInternalError("Failed to update trip", apperr.WithCause(errors.New("database update error"))),
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ctrl := gomock.NewController(t)
-			defer ctrl.Finish()
+			tt.setup()
 
-			i := &TripInteractor{
-				repository:  tt.fields.repository(ctrl),
-				timeService: tt.fields.timeProvider(ctrl),
-				idService:   tt.fields.idGenerator(ctrl),
-			}
+			err := interactor.Update(context.Background(), tt.id, tt.tripName)
 
-			err := i.Update(tt.args.ctx, tt.args.id, tt.args.name)
-
-			if tt.wantErr {
-				assert.Error(t, err)
-				if tt.expectedErr != nil {
-					assert.ErrorIs(t, err, tt.expectedErr)
+			if tt.wantErr != nil {
+				require.Error(t, err)
+				if appErr, ok := tt.wantErr.(*apperr.AppError); ok {
+					gotAppErr, ok := err.(*apperr.AppError)
+					require.True(t, ok, "Expected AppError but got %T", err)
+					assert.Equal(t, appErr.Code, gotAppErr.Code)
+					assert.Equal(t, appErr.Message, gotAppErr.Message)
 				}
 			} else {
-				assert.NoError(t, err)
+				require.NoError(t, err)
 			}
 		})
 	}
 }
 
 func TestTripInteractor_Delete(t *testing.T) {
-	type fields struct {
-		repository   func(ctrl *gomock.Controller) domain.TripRepository
-		timeProvider func(ctrl *gomock.Controller) service.TimeService
-		idGenerator  func(ctrl *gomock.Controller) service.IDService
-	}
-	type args struct {
-		ctx context.Context
-		id  string
-	}
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockRepo := mock_trip.NewMockTripRepository(ctrl)
+	mockTimeService := mock_service.NewMockTimeService(ctrl)
+	mockIDService := mock_service.NewMockIDService(ctrl)
+
+	interactor := NewTripInteractor(mockRepo, mockTimeService, mockIDService)
+
 	tests := []struct {
-		name        string
-		fields      fields
-		args        args
-		wantErr     bool
-		expectedErr *apperr.AppError
+		name    string
+		id      string
+		setup   func()
+		wantErr error
 	}{
 		{
-			name: "正常系: Tripが正常に削除される場合",
-			fields: fields{
-				repository: func(ctrl *gomock.Controller) domain.TripRepository {
-					repo := mock_domain.NewMockTripRepository(ctrl)
-					repo.EXPECT().Delete(gomock.Any(), domain.NewTripID("test-id")).Return(nil)
-					return repo
-				},
-				timeProvider: func(ctrl *gomock.Controller) service.TimeService {
-					return mock_services.NewMockTimeProvider(ctrl)
-				},
-				idGenerator: func(ctrl *gomock.Controller) service.IDService {
-					return mock_services.NewMockIDGenerator(ctrl)
-				},
+			name: "正常系: 旅行が正常に削除できる",
+			id:   "test-id",
+			setup: func() {
+				tripID := trip.NewTripID("test-id")
+				mockRepo.EXPECT().
+					Delete(gomock.Any(), tripID).
+					Return(nil).
+					Times(1)
 			},
-			args: args{
-				ctx: context.Background(),
-				id:  "test-id",
-			},
-			wantErr: false,
+			wantErr: nil,
 		},
 		{
-			name: "異常系: 削除対象のTripが見つからない場合",
-			fields: fields{
-				repository: func(ctrl *gomock.Controller) domain.TripRepository {
-					repo := mock_domain.NewMockTripRepository(ctrl)
-					repo.EXPECT().Delete(gomock.Any(), domain.NewTripID("nonexistent-id")).
-						Return(apperr.ErrTripNotFound)
-					return repo
-				},
-				timeProvider: func(ctrl *gomock.Controller) service.TimeService {
-					return mock_services.NewMockTimeProvider(ctrl)
-				},
-				idGenerator: func(ctrl *gomock.Controller) service.IDService {
-					return mock_services.NewMockIDGenerator(ctrl)
-				},
+			name: "異常系: リポジトリからアプリケーションエラーが返される",
+			id:   "not-found-id",
+			setup: func() {
+				notFoundID := trip.NewTripID("not-found-id")
+				appErr := trip.NewTripNotFoundError()
+				mockRepo.EXPECT().
+					Delete(gomock.Any(), notFoundID).
+					Return(appErr).
+					Times(1)
 			},
-			args: args{
-				ctx: context.Background(),
-				id:  "nonexistent-id",
-			},
-			wantErr:     true,
-			expectedErr: apperr.NewNotFoundError(""),
+			wantErr: trip.NewTripNotFoundError(),
 		},
 		{
-			name: "異常系: リポジトリでエラーが発生した場合",
-			fields: fields{
-				repository: func(ctrl *gomock.Controller) domain.TripRepository {
-					repo := mock_domain.NewMockTripRepository(ctrl)
-					repo.EXPECT().Delete(gomock.Any(), domain.NewTripID("test-id")).
-						Return(apperr.NewInternalError(""))
-					return repo
-				},
-				timeProvider: func(ctrl *gomock.Controller) service.TimeService {
-					return mock_services.NewMockTimeProvider(ctrl)
-				},
-				idGenerator: func(ctrl *gomock.Controller) service.IDService {
-					return mock_services.NewMockIDGenerator(ctrl)
-				},
+			name: "異常系: リポジトリから予期しないエラーが返される",
+			id:   "error-id",
+			setup: func() {
+				errorID := trip.NewTripID("error-id")
+				unexpectedErr := errors.New("database delete error")
+				mockRepo.EXPECT().
+					Delete(gomock.Any(), errorID).
+					Return(unexpectedErr).
+					Times(1)
 			},
-			args: args{
-				ctx: context.Background(),
-				id:  "test-id",
-			},
-			wantErr:     true,
-			expectedErr: apperr.NewInternalError(""),
+			wantErr: apperr.NewInternalError("Failed to delete trip", apperr.WithCause(errors.New("database delete error"))),
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ctrl := gomock.NewController(t)
-			defer ctrl.Finish()
+			tt.setup()
 
-			i := &TripInteractor{
-				repository:  tt.fields.repository(ctrl),
-				timeService: tt.fields.timeProvider(ctrl),
-				idService:   tt.fields.idGenerator(ctrl),
-			}
+			err := interactor.Delete(context.Background(), tt.id)
 
-			err := i.Delete(tt.args.ctx, tt.args.id)
-
-			if tt.wantErr {
-				assert.Error(t, err)
-				if tt.expectedErr != nil {
-					assert.ErrorIs(t, err, tt.expectedErr)
+			if tt.wantErr != nil {
+				require.Error(t, err)
+				if appErr, ok := tt.wantErr.(*apperr.AppError); ok {
+					gotAppErr, ok := err.(*apperr.AppError)
+					require.True(t, ok, "Expected AppError but got %T", err)
+					assert.Equal(t, appErr.Code, gotAppErr.Code)
+					assert.Equal(t, appErr.Message, gotAppErr.Message)
 				}
 			} else {
-				assert.NoError(t, err)
+				require.NoError(t, err)
 			}
 		})
 	}
 }
 
+// NewTripInteractor のテスト
 func TestNewTripInteractor(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	repository := mock_domain.NewMockTripRepository(ctrl)
-	timeProvider := mock_services.NewMockTimeProvider(ctrl)
-	idGenerator := mock_services.NewMockIDGenerator(ctrl)
+	mockRepo := mock_trip.NewMockTripRepository(ctrl)
+	mockTimeService := mock_service.NewMockTimeService(ctrl)
+	mockIDService := mock_service.NewMockIDService(ctrl)
 
-	interactor := NewTripInteractor(repository, timeProvider, idGenerator)
+	interactor := NewTripInteractor(mockRepo, mockTimeService, mockIDService)
 
 	assert.NotNil(t, interactor)
-	assert.Equal(t, repository, interactor.repository)
-	assert.Equal(t, timeProvider, interactor.timeService)
-	assert.Equal(t, idGenerator, interactor.idService)
 }

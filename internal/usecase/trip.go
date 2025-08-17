@@ -3,8 +3,8 @@ package usecase
 import (
 	"context"
 
-	"github.com/hata0/travel-api/internal/domain"
 	apperr "github.com/hata0/travel-api/internal/domain/errors"
+	"github.com/hata0/travel-api/internal/domain/trip"
 	"github.com/hata0/travel-api/internal/usecase/output"
 	"github.com/hata0/travel-api/internal/usecase/service"
 )
@@ -13,18 +13,18 @@ import (
 type TripUsecase interface {
 	Get(ctx context.Context, id string) (*output.GetTripOutput, error)
 	List(ctx context.Context) (*output.ListTripOutput, error)
-	Create(ctx context.Context, name string) (string, error)
+	Create(ctx context.Context, name string) (*output.CreateTripOutput, error)
 	Update(ctx context.Context, id string, name string) error
 	Delete(ctx context.Context, id string) error
 }
 
 type TripInteractor struct {
-	repository  domain.TripRepository
+	repository  trip.TripRepository
 	timeService service.TimeService
 	idService   service.IDService
 }
 
-func NewTripInteractor(repository domain.TripRepository, timeService service.TimeService, idService service.IDService) *TripInteractor {
+func NewTripInteractor(repository trip.TripRepository, timeService service.TimeService, idService service.IDService) TripUsecase {
 	return &TripInteractor{
 		repository:  repository,
 		timeService: timeService,
@@ -34,15 +34,14 @@ func NewTripInteractor(repository domain.TripRepository, timeService service.Tim
 
 // Get は指定されたIDの旅行を取得する
 func (i *TripInteractor) Get(ctx context.Context, id string) (*output.GetTripOutput, error) {
-	tripID := domain.NewTripID(id)
+	tripID := trip.NewTripID(id)
 
 	trip, err := i.repository.FindByID(ctx, tripID)
 	if err != nil {
-		if apperr.IsTripNotFound(err) {
-			return nil, apperr.NewNotFoundError("Trip not found")
+		if apperr.IsAppError(err) {
+			return nil, err
 		}
-
-		return nil, err
+		return nil, apperr.NewInternalError("Failed to get trip", apperr.WithCause(err))
 	}
 
 	return output.NewGetTripOutput(trip), nil
@@ -52,20 +51,23 @@ func (i *TripInteractor) Get(ctx context.Context, id string) (*output.GetTripOut
 func (i *TripInteractor) List(ctx context.Context) (*output.ListTripOutput, error) {
 	trips, err := i.repository.FindMany(ctx)
 	if err != nil {
-		return nil, err
+		if apperr.IsAppError(err) {
+			return nil, err
+		}
+		return nil, apperr.NewInternalError("Failed to list trips", apperr.WithCause(err))
 	}
 
 	return output.NewListTripOutput(trips), nil
 }
 
 // Create は新しい旅行を作成する
-func (i *TripInteractor) Create(ctx context.Context, name string) (string, error) {
+func (i *TripInteractor) Create(ctx context.Context, name string) (*output.CreateTripOutput, error) {
 	newID := i.idService.Generate()
 	now := i.timeService.Now()
 
-	tripID := domain.NewTripID(newID)
+	tripID := trip.NewTripID(newID)
 
-	trip := domain.NewTrip(
+	trip := trip.NewTrip(
 		tripID,
 		name,
 		now,
@@ -74,30 +76,36 @@ func (i *TripInteractor) Create(ctx context.Context, name string) (string, error
 
 	err := i.repository.Create(ctx, trip)
 	if err != nil {
-		return "", err
+		if apperr.IsAppError(err) {
+			return nil, err
+		}
+		return nil, apperr.NewInternalError("Failed to create trip", apperr.WithCause(err))
 	}
 
-	return tripID.String(), nil
+	return output.NewCreateTripOutput(tripID), nil
 }
 
 // Update は既存の旅行を更新する
 func (i *TripInteractor) Update(ctx context.Context, id string, name string) error {
 	now := i.timeService.Now()
 
-	tripID := domain.NewTripID(id)
+	tripID := trip.NewTripID(id)
 
 	trip, err := i.repository.FindByID(ctx, tripID)
 	if err != nil {
-		if apperr.IsTripNotFound(err) {
-			return apperr.NewNotFoundError("Trip not found")
+		if apperr.IsAppError(err) {
+			return err
 		}
-		return err
+		return apperr.NewInternalError("Failed to get trip for update", apperr.WithCause(err))
 	}
 
 	updatedTrip := trip.Update(name, now)
 
 	if err := i.repository.Update(ctx, updatedTrip); err != nil {
-		return err
+		if apperr.IsAppError(err) {
+			return err
+		}
+		return apperr.NewInternalError("Failed to update trip", apperr.WithCause(err))
 	}
 
 	return nil
@@ -105,13 +113,13 @@ func (i *TripInteractor) Update(ctx context.Context, id string, name string) err
 
 // Delete は指定されたIDの旅行を削除する
 func (i *TripInteractor) Delete(ctx context.Context, id string) error {
-	tripID := domain.NewTripID(id)
+	tripID := trip.NewTripID(id)
 
 	if err := i.repository.Delete(ctx, tripID); err != nil {
-		if apperr.IsTripNotFound(err) {
-			return apperr.NewNotFoundError("Trip not found")
+		if apperr.IsAppError(err) {
+			return err
 		}
-		return err
+		return apperr.NewInternalError("Failed to delete trip", apperr.WithCause(err))
 	}
 
 	return nil
