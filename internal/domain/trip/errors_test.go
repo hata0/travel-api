@@ -9,13 +9,10 @@ import (
 )
 
 func TestNewTripNotFoundError(t *testing.T) {
-	t.Run("エラーコードとメッセージが正しく設定されること", func(t *testing.T) {
-		message := "Trip not found"
-		err := trip.NewTripNotFoundError(message)
+	err := trip.NewTripNotFoundError()
 
-		assert.NotNil(t, err)
-		assert.IsType(t, &apperr.AppError{}, err)
-		assert.Equal(t, trip.CodeTripNotFound, err.Code())
-		assert.Equal(t, message, err.Message())
-	})
+	assert.NotNil(t, err)
+	assert.IsType(t, &apperr.AppError{}, err)
+	assert.Equal(t, trip.CodeTripNotFound, err.Code())
+	assert.Equal(t, "Trip not found", err.Message())
 }
