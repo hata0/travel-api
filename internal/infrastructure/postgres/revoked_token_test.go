@@ -7,8 +7,9 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/hata0/travel-api/internal/domain"
 	apperr "github.com/hata0/travel-api/internal/domain/errors"
+	revokedtoken "github.com/hata0/travel-api/internal/domain/revoked_token"
+	"github.com/hata0/travel-api/internal/domain/user"
 	postgres "github.com/hata0/travel-api/internal/infrastructure/postgres/generated"
 	"github.com/hata0/travel-api/internal/infrastructure/postgres/mapper"
 	"github.com/jackc/pgx/v5"
@@ -18,18 +19,18 @@ import (
 
 // testRevokedToken テスト用のRevokedToken構造体
 type testRevokedToken struct {
-	ID        domain.RevokedTokenID
-	UserID    domain.UserID
+	ID        revokedtoken.RevokedTokenID
+	UserID    user.UserID
 	TokenJTI  string
 	ExpiresAt time.Time
 	RevokedAt time.Time
 }
 
 // newTestRevokedToken テスト用のRevokedTokenを生成する (UserIDを引数で受け取るように変更)
-func newTestRevokedToken(jti string, userID domain.UserID) testRevokedToken {
+func newTestRevokedToken(jti string, userID user.UserID) testRevokedToken {
 	now := time.Now().UTC().Truncate(time.Microsecond)
 	return testRevokedToken{
-		ID:        domain.NewRevokedTokenID(uuid.New().String()),
+		ID:        revokedtoken.NewRevokedTokenID(uuid.New().String()),
 		UserID:    userID, // ここを修正
 		TokenJTI:  jti,
 		ExpiresAt: now.Add(time.Hour),
@@ -38,15 +39,15 @@ func newTestRevokedToken(jti string, userID domain.UserID) testRevokedToken {
 }
 
 // toDomainRevokedToken ドメインオブジェクトに変換する
-func (trt testRevokedToken) toDomainRevokedToken() *domain.RevokedToken {
-	return domain.NewRevokedToken(trt.ID, trt.UserID, trt.TokenJTI, trt.ExpiresAt, trt.RevokedAt)
+func (trt testRevokedToken) toDomainRevokedToken() *revokedtoken.RevokedToken {
+	return revokedtoken.NewRevokedToken(trt.ID, trt.UserID, trt.TokenJTI, trt.ExpiresAt, trt.RevokedAt)
 }
 
 // revokedTokenTestSuite テスト用の共通セットアップ
 type revokedTokenTestSuite struct {
 	ctx     context.Context
 	tx      pgx.Tx
-	repo    domain.RevokedTokenRepository
+	repo    revokedtoken.RevokedTokenRepository
 	queries *postgres.Queries
 	mapper  *mapper.PostgreSQLTypeMapper
 }
@@ -134,7 +135,7 @@ func (s *revokedTokenTestSuite) getRevokedTokenFromDB(t *testing.T, jti string) 
 }
 
 // assertRevokedTokenEquals RevokedTokenの等価性をアサートする
-func assertRevokedTokenEquals(t *testing.T, expected testRevokedToken, actual *domain.RevokedToken) {
+func assertRevokedTokenEquals(t *testing.T, expected testRevokedToken, actual *revokedtoken.RevokedToken) {
 	t.Helper()
 	assert.Equal(t, expected.ID, actual.ID(), "IDが一致すること")
 	assert.Equal(t, expected.UserID, actual.UserID(), "UserIDが一致すること")
@@ -231,7 +232,7 @@ func TestRevokedTokenPostgresRepository_Create(t *testing.T) {
 		// When: 同じJTIで別のRevokedTokenを作成する
 		duplicateToken := newTestRevokedToken("jti-duplicate", testUser.ID)
 		// IDとUserIDは異なるがJTIが同じ
-		duplicateToken.ID = domain.NewRevokedTokenID(uuid.New().String())
+		duplicateToken.ID = revokedtoken.NewRevokedTokenID(uuid.New().String())
 		// duplicateToken.UserID = domain.NewUserID(uuid.New().String()) // UserIDは既存のUserIDを使うためコメントアウト
 
 		err := suite.repo.Create(suite.ctx, duplicateToken.toDomainRevokedToken())
@@ -272,8 +273,8 @@ func TestRevokedTokenPostgresRepository_FindByJTI(t *testing.T) {
 		// When: 存在しないJTIでRevokedTokenを取得する
 		_, err := suite.repo.FindByJTI(suite.ctx, nonExistentJTI)
 
-		// Then: ErrRevokedTokenNotFoundが返される
-		assert.ErrorIs(t, err, apperr.ErrRevokedTokenNotFound,
-			"ErrRevokedTokenNotFoundが返されるべき")
+		// Then: RevokedTokenNotFoundが返される
+		assert.ErrorIs(t, err, revokedtoken.NewRevokedTokenNotFoundError(),
+			"RevokedTokenNotFoundが返されるべき")
 	})
 }

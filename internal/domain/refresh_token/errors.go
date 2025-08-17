@@ -6,6 +6,6 @@ const (
 	CodeRefreshTokenNotFound = "REFRESH_TOKEN_NOT_FOUND"
 )
 
-func NewRefreshTokenNotFoundError(message string, opts ...apperr.AppErrorOption) *apperr.AppError {
-	return apperr.NewAppError(CodeRefreshTokenNotFound, message, opts...)
+func NewRefreshTokenNotFoundError(opts ...apperr.AppErrorOption) *apperr.AppError {
+	return apperr.NewAppError(CodeRefreshTokenNotFound, "Refresh token not found", opts...)
 }

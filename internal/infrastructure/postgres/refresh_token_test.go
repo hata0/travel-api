@@ -7,8 +7,9 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/hata0/travel-api/internal/domain"
 	apperr "github.com/hata0/travel-api/internal/domain/errors"
+	refreshtoken "github.com/hata0/travel-api/internal/domain/refresh_token"
+	"github.com/hata0/travel-api/internal/domain/user"
 	postgres "github.com/hata0/travel-api/internal/infrastructure/postgres/generated"
 	"github.com/hata0/travel-api/internal/infrastructure/postgres/mapper"
 	"github.com/jackc/pgx/v5"
@@ -18,18 +19,18 @@ import (
 
 // testRefreshToken テスト用のRefreshToken構造体
 type testRefreshToken struct {
-	ID        domain.RefreshTokenID
-	UserID    domain.UserID
+	ID        refreshtoken.RefreshTokenID
+	UserID    user.UserID
 	Token     string
 	ExpiresAt time.Time
 	CreatedAt time.Time
 }
 
 // newTestRefreshToken テスト用のRefreshTokenを生成する
-func newTestRefreshToken(token string, userID domain.UserID) testRefreshToken {
+func newTestRefreshToken(token string, userID user.UserID) testRefreshToken {
 	now := time.Now().UTC().Truncate(time.Microsecond)
 	return testRefreshToken{
-		ID:        domain.NewRefreshTokenID(uuid.New().String()),
+		ID:        refreshtoken.NewRefreshTokenID(uuid.New().String()),
 		UserID:    userID,
 		Token:     token,
 		ExpiresAt: now.Add(time.Hour),
@@ -38,15 +39,15 @@ func newTestRefreshToken(token string, userID domain.UserID) testRefreshToken {
 }
 
 // toDomainRefreshToken ドメインオブジェクトに変換する
-func (trt testRefreshToken) toDomainRefreshToken() *domain.RefreshToken {
-	return domain.NewRefreshToken(trt.ID, trt.UserID, trt.Token, trt.ExpiresAt, trt.CreatedAt)
+func (trt testRefreshToken) toDomainRefreshToken() *refreshtoken.RefreshToken {
+	return refreshtoken.NewRefreshToken(trt.ID, trt.UserID, trt.Token, trt.ExpiresAt, trt.CreatedAt)
 }
 
 // refreshTokenTestSuite テスト用の共通セットアップ
 type refreshTokenTestSuite struct {
 	ctx     context.Context
 	tx      pgx.Tx
-	repo    domain.RefreshTokenRepository
+	repo    refreshtoken.RefreshTokenRepository
 	queries *postgres.Queries
 	mapper  *mapper.PostgreSQLTypeMapper
 }
@@ -134,7 +135,7 @@ func (s *refreshTokenTestSuite) getRefreshTokenFromDB(t *testing.T, token string
 }
 
 // assertRefreshTokenEquals RefreshTokenの等価性をアサートする
-func assertRefreshTokenEquals(t *testing.T, expected testRefreshToken, actual *domain.RefreshToken) {
+func assertRefreshTokenEquals(t *testing.T, expected testRefreshToken, actual *refreshtoken.RefreshToken) {
 	t.Helper()
 	assert.Equal(t, expected.ID, actual.ID(), "IDが一致すること")
 	assert.Equal(t, expected.UserID, actual.UserID(), "UserIDが一致すること")
@@ -230,7 +231,7 @@ func TestRefreshTokenPostgresRepository_Create(t *testing.T) {
 
 		// When: 同じTokenで別のRefreshTokenを作成する
 		duplicateToken := newTestRefreshToken("token-duplicate", testUser.ID)
-		duplicateToken.ID = domain.NewRefreshTokenID(uuid.New().String())
+		duplicateToken.ID = refreshtoken.NewRefreshTokenID(uuid.New().String())
 
 		err := suite.repo.Create(suite.ctx, duplicateToken.toDomainRefreshToken())
 
@@ -270,9 +271,9 @@ func TestRefreshTokenPostgresRepository_FindByToken(t *testing.T) {
 		// When: 存在しないTokenでRefreshTokenを取得する
 		_, err := suite.repo.FindByToken(suite.ctx, nonExistentToken)
 
-		// Then: ErrRefreshTokenNotFoundが返される
-		assert.ErrorIs(t, err, apperr.ErrRefreshTokenNotFound,
-			"ErrRefreshTokenNotFoundが返されるべき")
+		// Then: RefreshTokenNotFoundが返される
+		assert.ErrorIs(t, err, refreshtoken.NewRefreshTokenNotFoundError(),
+			"RefreshTokenNotFoundが返されるべき")
 	})
 }
 
@@ -299,14 +300,14 @@ func TestRefreshTokenPostgresRepository_Delete(t *testing.T) {
 		suite := newRefreshTokenTestSuite(t)
 
 		// Given: 存在しないIDを持つRefreshToken
-		nonExistentID := domain.NewRefreshTokenID(uuid.New().String())
+		nonExistentID := refreshtoken.NewRefreshTokenID(uuid.New().String())
 
 		// When: 存在しないIDでRefreshTokenを削除する
 		err := suite.repo.Delete(suite.ctx, nonExistentID)
 
-		// Then: ErrRefreshTokenNotFoundが返される
-		assert.ErrorIs(t, err, apperr.ErrRefreshTokenNotFound,
-			"ErrRefreshTokenNotFoundが返されるべき")
+		// Then: RefreshTokenNotFoundが返される
+		assert.ErrorIs(t, err, refreshtoken.NewRefreshTokenNotFoundError(),
+			"RefreshTokenNotFoundが返されるべき")
 	})
 }
 
@@ -339,7 +340,7 @@ func TestRefreshTokenPostgresRepository_DeleteByUserID(t *testing.T) {
 		suite := newRefreshTokenTestSuite(t)
 
 		// Given: 存在しないUserID
-		nonExistentUserID := domain.NewUserID(uuid.New().String())
+		nonExistentUserID := user.NewUserID(uuid.New().String())
 
 		// When: 存在しないUserIDでRefreshTokenを削除する
 		err := suite.repo.DeleteByUserID(suite.ctx, nonExistentUserID)

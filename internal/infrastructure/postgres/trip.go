@@ -4,8 +4,8 @@ import (
 	"context"
 	"errors"
 
-	"github.com/hata0/travel-api/internal/domain"
 	apperr "github.com/hata0/travel-api/internal/domain/errors"
+	"github.com/hata0/travel-api/internal/domain/trip"
 	postgres "github.com/hata0/travel-api/internal/infrastructure/postgres/generated"
 	"github.com/jackc/pgx/v5"
 )
@@ -16,14 +16,14 @@ type TripPostgresRepository struct {
 }
 
 // NewTripPostgresRepository は新しいTripPostgresRepositoryを作成する
-func NewTripPostgresRepository(db postgres.DBTX) domain.TripRepository {
+func NewTripPostgresRepository(db postgres.DBTX) trip.TripRepository {
 	return &TripPostgresRepository{
 		BasePostgresRepository: NewBasePostgresRepository(db),
 	}
 }
 
 // FindByID は指定されたIDのTripを取得する
-func (r *TripPostgresRepository) FindByID(ctx context.Context, id domain.TripID) (*domain.Trip, error) {
+func (r *TripPostgresRepository) FindByID(ctx context.Context, id trip.TripID) (*trip.Trip, error) {
 	queries := r.GetQueries(ctx)
 	mapper := r.GetTypeMapper()
 
@@ -35,7 +35,7 @@ func (r *TripPostgresRepository) FindByID(ctx context.Context, id domain.TripID)
 	record, err := queries.FindTrip(ctx, pgUUID)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, apperr.ErrTripNotFound
+			return nil, trip.NewTripNotFoundError()
 		}
 		return nil, apperr.NewInternalError("Failed to fetch trip from database", apperr.WithCause(err))
 	}
@@ -49,7 +49,7 @@ func (r *TripPostgresRepository) FindByID(ctx context.Context, id domain.TripID)
 }
 
 // FindMany はすべてのTripを取得する
-func (r *TripPostgresRepository) FindMany(ctx context.Context) ([]*domain.Trip, error) {
+func (r *TripPostgresRepository) FindMany(ctx context.Context) ([]*trip.Trip, error) {
 	queries := r.GetQueries(ctx)
 
 	records, err := queries.ListTrips(ctx)
@@ -57,7 +57,7 @@ func (r *TripPostgresRepository) FindMany(ctx context.Context) ([]*domain.Trip, 
 		return nil, apperr.NewInternalError("Failed to fetch trips list from database", apperr.WithCause(err))
 	}
 
-	trips := make([]*domain.Trip, 0, len(records))
+	trips := make([]*trip.Trip, 0, len(records))
 	for _, record := range records {
 		trip, err := r.mapToTrip(record)
 		if err != nil {
@@ -72,7 +72,7 @@ func (r *TripPostgresRepository) FindMany(ctx context.Context) ([]*domain.Trip, 
 }
 
 // Create は新しいTripを作成する
-func (r *TripPostgresRepository) Create(ctx context.Context, trip *domain.Trip) error {
+func (r *TripPostgresRepository) Create(ctx context.Context, trip *trip.Trip) error {
 	if trip == nil {
 		return apperr.NewInternalError("Trip entity cannot be nil")
 	}
@@ -110,7 +110,7 @@ func (r *TripPostgresRepository) Create(ctx context.Context, trip *domain.Trip) 
 }
 
 // Update は既存のTripを更新する
-func (r *TripPostgresRepository) Update(ctx context.Context, trip *domain.Trip) error {
+func (r *TripPostgresRepository) Update(ctx context.Context, trip *trip.Trip) error {
 	if trip == nil {
 		return apperr.NewInternalError("Trip entity cannot be nil")
 	}
@@ -142,7 +142,7 @@ func (r *TripPostgresRepository) Update(ctx context.Context, trip *domain.Trip) 
 }
 
 // Delete は指定されたIDのTripを削除する
-func (r *TripPostgresRepository) Delete(ctx context.Context, id domain.TripID) error {
+func (r *TripPostgresRepository) Delete(ctx context.Context, id trip.TripID) error {
 	queries := r.GetQueries(ctx)
 	mapper := r.GetTypeMapper()
 
@@ -157,14 +157,14 @@ func (r *TripPostgresRepository) Delete(ctx context.Context, id domain.TripID) e
 	}
 
 	if rows == 0 {
-		return apperr.ErrTripNotFound
+		return trip.NewTripNotFoundError()
 	}
 
 	return nil
 }
 
 // mapToTrip はデータベースレコードをドメインオブジェクトに変換する
-func (r *TripPostgresRepository) mapToTrip(record postgres.Trip) (*domain.Trip, error) {
+func (r *TripPostgresRepository) mapToTrip(record postgres.Trip) (*trip.Trip, error) {
 	mapper := r.GetTypeMapper()
 
 	id, err := mapper.FromUUID(record.ID)
@@ -182,8 +182,8 @@ func (r *TripPostgresRepository) mapToTrip(record postgres.Trip) (*domain.Trip, 
 		return nil, err
 	}
 
-	return domain.NewTrip(
-		domain.NewTripID(id),
+	return trip.NewTrip(
+		trip.NewTripID(id),
 		record.Name,
 		createdAt,
 		updatedAt,

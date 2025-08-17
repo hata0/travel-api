@@ -4,8 +4,9 @@ import (
 	"context"
 	"errors"
 
-	"github.com/hata0/travel-api/internal/domain"
 	apperr "github.com/hata0/travel-api/internal/domain/errors"
+	revokedtoken "github.com/hata0/travel-api/internal/domain/revoked_token"
+	"github.com/hata0/travel-api/internal/domain/user"
 	postgres "github.com/hata0/travel-api/internal/infrastructure/postgres/generated"
 	"github.com/jackc/pgx/v5"
 )
@@ -16,14 +17,14 @@ type RevokedTokenPostgresRepository struct {
 }
 
 // NewRevokedTokenPostgresRepository は新しいRevokedTokenPostgresRepositoryを作成する
-func NewRevokedTokenPostgresRepository(db postgres.DBTX) domain.RevokedTokenRepository {
+func NewRevokedTokenPostgresRepository(db postgres.DBTX) revokedtoken.RevokedTokenRepository {
 	return &RevokedTokenPostgresRepository{
 		BasePostgresRepository: NewBasePostgresRepository(db),
 	}
 }
 
 // Create は新しいRevokedTokenを作成する
-func (r *RevokedTokenPostgresRepository) Create(ctx context.Context, token *domain.RevokedToken) error {
+func (r *RevokedTokenPostgresRepository) Create(ctx context.Context, token *revokedtoken.RevokedToken) error {
 	if token == nil {
 		return apperr.NewInternalError("RevokedToken entity cannot be nil")
 	}
@@ -67,13 +68,13 @@ func (r *RevokedTokenPostgresRepository) Create(ctx context.Context, token *doma
 }
 
 // FindByJTI は指定されたJTIのRevokedTokenを取得する
-func (r *RevokedTokenPostgresRepository) FindByJTI(ctx context.Context, jti string) (*domain.RevokedToken, error) {
+func (r *RevokedTokenPostgresRepository) FindByJTI(ctx context.Context, jti string) (*revokedtoken.RevokedToken, error) {
 	queries := r.GetQueries(ctx)
 
 	record, err := queries.FindRevokedTokenByJTI(ctx, jti)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, apperr.ErrRevokedTokenNotFound
+			return nil, revokedtoken.NewRevokedTokenNotFoundError()
 		}
 		return nil, apperr.NewInternalError("Failed to fetch revoked token by JTI from database", apperr.WithCause(err))
 	}
@@ -87,7 +88,7 @@ func (r *RevokedTokenPostgresRepository) FindByJTI(ctx context.Context, jti stri
 }
 
 // mapToRevokedToken はデータベースレコードをドメインオブジェクトに変換する
-func (r *RevokedTokenPostgresRepository) mapToRevokedToken(record postgres.RevokedToken) (*domain.RevokedToken, error) {
+func (r *RevokedTokenPostgresRepository) mapToRevokedToken(record postgres.RevokedToken) (*revokedtoken.RevokedToken, error) {
 	mapper := r.GetTypeMapper()
 
 	id, err := mapper.FromUUID(record.ID)
@@ -110,9 +111,9 @@ func (r *RevokedTokenPostgresRepository) mapToRevokedToken(record postgres.Revok
 		return nil, err
 	}
 
-	return domain.NewRevokedToken(
-		domain.NewRevokedTokenID(id),
-		domain.NewUserID(userID),
+	return revokedtoken.NewRevokedToken(
+		revokedtoken.NewRevokedTokenID(id),
+		user.NewUserID(userID),
 		record.TokenJti,
 		expiresAt,
 		revokedAt,

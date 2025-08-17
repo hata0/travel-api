@@ -4,8 +4,8 @@ import (
 	"context"
 	"errors"
 
-	"github.com/hata0/travel-api/internal/domain"
 	apperr "github.com/hata0/travel-api/internal/domain/errors"
+	"github.com/hata0/travel-api/internal/domain/user"
 	postgres "github.com/hata0/travel-api/internal/infrastructure/postgres/generated"
 	"github.com/jackc/pgx/v5"
 )
@@ -16,14 +16,14 @@ type UserPostgresRepository struct {
 }
 
 // NewUserPostgresRepository は新しいUserPostgresRepositoryを作成する
-func NewUserPostgresRepository(db postgres.DBTX) domain.UserRepository {
+func NewUserPostgresRepository(db postgres.DBTX) user.UserRepository {
 	return &UserPostgresRepository{
 		BasePostgresRepository: NewBasePostgresRepository(db),
 	}
 }
 
 // Create は新しいUserを作成する
-func (r *UserPostgresRepository) Create(ctx context.Context, user *domain.User) error {
+func (r *UserPostgresRepository) Create(ctx context.Context, user *user.User) error {
 	if user == nil {
 		return apperr.NewInternalError("User entity cannot be nil")
 	}
@@ -63,13 +63,13 @@ func (r *UserPostgresRepository) Create(ctx context.Context, user *domain.User) 
 }
 
 // FindByEmail は指定されたEmailのUserを取得する
-func (r *UserPostgresRepository) FindByEmail(ctx context.Context, email string) (*domain.User, error) {
+func (r *UserPostgresRepository) FindByEmail(ctx context.Context, email string) (*user.User, error) {
 	queries := r.GetQueries(ctx)
 
 	record, err := queries.FindUserByEmail(ctx, email)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, apperr.ErrUserNotFound
+			return nil, user.NewUserNotFoundError()
 		}
 		return nil, apperr.NewInternalError("Failed to fetch user by email from database", apperr.WithCause(err))
 	}
@@ -83,13 +83,13 @@ func (r *UserPostgresRepository) FindByEmail(ctx context.Context, email string) 
 }
 
 // FindByUsername は指定されたUsernameのUserを取得する
-func (r *UserPostgresRepository) FindByUsername(ctx context.Context, username string) (*domain.User, error) {
+func (r *UserPostgresRepository) FindByUsername(ctx context.Context, username string) (*user.User, error) {
 	queries := r.GetQueries(ctx)
 
 	record, err := queries.FindUserByUsername(ctx, username)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, apperr.ErrUserNotFound
+			return nil, user.NewUserNotFoundError()
 		}
 		return nil, apperr.NewInternalError("Failed to fetch user by username from database", apperr.WithCause(err))
 	}
@@ -103,7 +103,7 @@ func (r *UserPostgresRepository) FindByUsername(ctx context.Context, username st
 }
 
 // FindByID は指定されたIDのUserを取得する
-func (r *UserPostgresRepository) FindByID(ctx context.Context, id domain.UserID) (*domain.User, error) {
+func (r *UserPostgresRepository) FindByID(ctx context.Context, id user.UserID) (*user.User, error) {
 	queries := r.GetQueries(ctx)
 	mapper := r.GetTypeMapper()
 
@@ -115,7 +115,7 @@ func (r *UserPostgresRepository) FindByID(ctx context.Context, id domain.UserID)
 	record, err := queries.FindUser(ctx, pgUUID)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, apperr.ErrUserNotFound
+			return nil, user.NewUserNotFoundError()
 		}
 		return nil, apperr.NewInternalError("Failed to fetch user from database", apperr.WithCause(err))
 	}
@@ -129,7 +129,7 @@ func (r *UserPostgresRepository) FindByID(ctx context.Context, id domain.UserID)
 }
 
 // mapToUser はデータベースレコードをドメインオブジェクトに変換する
-func (r *UserPostgresRepository) mapToUser(record postgres.User) (*domain.User, error) {
+func (r *UserPostgresRepository) mapToUser(record postgres.User) (*user.User, error) {
 	mapper := r.GetTypeMapper()
 
 	id, err := mapper.FromUUID(record.ID)
@@ -147,8 +147,8 @@ func (r *UserPostgresRepository) mapToUser(record postgres.User) (*domain.User, 
 		return nil, err
 	}
 
-	return domain.NewUser(
-		domain.NewUserID(id),
+	return user.NewUser(
+		user.NewUserID(id),
 		record.Username,
 		record.Email,
 		record.PasswordHash,

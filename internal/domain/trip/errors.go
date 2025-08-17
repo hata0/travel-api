@@ -6,6 +6,6 @@ const (
 	CodeTripNotFound = "TRIP_NOT_FOUND"
 )
 
-func NewTripNotFoundError(message string, opts ...apperr.AppErrorOption) *apperr.AppError {
-	return apperr.NewAppError(CodeTripNotFound, message, opts...)
+func NewTripNotFoundError(opts ...apperr.AppErrorOption) *apperr.AppError {
+	return apperr.NewAppError(CodeTripNotFound, "Trip not found", opts...)
 }

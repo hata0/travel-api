@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/hata0/travel-api/internal/domain"
 	apperr "github.com/hata0/travel-api/internal/domain/errors"
+	"github.com/hata0/travel-api/internal/domain/trip"
 	postgres "github.com/hata0/travel-api/internal/infrastructure/postgres/generated"
 	"github.com/hata0/travel-api/internal/infrastructure/postgres/mapper"
 	"github.com/jackc/pgx/v5"
@@ -18,7 +18,7 @@ import (
 
 // testTrip テスト用のTrip構造体
 type testTrip struct {
-	ID        domain.TripID
+	ID        trip.TripID
 	Name      string
 	CreatedAt time.Time
 	UpdatedAt time.Time
@@ -28,7 +28,7 @@ type testTrip struct {
 func newTestTrip(name string) testTrip {
 	now := time.Now().UTC().Truncate(time.Microsecond)
 	return testTrip{
-		ID:        domain.NewTripID(uuid.New().String()),
+		ID:        trip.NewTripID(uuid.New().String()),
 		Name:      name,
 		CreatedAt: now,
 		UpdatedAt: now,
@@ -36,15 +36,15 @@ func newTestTrip(name string) testTrip {
 }
 
 // toDomainTrip ドメインオブジェクトに変換する
-func (tt testTrip) toDomainTrip() *domain.Trip {
-	return domain.NewTrip(tt.ID, tt.Name, tt.CreatedAt, tt.UpdatedAt)
+func (tt testTrip) toDomainTrip() *trip.Trip {
+	return trip.NewTrip(tt.ID, tt.Name, tt.CreatedAt, tt.UpdatedAt)
 }
 
 // tripTestSuite テスト用の共通セットアップ
 type tripTestSuite struct {
 	ctx     context.Context
 	tx      pgx.Tx
-	repo    domain.TripRepository
+	repo    trip.TripRepository
 	queries *postgres.Queries
 	mapper  *mapper.PostgreSQLTypeMapper
 }
@@ -98,7 +98,7 @@ func (s *tripTestSuite) createTripInDB(t *testing.T, trip testTrip) {
 }
 
 // getTripFromDB データベースから直接Tripを取得する
-func (s *tripTestSuite) getTripFromDB(t *testing.T, id domain.TripID) (*postgres.Trip, error) {
+func (s *tripTestSuite) getTripFromDB(t *testing.T, id trip.TripID) (*postgres.Trip, error) {
 	t.Helper()
 
 	pgUUID, err := s.mapper.ToUUID(id.String())
@@ -109,7 +109,7 @@ func (s *tripTestSuite) getTripFromDB(t *testing.T, id domain.TripID) (*postgres
 }
 
 // assertTripEquals Tripの等価性をアサートする
-func assertTripEquals(t *testing.T, expected testTrip, actual *domain.Trip) {
+func assertTripEquals(t *testing.T, expected testTrip, actual *trip.Trip) {
 	t.Helper()
 	assert.Equal(t, expected.ID, actual.ID(), "TripIDが一致すること")
 	assert.Equal(t, expected.Name, actual.Name(), "TripNameが一致すること")
@@ -141,7 +141,7 @@ func (s *tripTestSuite) assertTripExistsInDB(t *testing.T, expected testTrip) {
 }
 
 // assertTripNotExistsInDB データベースにTripが存在しないことをアサートする
-func (s *tripTestSuite) assertTripNotExistsInDB(t *testing.T, id domain.TripID) {
+func (s *tripTestSuite) assertTripNotExistsInDB(t *testing.T, id trip.TripID) {
 	t.Helper()
 
 	_, err := s.getTripFromDB(t, id)
@@ -150,12 +150,12 @@ func (s *tripTestSuite) assertTripNotExistsInDB(t *testing.T, id domain.TripID) 
 }
 
 // assertTripsContainAll 取得したTripリストに期待するTripがすべて含まれることをアサートする
-func assertTripsContainAll(t *testing.T, expected []testTrip, actual []*domain.Trip) {
+func assertTripsContainAll(t *testing.T, expected []testTrip, actual []*trip.Trip) {
 	t.Helper()
 
 	require.Len(t, actual, len(expected), "取得したTrip数が期待値と一致すること")
 
-	expectedIDs := make(map[domain.TripID]testTrip)
+	expectedIDs := make(map[trip.TripID]testTrip)
 	for _, trip := range expected {
 		expectedIDs[trip.ID] = trip
 	}
@@ -199,21 +199,21 @@ func TestTripPostgresRepository_FindByID(t *testing.T) {
 		suite := newTripTestSuite(t)
 
 		// Given: 存在しないID
-		nonExistentID := domain.NewTripID(uuid.New().String())
+		nonExistentID := trip.NewTripID(uuid.New().String())
 
 		// When: 存在しないIDでTripを取得する
 		_, err := suite.repo.FindByID(suite.ctx, nonExistentID)
 
-		// Then: ErrTripNotFoundが返される
-		assert.ErrorIs(t, err, apperr.ErrTripNotFound,
-			"ErrTripNotFoundが返されるべき")
+		// Then: TripNotFoundが返される
+		assert.ErrorIs(t, err, trip.NewTripNotFoundError(),
+			"TripNotFoundが返されるべき")
 	})
 
 	t.Run("不正な形式のIDでInternalErrorが返されること", func(t *testing.T) {
 		suite := newTripTestSuite(t)
 
 		// Given: 不正な形式のID
-		invalidID := domain.NewTripID("invalid-uuid-format")
+		invalidID := trip.NewTripID("invalid-uuid-format")
 
 		// When: 不正なIDでTripを取得する
 		_, err := suite.repo.FindByID(suite.ctx, invalidID)
@@ -227,7 +227,7 @@ func TestTripPostgresRepository_FindByID(t *testing.T) {
 		suite := newTripTestSuite(t)
 
 		// Given: 空文字列のID
-		emptyID := domain.NewTripID("")
+		emptyID := trip.NewTripID("")
 
 		// When: 空のIDでTripを取得する
 		_, err := suite.repo.FindByID(suite.ctx, emptyID)
@@ -344,7 +344,7 @@ func TestTripPostgresRepository_Create(t *testing.T) {
 
 		// Given: 不正な形式のIDを持つTrip
 		invalidTrip := testTrip{
-			ID:        domain.NewTripID("invalid-uuid-format"),
+			ID:        trip.NewTripID("invalid-uuid-format"),
 			Name:      "不正ID旅行",
 			CreatedAt: time.Now().UTC(),
 			UpdatedAt: time.Now().UTC(),
@@ -447,7 +447,7 @@ func TestTripPostgresRepository_Update(t *testing.T) {
 
 		// Given: 不正な形式のIDを持つTrip
 		invalidTrip := testTrip{
-			ID:        domain.NewTripID("invalid-uuid-format"),
+			ID:        trip.NewTripID("invalid-uuid-format"),
 			Name:      "不正ID旅行",
 			CreatedAt: time.Now().UTC(),
 			UpdatedAt: time.Now().UTC(),
@@ -505,21 +505,21 @@ func TestTripPostgresRepository_Delete(t *testing.T) {
 		suite := newTripTestSuite(t)
 
 		// Given: 存在しないID
-		nonExistentID := domain.NewTripID(uuid.New().String())
+		nonExistentID := trip.NewTripID(uuid.New().String())
 
 		// When: 存在しないIDでTripを削除する
 		err := suite.repo.Delete(suite.ctx, nonExistentID)
 
-		// Then: ErrTripNotFoundが返される
-		assert.ErrorIs(t, err, apperr.ErrTripNotFound,
-			"ErrTripNotFoundが返されるべき")
+		// Then: TripNotFoundが返される
+		assert.ErrorIs(t, err, trip.NewTripNotFoundError(),
+			"TripNotFoundが返されるべき")
 	})
 
 	t.Run("不正な形式のIDでInternalErrorが返されること", func(t *testing.T) {
 		suite := newTripTestSuite(t)
 
 		// Given: 不正な形式のID
-		invalidID := domain.NewTripID("invalid-uuid-format")
+		invalidID := trip.NewTripID("invalid-uuid-format")
 
 		// When: 不正なIDでTripを削除する
 		err := suite.repo.Delete(suite.ctx, invalidID)
@@ -533,7 +533,7 @@ func TestTripPostgresRepository_Delete(t *testing.T) {
 		suite := newTripTestSuite(t)
 
 		// Given: 空文字列のID
-		emptyID := domain.NewTripID("")
+		emptyID := trip.NewTripID("")
 
 		// When: 空のIDでTripを削除する
 		err := suite.repo.Delete(suite.ctx, emptyID)
@@ -578,8 +578,8 @@ func TestTripPostgresRepository_Delete(t *testing.T) {
 		// Then: 1回目は正常に削除される
 		assert.NoError(t, err1, "1回目の削除でエラーが発生してはならない")
 
-		// 2回目はErrTripNotFoundが返される
-		assert.ErrorIs(t, err2, apperr.ErrTripNotFound, "2回目はErrTripNotFoundが返されるべき")
+		// 2回目はTripNotFoundが返される
+		assert.ErrorIs(t, err2, trip.NewTripNotFoundError(), "2回目はTripNotFoundが返されるべき")
 
 		suite.assertTripNotExistsInDB(t, existingTrip.ID)
 	})

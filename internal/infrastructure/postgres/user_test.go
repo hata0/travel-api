@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/hata0/travel-api/internal/domain"
 	apperr "github.com/hata0/travel-api/internal/domain/errors"
+	"github.com/hata0/travel-api/internal/domain/user"
 	postgres "github.com/hata0/travel-api/internal/infrastructure/postgres/generated"
 	"github.com/hata0/travel-api/internal/infrastructure/postgres/mapper"
 	"github.com/jackc/pgx/v5"
@@ -18,7 +18,7 @@ import (
 
 // testUser テスト用のUser構造体
 type testUser struct {
-	ID           domain.UserID
+	ID           user.UserID
 	Username     string
 	Email        string
 	PasswordHash []byte
@@ -30,7 +30,7 @@ type testUser struct {
 func newTestUser(username, email string) testUser {
 	now := time.Now().UTC().Truncate(time.Microsecond)
 	return testUser{
-		ID:           domain.NewUserID(uuid.New().String()),
+		ID:           user.NewUserID(uuid.New().String()),
 		Username:     username,
 		Email:        email,
 		PasswordHash: []byte("hashed_password_" + uuid.New().String()),
@@ -40,15 +40,15 @@ func newTestUser(username, email string) testUser {
 }
 
 // toDomainUser ドメインオブジェクトに変換する
-func (tu testUser) toDomainUser() *domain.User {
-	return domain.NewUser(tu.ID, tu.Username, tu.Email, tu.PasswordHash, tu.CreatedAt, tu.UpdatedAt)
+func (tu testUser) toDomainUser() *user.User {
+	return user.NewUser(tu.ID, tu.Username, tu.Email, tu.PasswordHash, tu.CreatedAt, tu.UpdatedAt)
 }
 
 // userTestSuite テスト用の共通セットアップ
 type userTestSuite struct {
 	ctx     context.Context
 	tx      pgx.Tx
-	repo    domain.UserRepository
+	repo    user.UserRepository
 	queries *postgres.Queries
 	mapper  *mapper.PostgreSQLTypeMapper
 }
@@ -104,7 +104,7 @@ func (s *userTestSuite) createUserInDB(t *testing.T, user testUser) {
 }
 
 // getUserFromDB データベースから直接Userを取得する
-func (s *userTestSuite) getUserFromDB(t *testing.T, id domain.UserID) (*postgres.User, error) {
+func (s *userTestSuite) getUserFromDB(t *testing.T, id user.UserID) (*postgres.User, error) {
 	t.Helper()
 
 	pgUUID, err := s.mapper.ToUUID(id.String())
@@ -115,7 +115,7 @@ func (s *userTestSuite) getUserFromDB(t *testing.T, id domain.UserID) (*postgres
 }
 
 // assertUserEquals Userの等価性をアサートする
-func assertUserEquals(t *testing.T, expected testUser, actual *domain.User) {
+func assertUserEquals(t *testing.T, expected testUser, actual *user.User) {
 	t.Helper()
 	assert.Equal(t, expected.ID, actual.ID(), "UserIDが一致すること")
 	assert.Equal(t, expected.Username, actual.Username(), "Usernameが一致すること")
@@ -301,9 +301,8 @@ func TestUserPostgresRepository_FindByEmail(t *testing.T) {
 		// When: 存在しないEmailでUserを取得する
 		_, err := suite.repo.FindByEmail(suite.ctx, nonExistentEmail)
 
-		// Then: ErrUserNotFoundが返される
-		assert.ErrorIs(t, err, apperr.ErrUserNotFound,
-			"ErrUserNotFoundが返されるべき")
+		// Then: UserNotFoundが返される
+		assert.ErrorIs(t, err, user.NewUserNotFoundError(), "CodeUserNotFoundが返されるべき")
 	})
 }
 
@@ -333,9 +332,9 @@ func TestUserPostgresRepository_FindByUsername(t *testing.T) {
 		// When: 存在しないUsernameでUserを取得する
 		_, err := suite.repo.FindByUsername(suite.ctx, nonExistentUsername)
 
-		// Then: ErrUserNotFoundが返される
-		assert.ErrorIs(t, err, apperr.ErrUserNotFound,
-			"ErrUserNotFoundが返されるべき")
+		// Then: UserNotFoundが返される
+		assert.ErrorIs(t, err, user.NewUserNotFoundError(),
+			"UserNotFoundが返されるべき")
 	})
 }
 
@@ -360,21 +359,21 @@ func TestUserPostgresRepository_FindByID(t *testing.T) {
 		suite := newUserTestSuite(t)
 
 		// Given: 存在しないID
-		nonExistentID := domain.NewUserID(uuid.New().String())
+		nonExistentID := user.NewUserID(uuid.New().String())
 
 		// When: 存在しないIDでUserを取得する
 		_, err := suite.repo.FindByID(suite.ctx, nonExistentID)
 
-		// Then: ErrUserNotFoundが返される
-		assert.ErrorIs(t, err, apperr.ErrUserNotFound,
-			"ErrUserNotFoundが返されるべき")
+		// Then: UserNotFoundが返される
+		assert.ErrorIs(t, err, user.NewUserNotFoundError(),
+			"UserNotFoundが返されるべき")
 	})
 
 	t.Run("不正な形式のIDでInternalErrorが返されること", func(t *testing.T) {
 		suite := newUserTestSuite(t)
 
 		// Given: 不正な形式のID
-		invalidID := domain.NewUserID("invalid-uuid-format")
+		invalidID := user.NewUserID("invalid-uuid-format")
 
 		// When: 不正なIDでUserを取得する
 		_, err := suite.repo.FindByID(suite.ctx, invalidID)
@@ -388,7 +387,7 @@ func TestUserPostgresRepository_FindByID(t *testing.T) {
 		suite := newUserTestSuite(t)
 
 		// Given: 空文字列のID
-		emptyID := domain.NewUserID("")
+		emptyID := user.NewUserID("")
 
 		// When: 空のIDでUserを取得する
 		_, err := suite.repo.FindByID(suite.ctx, emptyID)

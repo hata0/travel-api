@@ -6,6 +6,6 @@ const (
 	CodeUserNotFound = "USER_NOT_FOUND"
 )
 
-func NewUserNotFoundError(message string, opts ...apperr.AppErrorOption) *apperr.AppError {
-	return apperr.NewAppError(CodeUserNotFound, message, opts...)
+func NewUserNotFoundError(opts ...apperr.AppErrorOption) *apperr.AppError {
+	return apperr.NewAppError(CodeUserNotFound, "User not found", opts...)
 }
